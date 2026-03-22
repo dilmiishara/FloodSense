@@ -17,12 +17,14 @@
 
 import { useState } from "react";
 import Dashboard   from "./Dashboard";
+import Prediction  from "./Prediction";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
 
   const pages = {
     dashboard:   Dashboard,
+       prediction:  Prediction,
   };
 
   const PageComponent = pages[page] ?? Dashboard;
