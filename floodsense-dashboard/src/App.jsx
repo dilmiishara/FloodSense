@@ -16,14 +16,13 @@
 //     Logout.jsx
 
 import { useState } from "react";
-import MapView     from "./MapView";
+import Dashboard   from "./Dashboard";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
 
   const pages = {
     dashboard:   Dashboard,
-    mapview:     MapView
   };
 
   const PageComponent = pages[page] ?? Dashboard;
