@@ -6,16 +6,13 @@ import "leaflet/dist/leaflet.css";
 import { C, Card, Badge, globalCSS, Header, Sidebar, TabBar } from "./shared";
 
 // 🌍 Real Map Component (Leaflet)
-const SriLankaMap = ({ mode }) => {
+const SriLankaMap = ({ mode, layer }) => {
     const center = [7.8731, 80.7718]; // Sri Lanka center
 
     const districts = [
-        { name: "Colombo", pos: [6.9271, 79.8612], risk: "high", water: "2.1m" },
-        { name: "Kalutara", pos: [6.5854, 79.9607], risk: "critical", water: "3.9m" },
-        { name: "Ratnapura", pos: [6.6828, 80.3992], risk: "critical", water: "4.8m" },
-        { name: "Kandy", pos: [7.2906, 80.6337], risk: "medium", water: "1.8m" },
-        { name: "Galle", pos: [6.0535, 80.2210], risk: "high", water: "2.3m" },
-        { name: "Jaffna", pos: [9.6615, 80.0255], risk: "safe", water: "0.6m" },
+        { name: "Ellagawa", pos: [6.730, 80.213], risk: "high", water: "2.1m" },
+        { name: "Putupaula", pos: [6.612, 80.060], risk: "critical", water: "3.9m" },
+        { name: "Rathnapura", pos: [6.690, 80.380], risk: "critical", water: "4.8m" },
     ];
 
     const safeLocations = [
@@ -32,24 +29,33 @@ const SriLankaMap = ({ mode }) => {
         safe: "green",
     })[risk];
 
+    // ✅ Tile Layer selection
+    const tileUrl =
+        layer === "Satellite"
+            ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+    const attribution =
+        layer === "Satellite"
+            ? "Tiles &copy; Esri &mdash; Source: Esri, NASA, NGA, USGS"
+            : "&copy; OpenStreetMap contributors";
+
     return (
         <MapContainer
             center={center}
             zoom={7}
             style={{ height: "400px", width: "100%" }}
         >
-            {/* 🌍 Base Map */}
-            <TileLayer
-                attribution="&copy; OpenStreetMap"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <TileLayer url={tileUrl} attribution={attribution} />
 
             {/* 📍 District markers */}
             {districts.map((d, i) => (
                 <Marker key={i} position={d.pos}>
                     <Popup>
-                        <b>{d.name}</b><br />
-                        Water Level: {d.water}<br />
+                        <b>{d.name}</b>
+                        <br />
+                        Water Level: {d.water}
+                        <br />
                         Risk: {d.risk}
                     </Popup>
                 </Marker>
@@ -84,10 +90,10 @@ export default function MapView({ page, setPage }) {
     const [layer, setLayer] = useState("District");
 
     const tabs = [
-        { id: "sensor", label: "📡 Sensor Locations" },
-        { id: "safe", label: "🏠 Safe Locations" },
-        { id: "affected", label: "🌊 Affected Areas" },
-        { id: "heatmap", label: "🔥 Risk Heatmap" },
+        { id: "sensor", label: "Sensor Locations" },
+        { id: "safe", label: "Safe Locations" },
+        { id: "affected", label: "Affected Areas" },
+        { id: "heatmap", label: "Risk Heatmap" },
     ];
 
     const mapMode =
@@ -111,8 +117,8 @@ export default function MapView({ page, setPage }) {
                     <Sidebar page={page} setPage={setPage} />
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
-
                         <TabBar tabs={tabs} active={tab} onChange={setTab} />
+
 
                         {/* 🗺 Map */}
                         <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -120,22 +126,25 @@ export default function MapView({ page, setPage }) {
                                 padding: "11px 14px",
                                 borderBottom: `1px solid ${C.border}`,
                                 display: "flex",
-                                justifyContent: "space-between"
+                                justifyContent: "space-between",
+                                alignItems: "center"
                             }}>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>
                   🗺 Sri Lanka Real-Time Map
                 </span>
 
+                                {/* Layer toggle */}
                                 <div style={{ display: "flex", gap: 6 }}>
-                                    {["District", "Satellite"].map((l) => (
+                                    {["Map", "Satellite"].map((l) => (
                                         <button
                                             key={l}
                                             onClick={() => setLayer(l)}
                                             style={{
                                                 padding: "5px 11px",
                                                 borderRadius: 7,
-                                                border: `1px solid ${C.border}`,
-                                                background: "#fff",
+                                                border: `1px solid ${layer === l ? C.dark : C.border}`,
+                                                background: layer === l ? C.dark : "#fff",
+                                                color: layer === l ? "#fff" : C.mid,
                                                 cursor: "pointer"
                                             }}
                                         >
@@ -145,8 +154,22 @@ export default function MapView({ page, setPage }) {
                                 </div>
                             </div>
 
-                            <SriLankaMap mode={mapMode} />
+                            <SriLankaMap mode={mapMode} layer={layer} />
                         </Card>
+
+
+                        {/* ── Bottom Stats ── */}
+                        <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+                            {[["🚨","Critical Zones","3",C.red],["📡","Active Sensors","5",C.dark],["🏠","Safe Locations","12",C.green],["🌊","Affected Districts","6",C.orange]].map(([icon, label, val, c], i) => (
+                                <Card key={i} style={{ padding: "13px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+                                    <span style={{ fontSize: 20 }}>{icon}</span>
+                                    <div>
+                                        <div style={{ fontSize: 10, color: "#aaa", fontWeight: 600, textTransform: "uppercase", letterSpacing: .4 }}>{label}</div>
+                                        <div style={{ fontSize: 18, fontWeight: 900, color: c }}>{val}</div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
 
                     </div>
                 </div>
