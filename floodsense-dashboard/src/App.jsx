@@ -16,6 +16,7 @@
 //     Logout.jsx
 
 import { useState } from "react";
+import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
 import Prediction  from "./Prediction";
 
