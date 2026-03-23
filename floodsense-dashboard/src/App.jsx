@@ -16,6 +16,7 @@
 //     Logout.jsx
 
 import { useState } from "react";
+import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
 
   const pages = {
     dashboard:   Dashboard,
+    mapview:     MapView
   };
 
   const PageComponent = pages[page] ?? Dashboard;
