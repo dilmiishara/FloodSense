@@ -18,13 +18,14 @@
 import { useState } from "react";
 import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
+import Prediction  from "./Prediction";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
 
   const pages = {
     dashboard:   Dashboard,
-    mapview:     MapView
+       prediction:  Prediction,
   };
 
   const PageComponent = pages[page] ?? Dashboard;
