@@ -5,7 +5,7 @@ import "leaflet/dist/leaflet.css";
 
 import { C, Card, Badge, globalCSS, Header, Sidebar, TabBar } from "./shared";
 
-// 🌍 Real Map Component (Leaflet)
+// Real Map Component (Leaflet)
 const SriLankaMap = ({ mode, layer }) => {
     const center = [7.8731, 80.7718]; // Sri Lanka center
 
@@ -29,7 +29,7 @@ const SriLankaMap = ({ mode, layer }) => {
         safe: "green",
     })[risk];
 
-    // ✅ Tile Layer selection
+    // Tile Layer selection
     const tileUrl =
         layer === "Satellite"
             ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -48,7 +48,7 @@ const SriLankaMap = ({ mode, layer }) => {
         >
             <TileLayer url={tileUrl} attribution={attribution} />
 
-            {/* 📍 District markers */}
+            {/* District markers */}
             {districts.map((d, i) => (
                 <Marker key={i} position={d.pos}>
                     <Popup>
@@ -61,7 +61,7 @@ const SriLankaMap = ({ mode, layer }) => {
                 </Marker>
             ))}
 
-            {/* 🔥 Heatmap circles */}
+            {/* Heatmap circles */}
             {mode === "heatmap" &&
                 districts.map((d, i) => (
                     <Circle
@@ -72,7 +72,7 @@ const SriLankaMap = ({ mode, layer }) => {
                     />
                 ))}
 
-            {/* 🏠 Safe locations */}
+            {/* Safe locations */}
             {mode === "safe" &&
                 safeLocations.map((s, i) => (
                     <Marker key={i} position={s.pos}>
@@ -170,7 +170,7 @@ export default function MapView({ page, setPage }) {
                                     </div>
                                 </div>
 
-                                {/* ✅ THIS IS THE MAIN FIX */}
+                                {/* THIS IS THE MAIN FIX */}
                                 <div style={{ height: "60vh", width: "100%" }}>
                                     <SriLankaMap mode={mapMode} layer={layer} />
                                 </div>
@@ -190,7 +190,7 @@ export default function MapView({ page, setPage }) {
                                             color: "#aaa",
                                             marginBottom: 10
                                         }}>
-                                            {tab === "sensor" ? "Active Sensors" : tab === "heatmap" ? "Risk Probability (6H)" : "Affected Districts"}
+                                            {tab === "sensor" ? "Active Sensors" : tab === "heatmap" ? "Risk Probability (6H)" : "Affected Zones"}
                                         </div>
                                         {tab === "sensor" ? (
                                             sensors.map((s, i) => (
@@ -282,7 +282,7 @@ export default function MapView({ page, setPage }) {
                                             letterSpacing: .5,
                                             color: "#aaa",
                                             marginBottom: 10
-                                        }}>District Alert Status
+                                        }}>Ratnapura Risk Zones
                                         </div>
                                         {districts.map((d, i) => (
                                             <div key={i} style={{
@@ -305,23 +305,63 @@ export default function MapView({ page, setPage }) {
                         </div>
 
                         {/* ── Bottom Stats ── */}
-                        <div className="fadeUp"
-                             style={{display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12}}>
-                            {[["🚨", "Critical Zones", "3", C.red], ["📡", "Active Sensors", "5", C.dark], ["🏠", "Safe Locations", "12", C.green], ["🌊", "Affected Districts", "6", C.orange]].map(([icon, label, val, c], i) => (
-                                <Card key={i}
-                                      style={{padding: "13px 16px", display: "flex", alignItems: "center", gap: 10}}>
-                                    <span style={{fontSize: 20}}>{icon}</span>
-                                    <div>
-                                        <div style={{
-                                            fontSize: 10,
-                                            color: "#aaa",
+                        <div
+                            className="fadeUp"
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(4,1fr)",
+                                gap: 10
+                            }}
+                        >
+                            {[
+                                ["Critical Zones", "3", "High risk areas", C.red],
+                                ["Active Sensors", "5", "All systems running", C.dark],
+                                ["Safe Locations", "12", "Available shelters", C.green],
+                                ["Affected Areas", "6", "Flood impact zones", C.orange]
+                            ].map(([label, val, sub, c], i) => (
+                                <div
+                                    key={i}
+                                    style={{
+                                        background: C.white,
+                                        borderRadius: 12,
+                                        padding: "14px 16px",
+                                        boxShadow: C.shadow,
+                                        borderLeft: `4px solid ${c}`
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            fontSize: 11,
                                             fontWeight: 600,
+                                            color: "#aaa",
                                             textTransform: "uppercase",
-                                            letterSpacing: .4
-                                        }}>{label}</div>
-                                        <div style={{fontSize: 18, fontWeight: 900, color: c}}>{val}</div>
+                                            letterSpacing: 0.4
+                                        }}
+                                    >
+                                        {label}
                                     </div>
-                                </Card>
+
+                                    <div
+                                        style={{
+                                            fontSize: 28,
+                                            fontWeight: 900,
+                                            color: c,
+                                            marginTop: 4
+                                        }}
+                                    >
+                                        {val}
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            fontSize: 11,
+                                            color: C.mid,
+                                            marginTop: 3
+                                        }}
+                                    >
+                                        {sub}
+                                    </div>
+                                </div>
                             ))}
                         </div>
 
