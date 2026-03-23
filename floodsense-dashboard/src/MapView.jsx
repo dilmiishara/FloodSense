@@ -16,7 +16,7 @@ const SriLankaMap = ({ mode, layer }) => {
     ];
 
     const safeLocations = [
-        { name: "Ratnapura School", pos: [6.68, 80.4] },
+        { name: "Rathnapura School", pos: [6.68, 80.4] },
         { name: "Colombo Hospital", pos: [6.93, 79.86] },
         { name: "Kandy Centre", pos: [7.29, 80.63] },
     ];
@@ -282,7 +282,7 @@ export default function MapView({ page, setPage }) {
                                             letterSpacing: .5,
                                             color: "#aaa",
                                             marginBottom: 10
-                                        }}>Ratnapura Risk Zones
+                                        }}>Rathnapura Risk Zones
                                         </div>
                                         {districts.map((d, i) => (
                                             <div key={i} style={{
