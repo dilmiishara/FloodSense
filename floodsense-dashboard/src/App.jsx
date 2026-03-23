@@ -26,6 +26,8 @@ export default function App() {
   const pages = {
     dashboard:   Dashboard,
        prediction:  Prediction,
+        mapview:     MapView,
+
   };
 
   const PageComponent = pages[page] ?? Dashboard;
