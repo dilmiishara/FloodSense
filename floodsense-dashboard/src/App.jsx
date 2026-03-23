@@ -17,12 +17,14 @@
 
 import { useState } from "react";
 import Dashboard   from "./Dashboard";
+import Alerts from "./Alerts";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
 
   const pages = {
     dashboard:   Dashboard,
+    alerts: Alerts,
   };
 
   const PageComponent = pages[page] ?? Dashboard;
