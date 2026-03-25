@@ -19,8 +19,10 @@ import { useState } from "react";
 import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
 import Alerts from "./Alerts";
+import Reports from "./Reports";
 import Prediction  from "./Prediction";
 import Settings from "./Settings";
+import AddLocation from "./AddLocation";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
@@ -31,6 +33,8 @@ export default function App() {
        prediction:  Prediction,
         mapview:     MapView,
         settings:    Settings
+        reports: Reports,
+      addlocation: AddLocation
   };
 
   const PageComponent = pages[page] ?? Dashboard;
