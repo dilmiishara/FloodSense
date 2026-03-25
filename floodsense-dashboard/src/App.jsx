@@ -20,6 +20,7 @@ import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
 import Alerts from "./Alerts";
 import Prediction  from "./Prediction";
+import AddLocation from "./AddLocation";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
@@ -27,8 +28,9 @@ export default function App() {
   const pages = {
     dashboard:   Dashboard,
     alerts: Alerts,
-       prediction:  Prediction,
-        mapview:     MapView,
+      prediction:  Prediction,
+      mapview:     MapView,
+      addlocation: AddLocation
 
   };
 
