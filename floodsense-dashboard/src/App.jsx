@@ -20,6 +20,7 @@ import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
 import Alerts from "./Alerts";
 import Prediction  from "./Prediction";
+import Settings from "./Settings";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
@@ -29,7 +30,7 @@ export default function App() {
     alerts: Alerts,
        prediction:  Prediction,
         mapview:     MapView,
-
+        settings:    Settings
   };
 
   const PageComponent = pages[page] ?? Dashboard;
