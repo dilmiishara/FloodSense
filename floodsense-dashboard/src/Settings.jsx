@@ -701,7 +701,7 @@ export default function Settings({ page, setPage }) {
                         {[
                           [
                             "MR",
-                            "Mahinda Rajapaksa",
+                            "Ravi Kumara",
                             "m.rajapaksa@floodsense.gov.lk",
                             "admin",
                             "21 Mar 14:32",
