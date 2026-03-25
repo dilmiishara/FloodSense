@@ -682,7 +682,7 @@ export default function Prediction({ page, setPage }) {
       badge: "critical",
     },
     {
-      name: "Kalutara",
+      name: "Kuruvita ",
       river: "Kalu Ganga · B1",
       cur: "3.9m",
       pred: "4.9m",
@@ -703,13 +703,20 @@ export default function Prediction({ page, setPage }) {
 
   const riskRankings = [
     ["Ratnapura", 92, C.red, "critical"],
-    ["Kalutara", 78, "#cc4400", "critical"],
-    ["Galle", 65, C.orange, "high"],
-    ["Matara", 62, C.orange, "high"],
-    ["Colombo", 60, C.orange, "high"],
-    ["Kegalle", 52, "#e07800", "high"],
-    ["Kandy", 40, C.yellow, "medium"],
-    ["Jaffna", 10, C.green, "safe"],
+    ["Kuruvita ", 78, "#cc4400", "critical"],
+    ["Kiriella ", 65, C.orange, "high"],
+    ["Imbulpe ", 62, C.orange, "high"],
+    ["Balangoda ", 60, C.orange, "high"],
+    ["Opanayake ", 52, "#e07800", "high"],
+    ["Pelmadulla", 40, C.yellow, "medium"],
+    ["Kalawana", 10, C.green, "safe"],
+    ["Nivithigala", 52, "#e07800", "high"],
+    ["Elapatha", 10, C.green, "safe"],
+    ["Ayagama", 78, "#cc4400", "critical"],
+    ["Kahawatta", 10, C.green, "safe"],
+    ["Godakawela", 92, C.red, "critical"],
+    ["Embilipitiya", 52, "#e07800", "high"],
+    ["Kolonna", 10, C.green, "safe"],
   ];
 
   const stationData = [
@@ -1733,43 +1740,69 @@ export default function Prediction({ page, setPage }) {
                   </div>
                   <SriLankaMap mode="heatmap" />
                 </Card>
-                <Card style={{ width: 280 }}>
-                  <div
-                    style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}
-                  >
-                    District Risk Rankings
-                  </div>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>District</th>
-                        <th>Probability</th>
-                        <th>Risk</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {riskRankings.map(([name, pct, c, badge], i) => (
-                        <tr key={i}>
-                          <td
-                            style={{ fontWeight: 900, color: c, fontSize: 13 }}
-                          >
-                            {i + 1}
-                          </td>
-                          <td style={{ fontWeight: 700, fontSize: 13 }}>
-                            {name}
-                          </td>
-                          <td>
-                            <ProbBar pct={pct} color={c} />
-                          </td>
-                          <td>
-                            <Badge type={badge}>{badge.toUpperCase()}</Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </Card>
+              <Card style={{ width: 280, display: "flex", flexDirection: "column" }}>
+  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
+    District Risk Rankings 
+  </div>
+  <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>
+    Ratnapura District · All DSD areas
+  </div>
+  <div
+    style={{
+      overflowY: "auto",
+      flex: 1,
+      maxHeight: 280,
+      paddingRight: 2,
+    }}
+  >
+    <table style={{ width: "100%" }}>
+      <thead
+        style={{
+          position: "sticky",
+          top: 0,
+          background: "#fff",
+          zIndex: 1,
+        }}
+      >
+        <tr>
+          <th>#</th>
+          <th>District</th>
+          <th>Probability</th>
+          <th>Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        {riskRankings.map(([name, pct, c, badge], i) => (
+          <tr key={i}>
+            <td style={{ fontWeight: 900, color: c, fontSize: 13 }}>
+              {i + 1}
+            </td>
+            <td style={{ fontWeight: 700, fontSize: 13 }}>
+              {name}
+            </td>
+            <td>
+              <ProbBar pct={pct} color={c} />
+            </td>
+            <td>
+              <Badge type={badge}>{badge.toUpperCase()}</Badge>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <div
+    style={{
+      fontSize: 9,
+      color: "#ccc",
+      textAlign: "center",
+      marginTop: 8,
+      letterSpacing: 0.3,
+    }}
+  >
+    ↕ scroll to see all districts
+  </div>
+</Card>
               </div>
             )}
 
