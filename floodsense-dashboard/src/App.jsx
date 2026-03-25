@@ -32,7 +32,7 @@ export default function App() {
     alerts: Alerts,
        prediction:  Prediction,
         mapview:     MapView,
-        settings:    Settings
+        settings:    Settings,
         reports: Reports,
       addlocation: AddLocation
   };
