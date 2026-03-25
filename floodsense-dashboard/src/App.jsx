@@ -21,6 +21,7 @@ import Dashboard   from "./Dashboard";
 import Alerts from "./Alerts";
 import Reports from "./Reports";
 import Prediction  from "./Prediction";
+import Settings from "./Settings";
 import AddLocation from "./AddLocation";
 
 export default function App() {
@@ -29,16 +30,11 @@ export default function App() {
   const pages = {
     dashboard:   Dashboard,
     alerts: Alerts,
-<<<<<<< HEAD
        prediction:  Prediction,
         mapview:     MapView,
+        settings:    Settings
         reports: Reports,
-=======
-      prediction:  Prediction,
-      mapview:     MapView,
       addlocation: AddLocation
->>>>>>> 779bb2e39a29b6b8e7ca534dd558e1e7a5416c81
-
   };
 
   const PageComponent = pages[page] ?? Dashboard;
