@@ -88,6 +88,18 @@ export default function AddLocation({ page, setPage }) {
         }
     }, [safeLat, safeLng]);
 
+    const [mapFilter, setMapFilter] = useState("All");
+
+    const allsensors = [
+        { name:"Ratnapura-A2", lat:6.68, lng:80.40, status:"active" },
+        { name:"Kalutara-B1", lat:6.58, lng:80.00, status:"active" },
+    ];
+
+    const allsafeZones = [
+        { name:"Ratnapura School", lat:6.70, lng:80.41 },
+        { name:"Kalutara Ground", lat:6.59, lng:79.99 },
+    ];
+
     return (
         <>
             <style>{globalCSS}</style>
@@ -437,54 +449,96 @@ export default function AddLocation({ page, setPage }) {
 
                         {/* ── VERIFY ON MAP ── */}
                         {tab === "verify" && (
-                            <div className="fadeUp" style={{ display: "flex", gap: 12 }}>
-                                <Card style={{ flex: 1, padding: 0, overflow: "hidden" }}>
-                                    <div style={{ padding: "11px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700 }}>🗺 All Locations — Verification Map</div>
+                            <div className="fadeUp" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+                                <Card style={{ padding: 0, overflow: "hidden" }}>
+
+                                    {/* Header */}
+                                    <div style={{
+                                        padding: "14px 16px",
+                                        borderBottom: `1px solid ${C.border}`,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between"
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 800 }}>
+                                                Location Map
+                                            </div>
+                                            <div style={{ fontSize: 11, color: C.mid }}>
+                                                View and filter all sensors and safe zones
+                                            </div>
+                                        </div>
+
+                                        {/* Filter Buttons */}
                                         <div style={{ display: "flex", gap: 6 }}>
-                                            {["All","Sensors","Safe Zones"].map(l => (
-                                                <button key={l} style={{ padding: "5px 11px", borderRadius: 7, border: `1.5px solid ${l==="All"?C.dark:C.border}`, background: l==="All"?C.dark:"#fff", color: l==="All"?"#fff":C.mid, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
+                                            {["All", "Sensors", "Safe Zones"].map(l => (
+                                                <button
+                                                    key={l}
+                                                    onClick={() => setMapFilter(l)}
+                                                    style={{
+                                                        padding: "6px 12px",
+                                                        borderRadius: 8,
+                                                        border: `1px solid ${mapFilter === l ? C.dark : C.border}`,
+                                                        background: mapFilter === l ? C.dark : "#fff",
+                                                        color: mapFilter === l ? "#fff" : C.mid,
+                                                        fontSize: 12,
+                                                        fontWeight: 700,
+                                                        cursor: "pointer",
+                                                        transition: "0.2s"
+                                                    }}
+                                                >
+                                                    {l}
+                                                </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <SriLankaMap mode="sensor"/>
+
+                                    {/* Map */}
+                                    <div style={{ height: 450 }}>
+                                        <MapContainer
+                                            center={[6.8, 80.4]}
+                                            zoom={9}
+                                            style={{ height: "100%", width: "100%" }}
+                                        >
+                                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                                            {/* Sensors */}
+                                            {(mapFilter === "All" || mapFilter === "Sensors") &&
+                                                allsensors.map((s, i) => (
+                                                    <Marker key={`s-${i}`} position={[s.lat, s.lng]}>
+                                                        <Popup>{s.name}</Popup>
+                                                    </Marker>
+                                                ))
+                                            }
+
+                                            {/* Safe Zones */}
+                                            {(mapFilter === "All" || mapFilter === "Safe Zones") &&
+                                                allsafeZones.map((z, i) => (
+                                                    <Marker key={`z-${i}`} position={[z.lat, z.lng]}>
+                                                        <Popup>{z.name}</Popup>
+                                                    </Marker>
+                                                ))
+                                            }
+                                        </MapContainer>
+                                    </div>
+
+                                    {/* Footer Info */}
+                                    <div style={{
+                                        padding: "10px 14px",
+                                        borderTop: `1px solid ${C.border}`,
+                                        fontSize: 11,
+                                        color: C.mid,
+                                        display: "flex",
+                                        justifyContent: "space-between"
+                                    }}>
+                                        <span>Sensors: {allsensors.length}</span>
+                                        <span>Safe Zones: {allsafeZones.length}</span>
+                                        <span>Total: {allsensors.length + allsafeZones.length}</span>
+                                    </div>
+
                                 </Card>
 
-                                {/* Verification queue */}
-                                <div style={{ width: 280, display: "flex", flexDirection: "column", gap: 12 }}>
-                                    <Card>
-                                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>✅ Verification Queue</div>
-                                        <div style={{ background: C.orangeBg, borderRadius: 10, padding: "12px 14px", marginBottom: 12, borderLeft: `4px solid ${C.orange}` }}>
-                                            <div style={{ fontSize: 12, fontWeight: 800, color: C.orange }}>⚠ 2 Locations Pending</div>
-                                            <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>Field confirmation required before activation</div>
-                                        </div>
-                                        {[["Matara-D4 Sensor","IMEI: 865213859999 · Matara","5.9549°N, 80.5550°E"],["Hambantota Safe Zone","Community Hall · Hambantota","6.1241°N, 81.1185°E"]].map(([name, sub, coords], i) => (
-                                            <div key={i} style={{ background: C.light, borderRadius: 10, padding: 12, marginBottom: 8 }}>
-                                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                                                    <div>
-                                                        <div style={{ fontSize: 13, fontWeight: 800 }}>{name}</div>
-                                                        <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{sub}</div>
-                                                    </div>
-                                                    <Badge type="pending">PENDING</Badge>
-                                                </div>
-                                                <div style={{ fontSize: 11, color: C.mid, marginBottom: 8 }}>{coords}</div>
-                                                <div style={{ display: "flex", gap: 6 }}>
-                                                    <Btn variant="green" style={{ flex: 1, fontSize: 11, padding: "6px 10px" }} onClick={() => showToast(`✅ ${name} verified!`)}>✅ Verify & Activate</Btn>
-                                                    <button onClick={() => setConfirm(name)} style={actBtn(true)}>🗑</button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </Card>
-                                    <Card style={{ padding: "14px 16px" }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: .4, marginBottom: 10 }}>Verification Summary</div>
-                                        {[["Total Locations","17",C.dark],["✅ Verified & Active","15",C.green],["⏳ Pending Verification","2",C.blue],["⚫ Inactive / Removed","1","#aaa"]].map(([k,v,c],i) => (
-                                            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0" }}>
-                                                <span style={{ color: C.mid }}>{k}</span>
-                                                <span style={{ fontWeight: 700, color: c }}>{v}</span>
-                                            </div>
-                                        ))}
-                                    </Card>
-                                </div>
                             </div>
                         )}
 
