@@ -1,6 +1,6 @@
 // ─── AddLocation.jsx ──────────────────────────────────────────────────────────
 import { useState ,useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap  } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { C, Card, Badge, Btn, Input, Select, FormGroup, globalCSS, Header, Sidebar, TabBar, SriLankaMap, Toast } from "./shared";
 
@@ -28,10 +28,10 @@ export default function AddLocation({ page, setPage }) {
     ];
 
     const safeZones = [
-        { name:"Ratnapura Central School",  type:"🏫 School",   district:"Ratnapura", cap:240, occ:0,  status:"active", badge:"AVAILABLE" },
-        { name:"Kalutara District Ground",  type:"🏟 Ground",   district:"Kalutara",  cap:500, occ:0,  status:"active", badge:"AVAILABLE" },
-        { name:"Colombo National Hospital", type:"🏥 Hospital", district:"Colombo",   cap:120, occ:72, status:"warn",   badge:"PARTIAL" },
-        { name:"Galle Fort Community Hall", type:"🏛 Hall",     district:"Galle",     cap:180, occ:0,  status:"active", badge:"AVAILABLE" },
+        { name:"Ratnapura Central School",  type:"School",   district:"Ratnapura", cap:240, occ:0,  status:"active", badge:"AVAILABLE" },
+        { name:"Kalutara District Ground",  type:"Ground",   district:"Kalutara",  cap:500, occ:0,  status:"active", badge:"AVAILABLE" },
+        { name:"Colombo National Hospital", type:"Hospital", district:"Colombo",   cap:120, occ:72, status:"warn",   badge:"PARTIAL" },
+        { name:"Galle Fort Community Hall", type:"Hall",     district:"Galle",     cap:180, occ:0,  status:"active", badge:"AVAILABLE" },
     ];
 
     const fieldStyle = { display: "grid", gap: 14, marginBottom: 14 };
@@ -46,6 +46,47 @@ export default function AddLocation({ page, setPage }) {
             setPosition([parseFloat(lat), parseFloat(lng)]);
         }
     }, [lat, lng]);
+
+    const ChangeView = ({ center }) => {
+        const map = useMap();
+        map.setView(center, 10);
+        return null;
+    };
+
+    const [address, setAddress] = useState("");
+    const [safeLat, setSafeLat] = useState(6.9);
+    const [safeLng, setSafeLng] = useState(80.5);
+    const [safePosition, setSafePosition] = useState([6.9, 80.5]);
+
+    const searchAddress = async () => {
+        if (!address) return;
+
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${address}`
+            );
+            const data = await res.json();
+
+            if (data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+
+                setSafeLat(lat);
+                setSafeLng(lng);
+                setSafePosition([lat, lng]);
+            } else {
+                alert("Location not found");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    useEffect(() => {
+        if (!isNaN(safeLat) && !isNaN(safeLng)) {
+            setSafePosition([parseFloat(safeLat), parseFloat(safeLng)]);
+        }
+    }, [safeLat, safeLng]);
 
     return (
         <>
@@ -95,18 +136,38 @@ export default function AddLocation({ page, setPage }) {
                                         <FormGroup label="River / Water Body"><Input placeholder="e.g. Kalu Ganga"/></FormGroup>
                                         <FormGroup label="Sensor Type"><Select><option>Water Level + Rainfall</option><option>Water Level Only</option><option>Rainfall Only</option></Select></FormGroup>
                                     </div>
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
-                                        <FormGroup label="GPS Latitude *"><Input placeholder="e.g. 6.6828" type="number"/></FormGroup>
-                                        <FormGroup label="GPS Longitude *"><Input placeholder="e.g. 80.3992" type="number"/></FormGroup>
+                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr"}}>
+                                        <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr"}}>
+                                            <FormGroup label="GPS Latitude *">
+                                                <Input
+                                                    placeholder="e.g. 6.6828"
+                                                    type="number"
+                                                    value={lat}
+                                                    onChange={(e) => setLat(e.target.value)}
+                                                />
+                                            </FormGroup>
+
+                                            <FormGroup label="GPS Longitude *">
+                                                <Input
+                                                    placeholder="e.g. 80.3992"
+                                                    type="number"
+                                                    value={lng}
+                                                    onChange={(e) => setLng(e.target.value)}
+                                                />
+                                            </FormGroup>
+                                        </div>
                                     </div>
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr" }}>
-                                        <FormGroup label="Warning Threshold (m)"><Input placeholder="e.g. 4.0" type="number"/></FormGroup>
-                                        <FormGroup label="Critical Threshold (m)"><Input placeholder="e.g. 5.2" type="number"/></FormGroup>
-                                        <FormGroup label="Sensor Height (m)"><Input placeholder="e.g. 6.0" type="number"/></FormGroup>
+                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr"}}>
+                                        <FormGroup label="Warning Threshold (m)"><Input placeholder="e.g. 4.0"
+                                                                                        type="number"/></FormGroup>
+                                        <FormGroup label="Critical Threshold (m)"><Input placeholder="e.g. 5.2"
+                                                                                         type="number"/></FormGroup>
+                                        <FormGroup label="Sensor Height (m)"><Input placeholder="e.g. 6.0"
+                                                                                    type="number"/></FormGroup>
                                     </div>
                                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
                                         <Btn variant="outline">Clear Form</Btn>
-                                        <Btn onClick={() => showToast("✅ Sensor registered successfully!")}>Register Sensor</Btn>
+                                        <Btn onClick={() => showToast("Sensor registered successfully!")}>Register Sensor</Btn>
                                     </div>
                                 </Card>
 
@@ -122,7 +183,7 @@ export default function AddLocation({ page, setPage }) {
                                             📍 Pin on Map
                                         </div>
 
-                                        {/* 🌍 REAL MAP */}
+                                        {/* REAL MAP */}
                                         <div style={{ height: 260 }}>
                                             <MapContainer
                                                 center={position}
@@ -131,19 +192,17 @@ export default function AddLocation({ page, setPage }) {
                                             >
                                                 <TileLayer
                                                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                                    attribution="&copy; OpenStreetMap contributors"
                                                 />
 
+                                                <ChangeView center={position} />
+
                                                 <Marker position={position}>
-                                                    <Popup>
-                                                        Selected Location <br />
-                                                        {lat} , {lng}
-                                                    </Popup>
+                                                    <Popup>{lat}, {lng}</Popup>
                                                 </Marker>
                                             </MapContainer>
                                         </div>
 
-                                        {/* 📍 Show coordinates */}
+                                        {/* Show coordinates */}
                                         <div style={{
                                             padding: "8px 14px",
                                             fontSize: 11,
@@ -153,29 +212,6 @@ export default function AddLocation({ page, setPage }) {
                                             {lat}°N , {lng}°E
                                         </div>
 
-                                        {/* 🔎 Input */}
-                                        <div style={{ padding: "10px 14px", display: "flex", gap: 8 }}>
-                                            <Input
-                                                placeholder="Latitude"
-                                                value={lat}
-                                                onChange={(e) => setLat(e.target.value)}
-                                                style={{ fontSize: 12 }}
-                                            />
-                                            <Input
-                                                placeholder="Longitude"
-                                                value={lng}
-                                                onChange={(e) => setLng(e.target.value)}
-                                                style={{ fontSize: 12 }}
-                                            />
-                                            <Btn
-                                                style={{ padding: "7px 14px", fontSize: 12 }}
-                                                onClick={() => {
-                                                    setPosition([parseFloat(lat), parseFloat(lng)]);
-                                                }}
-                                            >
-                                                Go
-                                            </Btn>
-                                        </div>
                                     </Card>
                                     <Card style={{ padding: "14px 16px" }}>
                                         <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: .4, marginBottom: 10 }}>Signal Check</div>
@@ -189,7 +225,7 @@ export default function AddLocation({ page, setPage }) {
                                                 <span style={{ fontSize: 12, fontWeight: 800, color: c }}>{pct}%</span>
                                             </div>
                                         ))}
-                                        <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenBg, borderRadius: 8, fontSize: 11, color: C.green, fontWeight: 600 }}>✅ Location suitable for sensor deployment</div>
+                                        <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenBg, borderRadius: 8, fontSize: 11, color: C.green, fontWeight: 600 }}>Location suitable for sensor deployment</div>
                                     </Card>
                                 </div>
                             </div>
@@ -199,7 +235,7 @@ export default function AddLocation({ page, setPage }) {
                         {tab === "safezone" && (
                             <div className="fadeUp" style={{ display: "flex", gap: 14 }}>
                                 <Card style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>🏠 Register Safe Zone</div>
+                                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>Register Safe Zone</div>
                                     <div style={{ fontSize: 12, color: "#aaa", marginBottom: 18 }}>Add an evacuation shelter or community safe location</div>
 
                                     <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
@@ -207,27 +243,66 @@ export default function AddLocation({ page, setPage }) {
                                         <FormGroup label="Location Type *"><Select><option>School / Education</option><option>Community Hall</option><option>Hospital / Medical</option><option>Sports Ground</option><option>Government Building</option></Select></FormGroup>
                                     </div>
                                     <div style={{ marginBottom: 14 }}>
-                                        <FormGroup label="Full Address *"><Input placeholder="Street address, city, district…"/></FormGroup>
+                                        <FormGroup label="Full Address *">
+                                            <Input
+                                                placeholder="Street address, city, district…"
+                                                value={address}
+                                                onChange={(e) => setAddress(e.target.value)}
+                                            />
+                                        </FormGroup>
+
+                                        <Btn
+                                            style={{ marginBottom: 14 }}
+                                            onClick={searchAddress}
+                                        >
+                                            Find Location
+                                        </Btn>
                                     </div>
                                     <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
                                         <FormGroup label="District *"><Select><option value="">Select District</option><option>Ratnapura</option><option>Kalutara</option><option>Colombo</option><option>Galle</option><option>Kandy</option></Select></FormGroup>
                                         <FormGroup label="Province"><Select><option>Sabaragamuwa Province</option><option>Western Province</option><option>Southern Province</option><option>Central Province</option></Select></FormGroup>
                                     </div>
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr" }}>
-                                        <FormGroup label="GPS Latitude *"><Input placeholder="e.g. 6.6828" type="number"/></FormGroup>
-                                        <FormGroup label="GPS Longitude *"><Input placeholder="e.g. 80.3992" type="number"/></FormGroup>
-                                        <FormGroup label="Elevation (m)"><Input placeholder="e.g. 42" type="number"/></FormGroup>
+                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr"}}>
+
+                                        <FormGroup label="GPS Latitude *">
+                                            <Input
+                                                placeholder="e.g. 6.6828"
+                                                type="number"
+                                                value={safeLat}
+                                                onChange={(e) => setSafeLat(e.target.value)}
+                                            />
+                                        </FormGroup>
+
+                                        <FormGroup label="GPS Longitude *">
+                                            <Input
+                                                placeholder="e.g. 80.3992"
+                                                type="number"
+                                                value={safeLng}
+                                                onChange={(e) => setSafeLng(e.target.value)}
+                                            />
+                                        </FormGroup>
+
+                                        <FormGroup label="Elevation (m)">
+                                            <Input
+                                                placeholder="e.g. 42"
+                                                type="number"
+                                            />
+                                        </FormGroup>
+
                                     </div>
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr" }}>
-                                        <FormGroup label="Max Capacity *" hint="Total people capacity"><Input placeholder="e.g. 240" type="number"/></FormGroup>
-                                        <FormGroup label="Contact Person"><Input placeholder="e.g. Mr. Perera"/></FormGroup>
-                                        <FormGroup label="Contact Number"><Input placeholder="e.g. 077-1234567"/></FormGroup>
+                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr"}}>
+                                        <FormGroup label="Max Capacity *" hint="Total people capacity"><Input
+                                            placeholder="e.g. 240" type="number"/></FormGroup>
+                                        <FormGroup label="Contact Person"><Input
+                                            placeholder="e.g. Mr. Perera"/></FormGroup>
+                                        <FormGroup label="Contact Number"><Input
+                                            placeholder="e.g. 077-1234567"/></FormGroup>
                                     </div>
 
-                                    <div style={{ marginBottom: 14 }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Available Facilities</div>
+                                    <div style={{marginBottom: 14}}>
+                                        <div style={{fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Available Facilities</div>
                                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                            {[["🚿 Water Supply",true],["🍽 Food Storage",true],["🔌 Generator",true],["🏥 Medical Unit",false],["🚽 Sanitation",true],["♿ Disabled Access",false]].map(([f,sel],i) => (
+                                            {[["Water Supply",true],["Food Storage",true],["Generator",true],["Medical Unit",false],["Sanitation",true],["Disabled Access",false]].map(([f,sel],i) => (
                                                 <div key={i} style={{ padding: "7px 14px", borderRadius: 10, border: `1.5px solid ${sel ? C.dark : C.border}`, background: sel ? C.dark : "#fff", color: sel ? "#fff" : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{f}</div>
                                             ))}
                                         </div>
@@ -235,7 +310,7 @@ export default function AddLocation({ page, setPage }) {
 
                                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
                                         <Btn variant="outline">Clear Form</Btn>
-                                        <Btn variant="green" onClick={() => showToast("✅ Safe zone registered successfully!")}>🏠 Register Safe Zone</Btn>
+                                        <Btn variant="green" onClick={() => showToast("Safe zone registered successfully!")}>Register Safe Zone</Btn>
                                     </div>
                                 </Card>
 
@@ -244,19 +319,45 @@ export default function AddLocation({ page, setPage }) {
                                     <Card style={{ padding: 0, overflow: "hidden" }}>
                                         <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, fontSize: 13, fontWeight: 700 }}>📍 Pin Safe Zone</div>
                                         <div style={{ background: "#e8f4ee", position: "relative" }}>
-                                            <SriLankaMap mode="sensor"/>
-                                            <div style={{ position: "absolute", bottom: 10, left: 10, background: "rgba(26,26,26,.85)", color: "#fff", borderRadius: 7, padding: "5px 10px", fontSize: 11, fontFamily: "DM Mono" }}>6.9014°N  80.5122°E</div>
+                                            <div style={{height: 260}}>
+                                                <MapContainer
+                                                    center={safePosition}
+                                                    zoom={12}
+                                                    style={{height: "100%", width: "100%"}}
+                                                >
+                                                    <TileLayer
+                                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+
+                                                    <ChangeView center={safePosition}/>
+
+                                                    <Marker position={safePosition}>
+                                                        <Popup>{address || `${safeLat}, ${safeLng}`}</Popup>
+                                                    </Marker>
+                                                </MapContainer>
+                                            </div>
+                                            <div style={{
+                                                position: "absolute",
+                                                bottom: 10,
+                                                left: 10,
+                                                background: "rgba(26,26,26,.85)",
+                                                color: "#fff",
+                                                borderRadius: 7,
+                                                padding: "5px 10px",
+                                                fontSize: 11,
+                                                fontFamily: "DM Mono"
+                                            }}>6.9014°N 80.5122°E
+                                            </div>
                                         </div>
                                     </Card>
-                                    <Card style={{ padding: "14px 16px" }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: .4, marginBottom: 10 }}>Location Assessment</div>
+                                    <Card style={{padding: "14px 16px"}}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: .4, marginBottom: 10 }}>Location Assessment</div>
                                         {[["Elevation above flood zone","+12m ✅",C.green],["Distance to nearest flood zone","2.4km ✅",C.green],["Road access in flood event","Available ✅",C.green],["Historical flood record","None ✅",C.green]].map(([k,v,c],i) => (
                                             <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: i < 3 ? `1px solid #fafafa` : "none" }}>
                                                 <span style={{ color: C.mid }}>{k}</span>
                                                 <span style={{ fontWeight: 700, color: c }}>{v}</span>
                                             </div>
                                         ))}
-                                        <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenBg, borderRadius: 8, fontSize: 11, color: C.green, fontWeight: 600 }}>✅ Location approved as safe zone</div>
+                                        <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenBg, borderRadius: 8, fontSize: 11, color: C.green, fontWeight: 600 }}>Location approved as safe zone</div>
                                     </Card>
                                 </div>
                             </div>
@@ -267,7 +368,7 @@ export default function AddLocation({ page, setPage }) {
                             <div className="fadeUp" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                                 {/* Filter bar */}
                                 <div style={{ display: "flex", gap: 10 }}>
-                                    <Input placeholder="🔍 Search locations…" style={{ flex: 1 }}/>
+                                    <Input placeholder="Search locations…" style={{ flex: 1 }}/>
                                     <Select style={{ width: 160 }}><option>All Types</option><option>Sensors</option><option>Safe Zones</option></Select>
                                     <Select style={{ width: 160 }}><option>All Districts</option><option>Ratnapura</option><option>Kalutara</option><option>Colombo</option></Select>
                                     <Select style={{ width: 140 }}><option>All Status</option><option>Active</option><option>Inactive</option><option>Pending</option></Select>
@@ -276,7 +377,7 @@ export default function AddLocation({ page, setPage }) {
                                 {/* Sensors table */}
                                 <Card style={{ padding: 0, overflow: "hidden" }}>
                                     <div style={{ padding: "13px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700 }}>📡 Sensor Locations <span style={{ fontSize: 12, color: "#aaa", fontWeight: 400 }}>(5 total)</span></div>
+                                        <div style={{ fontSize: 13, fontWeight: 700 }}>Sensor Locations <span style={{ fontSize: 12, color: "#aaa", fontWeight: 400 }}>(5 total)</span></div>
                                         <Btn style={{ fontSize: 12, padding: "6px 14px" }}>+ Add Sensor</Btn>
                                     </div>
                                     <table>
@@ -306,7 +407,7 @@ export default function AddLocation({ page, setPage }) {
                                 {/* Safe zones table */}
                                 <Card style={{ padding: 0, overflow: "hidden" }}>
                                     <div style={{ padding: "13px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700 }}>🏠 Safe Zone Locations <span style={{ fontSize: 12, color: "#aaa", fontWeight: 400 }}>(12 total)</span></div>
+                                        <div style={{ fontSize: 13, fontWeight: 700 }}>Safe Zone Locations <span style={{ fontSize: 12, color: "#aaa", fontWeight: 400 }}>(12 total)</span></div>
                                         <Btn variant="green" style={{ fontSize: 12, padding: "6px 14px" }}>+ Add Safe Zone</Btn>
                                     </div>
                                     <table>
@@ -341,7 +442,7 @@ export default function AddLocation({ page, setPage }) {
                                     <div style={{ padding: "11px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                         <div style={{ fontSize: 13, fontWeight: 700 }}>🗺 All Locations — Verification Map</div>
                                         <div style={{ display: "flex", gap: 6 }}>
-                                            {["All","Sensors","Safe Zones","Pending"].map(l => (
+                                            {["All","Sensors","Safe Zones"].map(l => (
                                                 <button key={l} style={{ padding: "5px 11px", borderRadius: 7, border: `1.5px solid ${l==="All"?C.dark:C.border}`, background: l==="All"?C.dark:"#fff", color: l==="All"?"#fff":C.mid, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
                                             ))}
                                         </div>
