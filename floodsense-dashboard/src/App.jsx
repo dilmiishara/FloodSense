@@ -18,13 +18,25 @@
 import { useState } from "react";
 import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
+import Alerts from "./Alerts";
+import Reports from "./Reports";
+import Prediction  from "./Prediction";
+import Settings from "./Settings";
+import AddLocation from "./AddLocation";
+import Logout from "./Logout";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
 
   const pages = {
     dashboard:   Dashboard,
-    mapview:     MapView
+    alerts: Alerts,
+       prediction:  Prediction,
+        mapview:     MapView,
+        settings:    Settings,
+        reports: Reports,
+      addlocation: AddLocation,
+      logout: Logout,
   };
 
   const PageComponent = pages[page] ?? Dashboard;
