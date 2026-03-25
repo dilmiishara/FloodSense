@@ -23,6 +23,7 @@ import Reports from "./Reports";
 import Prediction  from "./Prediction";
 import Settings from "./Settings";
 import AddLocation from "./AddLocation";
+import Logout from "./Logout";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
@@ -34,7 +35,8 @@ export default function App() {
         mapview:     MapView,
         settings:    Settings,
         reports: Reports,
-      addlocation: AddLocation
+      addlocation: AddLocation,
+      logout: Logout,
   };
 
   const PageComponent = pages[page] ?? Dashboard;
