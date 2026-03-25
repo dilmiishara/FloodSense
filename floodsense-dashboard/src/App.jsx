@@ -19,6 +19,7 @@ import { useState } from "react";
 import MapView     from "./MapView";
 import Dashboard   from "./Dashboard";
 import Alerts from "./Alerts";
+import Reports from "./Reports";
 import Prediction  from "./Prediction";
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
     alerts: Alerts,
        prediction:  Prediction,
         mapview:     MapView,
+        reports: Reports,
 
   };
 
