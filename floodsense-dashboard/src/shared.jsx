@@ -294,7 +294,7 @@ export const Sidebar = ({ page, setPage }) => (
                     background: page === item.id ? "#eeebe6" : "transparent",
                     transition: "background .15s",
                 }}>
-                    <span style={{ fontSize: 15, width: 18, textAlign: "center" }}>{item.icon}</span>
+                    {/*<span style={{ fontSize: 15, width: 18, textAlign: "center" }}>{item.icon}</span>*/}
                     {item.label}
                 </div>
             </div>
