@@ -218,7 +218,7 @@ export default function Dashboard({ page, setPage }) {
     <>
       <style>{globalCSS}</style>
       <style>{proStyles}</style>
-      <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#1e293b" }}>
+      <div style={{ minHeight: "100vh", background: "#f0ede8", color: "#1e293b" }}>
         <Header emergencyMode={emergencyMode} setEmergencyMode={setEmergencyMode} />
         
         <div style={{ display: "flex", margin: "16px 20px" }}>
