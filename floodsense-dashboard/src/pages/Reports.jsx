@@ -1,6 +1,6 @@
 // ─── Reports.jsx  ─────────────────────────────────────────────
 import { useState } from "react";
-import { C, Card, Btn, Input, Select, FormGroup, globalCSS, Header, Sidebar, TabBar, Toast } from "./shared";
+import { C, Card, Btn, Input, Select, FormGroup, globalCSS, Header, Sidebar, TabBar, Toast } from "../shared.jsx";
 
 export default function Reports({ page, setPage }) {
   const [emergencyMode, setEmergencyMode] = useState(true);
