@@ -417,60 +417,99 @@ export default function Dashboard({ page, setPage }) {
                 </div>
               </Card>
 
-              {/* MODERN PRECIPITATION TREND */}
-              <Card className="pro-card" style={{ flex: 1, padding: "20px 24px", position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", letterSpacing: "0.5px" }}>PRECIPITATION TREND</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.green }}>+12% vs last 6h</div>
-                </div>
-                
-                <div style={{ height: 120, position: 'relative', marginTop: 10 }}>
-                  <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                    <defs>
-                      <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
+              {/*  PRECIPITATION TREND */}
+<Card className="pro-card" style={{ flex: 1, padding: "20px 24px", position: 'relative', background: '#fff' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", letterSpacing: "0.5px" }}>PRECIPITATION TREND</div>
+      <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>Rainfall volume (mm) over time</div>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.green }}>+12% vs last 6h</div>
+      <Badge type="active" style={{ fontSize: 9 }}>LIVE</Badge>
+    </div>
+  </div>
+  
+  <div style={{ height: 140, position: 'relative', marginTop: 10 }}>
+    <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+      <defs>
+        {/* Fill Gradient */}
+        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+        </linearGradient>
+        
+        {/* Glow effect for the line */}
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
 
-                    {/* Gradient Fill under the line */}
-                    <path 
-                      className="trend-area"
-                      d="M0,50 L20,45 L40,48 L60,30 L80,15 L100,5 L100,60 L0,60 Z" 
-                      fill="url(#chartGradient)" 
-                      style={{ opacity: isLoaded ? 1 : 0 }}
-                    />
+      {/* Background Grid Lines */}
+      {[0, 15, 30, 45, 60].map((y) => (
+        <line key={y} x1="0" y1={y} x2="100%" y2={y} stroke="#f1f5f9" strokeWidth="0.5" />
+      ))}
 
-                    {/* Animated Line */}
-                    <path 
-                      className="trend-line"
-                      d="M0,50 L20,45 L40,48 L60,30 L80,15 L100,5" 
-                      fill="none" 
-                      stroke="#3b82f6" 
-                      strokeWidth="2.5" 
-                      strokeLinecap="round"
-                    />
+      {/* Smooth Curve Area Fill */}
+      <path 
+        className="trend-area"
+        d="M0,50 C 10,48 15,46 20,45 C 30,44 35,50 40,48 C 50,45 55,35 60,30 C 70,25 75,20 80,15 C 90,10 95,7 100,5 L100,60 L0,60 Z" 
+        fill="url(#chartGradient)" 
+        style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 1s ease-in' }}
+      />
 
-                    {/* Data Points */}
-                    {[[0,50],[20,45],[40,48],[60,30],[80,15],[100,5]].map((pt, i) => (
-                      <circle 
-                        key={i} 
-                        cx={pt[0]} cy={pt[1]} r="2" 
-                        fill="#fff" stroke="#3b82f6" strokeWidth="1.5"
-                        className="trend-point"
-                        style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 0.5s', transitionDelay: `${0.2 * i}s` }}
-                      />
-                    ))}
-                  </svg>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
-                    {["-6h", "-4h", "-2h", "NOW"].map(t => (
-                      <span key={t} style={{ fontSize: 9, color: "#94a3b8", fontWeight: 800 }}>{t}</span>
-                    ))}
-                  </div>
-                </div>
-              </Card>
+      {/* Smooth Animated Curve Line */}
+      <path 
+        className="trend-line"
+        d="M0,50 C 10,48 15,46 20,45 C 30,44 35,50 40,48 C 50,45 55,35 60,30 C 70,25 75,20 80,15 C 90,10 95,7 100,5" 
+        fill="none" 
+        stroke="#3b82f6" 
+        strokeWidth="2" 
+        strokeLinecap="round"
+        filter="url(#glow)"
+        style={{ 
+          strokeDasharray: 300, 
+          strokeDashoffset: isLoaded ? 0 : 300, 
+          transition: 'stroke-dashoffset 2s ease-out' 
+        }}
+      />
 
+      {/* Data Points (Dots) */}
+      {[
+        {x: 0, y: 50}, {x: 20, y: 45}, {x: 40, y: 48}, 
+        {x: 60, y: 30}, {x: 80, y: 15}, {x: 100, y: 5}
+      ].map((pt, i) => (
+        <g key={i} className="trend-point-group">
+          <circle 
+            cx={pt.x} cy={pt.y} r="1.5" 
+            fill="#3b82f6" 
+            style={{ 
+              opacity: isLoaded ? 1 : 0, 
+              transition: 'opacity 0.5s', 
+              transitionDelay: `${0.2 * i}s` 
+            }}
+          />
+          <circle 
+            cx={pt.x} cy={pt.y} r="4" 
+            fill="#3b82f6" 
+            fillOpacity="0"
+            className="trend-point-hover"
+            style={{ cursor: 'pointer' }}
+          >
+            <title>Level at point: {100 - pt.y}mm</title>
+          </circle>
+        </g>
+      ))}
+    </svg>
+    
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 15, borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
+      {["10 AM", "12 PM", "02 PM", "04 PM", "06 PM", "NOW"].map(t => (
+        <span key={t} style={{ fontSize: 9, color: "#94a3b8", fontWeight: 700 }}>{t}</span>
+      ))}
+    </div>
+  </div>
+</Card>
               {/* SHELTER AVAILABILITY */}
               <Card className="pro-card" style={{ flex: 1, padding: "20px 24px" }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", marginBottom: 20, letterSpacing: "0.5px" }}>SHELTER AVAILABILITY</div>
