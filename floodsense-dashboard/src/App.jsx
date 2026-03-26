@@ -16,14 +16,14 @@
 //     Logout.jsx
 
 import { useState } from "react";
-import MapView     from "./MapView";
-import Dashboard   from "./Dashboard";
-import Alerts from "./Alerts";
-import Reports from "./Reports";
-import Prediction  from "./Prediction";
-import Settings from "./Settings";
-import AddLocation from "./AddLocation";
-import Logout from "./Logout";
+import MapView     from "./pages/MapView.jsx";
+import Dashboard   from "./pages/Dashboard.jsx";
+import Alerts from "./pages/Alerts.jsx";
+import Reports from "./pages/Reports.jsx";
+import Prediction  from "./pages/Prediction.jsx";
+import Settings from "./pages/Settings.jsx";
+import AddLocation from "./pages/AddLocation.jsx";
+import Logout from "./pages/Logout.jsx";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");

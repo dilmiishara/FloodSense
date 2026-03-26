@@ -12,7 +12,7 @@ import {
   Sidebar,
   TabBar,
   ToggleRow,
-} from "./shared";
+} from "../shared.jsx";
 
 export default function Alerts({ page, setPage }) {
   const [emergencyMode, setEmergencyMode] = useState(true);

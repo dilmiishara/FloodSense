@@ -1,7 +1,7 @@
 // ─── Logout.jsx ───────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from "react";
-import { C, globalCSS, Header, Sidebar, Toggle } from "./shared";
+import { C, globalCSS, Header, Sidebar, Toggle } from "../shared.jsx";
 
 export default function Logout({ page, setPage }) {
   const [emergencyMode, setEmergencyMode] = useState(true);

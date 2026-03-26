@@ -2,7 +2,7 @@
 import { useState ,useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap  } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { C, Card, Badge, Btn, Input, Select, FormGroup, globalCSS, Header, Sidebar, TabBar, SriLankaMap, Toast } from "./shared";
+import { C, Card, Badge, Btn, Input, Select, FormGroup, globalCSS, Header, Sidebar, TabBar, SriLankaMap, Toast } from "../shared.jsx";
 
 export default function AddLocation({ page, setPage }) {
     const [emergencyMode, setEmergencyMode] = useState(true);

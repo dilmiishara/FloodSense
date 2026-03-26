@@ -14,7 +14,7 @@ import {
   Header,
   Sidebar,
   Toast,
-} from "./shared";
+} from "../shared.jsx";
 
 export default function Settings({ page, setPage }) {
   const [emergencyMode, setEmergencyMode] = useState(true);
