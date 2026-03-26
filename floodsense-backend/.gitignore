@@ -1,0 +1,65 @@
+# ----------------------
+# Environment & Secrets
+# ----------------------
+.env
+.env.*
+!.env.example
+auth.json
+
+# ----------------------
+# Dependencies
+# ----------------------
+/vendor
+/node_modules
+
+# ----------------------
+# Build / Generated Files
+# ----------------------
+/public/build
+/public/hot
+/public/storage
+
+# ----------------------
+# Laravel Storage & Cache
+# ----------------------
+/storage/*.key
+/storage/logs/
+/storage/framework/
+/storage/pail
+/bootstrap/cache/*.php
+
+# ----------------------
+# Logs
+# ----------------------
+*.log
+npm-debug.log
+yarn-error.log
+
+# ----------------------
+# IDE / Editor Files
+# ----------------------
+/.idea
+/.vscode
+/.fleet
+/.zed
+/.nova
+.phpactor.json
+.phpunit.result.cache
+/.phpunit.cache
+
+# ----------------------
+# OS Files
+# ----------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------
+# Testing / Coverage
+# ----------------------
+/coverage
+
+# ----------------------
+# Laravel Homestead (Optional)
+# ----------------------
+Homestead.json
+Homestead.yaml
