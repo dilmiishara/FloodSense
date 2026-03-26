@@ -11,7 +11,7 @@ import {
   TabBar,
   ProbBar,
   SriLankaMap,
-} from "./shared";
+} from "../shared.jsx";
 
 // ── Interactive SVG station chart with hover tooltip ──
 const StationSVGChart = ({ id, data, max, color, times }) => {

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { C, Card, Badge, Toggle, globalCSS, Header, Sidebar, Toast } from "./shared";
+import { C, Card, Badge, Toggle, globalCSS, Header, Sidebar, Toast } from "../shared.jsx";
 
 // Fix for default marker icons in Leaflet + React
 import L from 'leaflet';

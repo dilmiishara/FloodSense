@@ -3,7 +3,7 @@ import { useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { C, Card, Badge, globalCSS, Header, Sidebar, TabBar } from "./shared";
+import { C, Card, Badge, globalCSS, Header, Sidebar, TabBar } from "../shared.jsx";
 
 // Real Map Component (Leaflet)
 const SriLankaMap = ({ mode, layer }) => {
