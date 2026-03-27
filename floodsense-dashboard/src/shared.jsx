@@ -272,6 +272,7 @@ const NAV = [
     { id: "addlocation", icon: "📍", label: "Add Location", section: "Manage" },
     { id: "reports",     icon: "📊", label: "Reports" },
     { id: "settings",    icon: "⚙",  label: "Settings" },
+     { id: "posts",      icon: "📝", label: "Posts", section: "Manage" },
 ];
 
 export const Sidebar = ({ page, setPage }) => (
