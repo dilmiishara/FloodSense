@@ -1,45 +1,58 @@
 // ─── App.jsx ─────────────────────────────────────────────────────────────────
-// Root component — import this in your React project entry point (e.g. main.jsx).
-// All pages are lazily rendered based on the `page` state value.
-//
-// File structure expected:
-//   src/
-//     App.jsx          ← this file
-//     shared.jsx       ← theme, tokens, reusable components
-//     Dashboard.jsx
-//     MapView.jsx
-//     Alerts.jsx
-//     Prediction.jsx
-//     AddLocation.jsx
-//     Reports.jsx
-//     Settings.jsx
-//     Logout.jsx
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+
 import MapView     from "./pages/MapView.jsx";
 import Dashboard   from "./pages/Dashboard.jsx";
-import Alerts from "./pages/Alerts.jsx";
-import Reports from "./pages/Reports.jsx";
+import Alerts      from "./pages/Alerts.jsx";
+import Reports     from "./pages/Reports.jsx";
 import Prediction  from "./pages/Prediction.jsx";
-import Settings from "./pages/Settings.jsx";
+import Settings    from "./pages/Settings.jsx";
 import AddLocation from "./pages/AddLocation.jsx";
-import Logout from "./pages/Logout.jsx";
+import Logout      from "./pages/Logout.jsx";
+import Posts       from "./pages/Posts.jsx";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch posts from Laravel API
+  useEffect(() => {
+    axios
+      .get("http://127.0.0.1:8000/api/posts")
+      .then((res) => {
+        setPosts(res.data);
+      })
+      .catch((err) => {
+        console.error("API Error:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   const pages = {
-    dashboard:   Dashboard,
+    dashboard: Dashboard,
     alerts: Alerts,
-       prediction:  Prediction,
-        mapview:     MapView,
-        settings:    Settings,
-        reports: Reports,
-      addlocation: AddLocation,
-      logout: Logout,
+    prediction: Prediction,
+    mapview: MapView,
+    settings: Settings,
+    reports: Reports,
+    addlocation: AddLocation,
+    logout: Logout,
+    posts: Posts,
   };
 
   const PageComponent = pages[page] ?? Dashboard;
 
-  return <PageComponent page={page} setPage={setPage} />;
+  return (
+    <PageComponent
+      page={page}
+      setPage={setPage}
+      posts={posts}     // API data
+      loading={loading} // loading state
+    />
+  );
 }
