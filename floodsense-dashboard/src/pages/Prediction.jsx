@@ -1,5 +1,6 @@
 // ─── Prediction.jsx ───────────────────────────────────────────────────────────
 import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   C,
   Card,
