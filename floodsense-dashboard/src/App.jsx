@@ -1,8 +1,11 @@
-// ─── App.jsx ─────────────────────────────────────────────────────────────────
+// ─── App.jsx ───────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 
+// ✅ Import from service layer (professional way)
+import { fetchPosts } from "./api";
+
+// Pages
 import MapView     from "./pages/MapView.jsx";
 import Dashboard   from "./pages/Dashboard.jsx";
 import Alerts      from "./pages/Alerts.jsx";
@@ -18,12 +21,11 @@ export default function App() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch posts from Laravel API
+  // Fetch posts from Laravel API (via service layer)
   useEffect(() => {
-    axios
-      .get("http://127.0.0.1:8000/api/posts")
+    fetchPosts()
       .then((res) => {
-        setPosts(res.data);
+        setPosts(res.data);   // axios response → data
       })
       .catch((err) => {
         console.error("API Error:", err);
@@ -51,8 +53,8 @@ export default function App() {
     <PageComponent
       page={page}
       setPage={setPage}
-      posts={posts}     // API data
-      loading={loading} // loading state
+      posts={posts}       // ✅ API data
+      loading={loading}   // ✅ loading state
     />
   );
 }
