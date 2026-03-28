@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 
-const STATIONS_LATEST_API = "https://www.srilankafloodmonitor.site/api/levels/latest";
-
+const BASE_URL = "https://www.srilankafloodmonitor.site/api/levels";
 const MONITORED_STATIONS = ["Rathnapura", "Ellagawa", "Putupaula"];
 
 const STATION_META = {
@@ -11,11 +10,11 @@ const STATION_META = {
 };
 
 const REFRESH_INTERVAL = 30000;
-const HISTORY_SIZE = 24;
+const HISTORY_LIMIT = 24;
 
 function mapStatus(alert_status) {
   switch (alert_status?.toUpperCase()) {
-    case "MAJOR FLOOD": return "critical";
+    case "MAJOR FLOOD":
     case "MINOR FLOOD": return "critical";
     case "ALERT":       return "warning";
     default:            return "normal";
@@ -23,112 +22,85 @@ function mapStatus(alert_status) {
 }
 
 export function useStationData() {
-  const historyRef = useRef(
-    Object.fromEntries(MONITORED_STATIONS.map((name) => [name, []]))
-  );
-
   const [stationData, setStationData] = useState(
     MONITORED_STATIONS.map((name) => ({
-      id:      STATION_META[name].id,
+      id: STATION_META[name].id,
       name,
-      color:   STATION_META[name].color,
-      time:    "--",
-      level:   0,
-      max:     10,
-      status:  "normal",
-      data:    Array(HISTORY_SIZE).fill(0),
-      times:   Array(HISTORY_SIZE).fill("--"),
+      color: STATION_META[name].color,
       loading: true,
-      error:   false,
+      data: [],
+      times: []
     }))
   );
 
   useEffect(() => {
     let mounted = true;
 
-    async function loadLatest() {
+    async function fetchData() {
       try {
-        const res = await fetch(STATIONS_LATEST_API);
-        const all = await res.json();
+        // 1. Fetch History and Latest status in parallel for all stations
+        const results = await Promise.all(
+          MONITORED_STATIONS.map(async (name) => {
+            const [histRes, latRes] = await Promise.all([
+              fetch(`${BASE_URL}/history/${name}?limit=${HISTORY_LIMIT}`),
+              fetch(`${BASE_URL}/latest`)
+            ]);
 
-        if (!mounted) return;
+            const historyJson = await histRes.json();
+            const latestAll = await latRes.json();
+            const foundLatest = latestAll.find(s => s.station_name === name);
 
-        const updated = MONITORED_STATIONS.map((name) => {
-          const found = all.find((item) => item.station_name === name);
+            // The history API usually returns newest first; we need oldest first for the chart
+            const history = Array.isArray(historyJson) ? [...historyJson].reverse() : [];
+            
+            const data = history.map(h => Number(h.water_level) || 0);
+            const times = history.map(h => {
+  const d = new Date(h.timestamp);
+  
+  if (isNaN(d)) return "--";
 
-          if (!found) {
+  // This forces the time to display in Sri Lanka time (UTC+5:30)
+  // regardless of where the user is or how the server sends it.
+  return d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true, // Set to false if you want 18:30 instead of 06:30 PM
+    timeZone: "Asia/Colombo" 
+  });
+});
+
+            // Calculate a tight Y-axis Max (e.g., if level is 0.4, max is ~0.6)
+            const currentLevel = foundLatest ? Number(foundLatest.water_level) : 0;
+            const dataMax = Math.max(...data, currentLevel, 0.1);
+            const dynamicMax = dataMax * 1.3; 
+
             return {
-              id:      STATION_META[name].id,
+              id: STATION_META[name].id,
               name,
-              color:   STATION_META[name].color,
-              time:    "--",
-              level:   0,
-              max:     10,
-              status:  "normal",
-              data:    Array(HISTORY_SIZE).fill(0),
-              times:   Array(HISTORY_SIZE).fill("--"),
+              color: STATION_META[name].color,
+              time: times[times.length - 1] || "--",
+              level: currentLevel,
+              max: dynamicMax,
+              status: mapStatus(foundLatest?.alert_status),
+              data: data.length > 0 ? data : Array(HISTORY_LIMIT).fill(0),
+              times: times.length > 0 ? times : Array(HISTORY_LIMIT).fill("--"),
               loading: false,
-              error:   true,
+              error: false,
             };
-          }
-
-          const t = new Date(found.timestamp);
-          const time = isNaN(t)
-            ? "--"
-            : t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-          const level = Number(found.water_level) || 0;
-
-          // Accumulate history from each poll
-          const bucket = historyRef.current[name];
-          const last   = bucket[bucket.length - 1];
-          if (!last || last.time !== time) {
-            bucket.push({ level, time });
-          }
-          if (bucket.length > HISTORY_SIZE) {
-            bucket.splice(0, bucket.length - HISTORY_SIZE);
-          }
-
-          // Pad front with zeros until we have 24 real readings
-          const padded = [
-            ...Array(Math.max(0, HISTORY_SIZE - bucket.length))
-              .fill({ level: 0, time: "--" }),
-            ...bucket,
-          ];
-
-          const data  = padded.map((e) => e.level);
-          const times = padded.map((e) => e.time);
-
-          const dataMax = Math.max(...data.filter((v) => v > 0));
-          const max = dataMax > 0 ? Math.ceil(dataMax * 1.4) : 10;
-
-          return {
-            id:      STATION_META[name].id,
-            name,
-            color:   STATION_META[name].color,
-            time,
-            level,
-            max,
-            status:  mapStatus(found.alert_status),
-            data,
-            times,
-            loading: false,
-            error:   false,
-          };
-        });
-
-        setStationData(updated);
-      } catch (err) {
-        console.error("useStationData error:", err);
-        if (!mounted) return;
-        setStationData((prev) =>
-          prev.map((s) => ({ ...s, loading: false, error: true }))
+          })
         );
+
+        if (mounted) setStationData(results);
+      } catch (err) {
+        console.error("Data fetch error:", err);
+        if (mounted) {
+          setStationData(prev => prev.map(s => ({ ...s, loading: false, error: true })));
+        }
       }
     }
 
-    loadLatest();
-    const interval = setInterval(loadLatest, REFRESH_INTERVAL);
+    fetchData();
+    const interval = setInterval(fetchData, REFRESH_INTERVAL);
     return () => { mounted = false; clearInterval(interval); };
   }, []);
 
