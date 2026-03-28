@@ -1,6 +1,7 @@
 // ─── shared.jsx ─────────────────────────────────────────────────────────────
 // Shared theme constants, CSS, and reusable UI components for FloodSense Portal
 // Import these into every page component.
+import { useNavigate } from "react-router-dom";
 
 export const C = {
     bg: "#f0ede8", white: "#ffffff", dark: "#1a1a1a", mid: "#666",
@@ -264,6 +265,9 @@ export const Header = ({ emergencyMode, setEmergencyMode }) => (
 );
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+
+
+
 const NAV = [
     { id: "dashboard",   icon: "⊞", label: "Dashboard",    section: "Main" },
     { id: "mapview",     icon: "🗺", label: "Map View" },
@@ -272,44 +276,86 @@ const NAV = [
     { id: "addlocation", icon: "📍", label: "Add Location", section: "Manage" },
     { id: "reports",     icon: "📊", label: "Reports" },
     { id: "settings",    icon: "⚙",  label: "Settings" },
-     { id: "posts",      icon: "📝", label: "Posts", section: "Manage" },
+    { id: "posts",       icon: "📝", label: "Posts", section: "Manage" },
 ];
 
-export const Sidebar = ({ page, setPage }) => (
-    <div style={{
-        width: 196, minWidth: 196, marginRight: 14, background: "#ffffff",
-        borderRadius: 16, padding: "20px 12px", boxShadow: "0 1px 5px rgba(0,0,0,.07)",
-        display: "flex", flexDirection: "column", minHeight: 600,
-    }}>
-        <div style={{ fontSize: 17, fontWeight: 800, padding: "0 8px", marginBottom: 6, letterSpacing: -.3 }}>FloodSense</div>
-        {NAV.map(item => (
-            <div key={item.id}>
-                {item.section && (
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: .8, padding: "10px 8px 4px" }}>{item.section}</div>
-                )}
-                <div onClick={() => setPage(item.id)} style={{
-                    padding: "9px 12px", borderRadius: 10, fontSize: 13.5,
-                    fontWeight: page === item.id ? 700 : 500, cursor: "pointer",
-                    color: page === item.id ? "#1a1a1a" : "#666", marginBottom: 1,
-                    display: "flex", alignItems: "center", gap: 9,
-                    background: page === item.id ? "#eeebe6" : "transparent",
-                    transition: "background .15s",
-                }}>
-                    {/*<span style={{ fontSize: 15, width: 18, textAlign: "center" }}>{item.icon}</span>*/}
-                    {item.label}
-                </div>
-            </div>
-        ))}
-        <div style={{ height: 1, background: "#e8e4df", margin: "8px 0" }} />
-        <div onClick={() => setPage("logout")} style={{
-            padding: "9px 12px", borderRadius: 10, fontSize: 13.5, fontWeight: 500,
-            cursor: "pointer", color: "#cc2200", display: "flex", alignItems: "center",
-            gap: 9, marginTop: "auto",
+export const Sidebar = ({ page }) => {
+    const navigate = useNavigate();
+
+    const handleNavigate = (id) => {
+        navigate(`/app/${id}`);
+    };
+
+    return (
+        <div style={{
+            width: 196, minWidth: 196, marginRight: 14, background: "#ffffff",
+            borderRadius: 16, padding: "20px 12px", boxShadow: "0 1px 5px rgba(0,0,0,.07)",
+            display: "flex", flexDirection: "column", minHeight: 600,
         }}>
-            <span style={{ fontSize: 15, width: 18, textAlign: "center" }}>⎋</span> Logout
+            <div style={{ fontSize: 17, fontWeight: 800, padding: "0 8px", marginBottom: 6, letterSpacing: -.3 }}>
+                FloodSense
+            </div>
+
+            {NAV.map(item => (
+                <div key={item.id}>
+                    {item.section && (
+                        <div style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "#bbb",
+                            textTransform: "uppercase",
+                            letterSpacing: .8,
+                            padding: "10px 8px 4px"
+                        }}>
+                            {item.section}
+                        </div>
+                    )}
+
+                    <div
+                        onClick={() => handleNavigate(item.id)}
+                        style={{
+                            padding: "9px 12px",
+                            borderRadius: 10,
+                            fontSize: 13.5,
+                            fontWeight: page === item.id ? 700 : 500,
+                            cursor: "pointer",
+                            color: page === item.id ? "#1a1a1a" : "#666",
+                            marginBottom: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 9,
+                            background: page === item.id ? "#eeebe6" : "transparent",
+                            transition: "background .15s",
+                        }}
+                    >
+                        {item.label}
+                    </div>
+                </div>
+            ))}
+
+            <div style={{ height: 1, background: "#e8e4df", margin: "8px 0" }} />
+
+            <div
+                onClick={() => navigate("/logout")}
+                style={{
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    color: "#cc2200",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    marginTop: "auto",
+                }}
+            >
+                <span style={{ fontSize: 15, width: 18, textAlign: "center" }}>⎋</span>
+                Logout
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // ─── PAGE SHELL ───────────────────────────────────────────────────────────────
 // Wrap every page with this shell so header + sidebar are consistent.
