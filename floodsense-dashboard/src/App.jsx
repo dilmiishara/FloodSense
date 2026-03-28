@@ -1,31 +1,34 @@
-// ─── App.jsx ───────────────────────────────────────────────────────────────
-
 import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// ✅ Import from service layer (professional way)
+// API
 import { fetchPosts } from "./api";
 
 // Pages
-import MapView     from "./pages/MapView.jsx";
-import Dashboard   from "./pages/Dashboard.jsx";
-import Alerts      from "./pages/Alerts.jsx";
-import Reports     from "./pages/Reports.jsx";
-import Prediction  from "./pages/Prediction.jsx";
-import Settings    from "./pages/Settings.jsx";
+import MapView from "./pages/MapView.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import Alerts from "./pages/Alerts.jsx";
+import Reports from "./pages/Reports.jsx";
+import Prediction from "./pages/Prediction.jsx";
+import Settings from "./pages/Settings.jsx";
 import AddLocation from "./pages/AddLocation.jsx";
-import Logout      from "./pages/Logout.jsx";
-import Posts       from "./pages/Posts.jsx";
+import Logout from "./pages/Logout.jsx";
+import Posts from "./pages/Posts.jsx";
 
-export default function App() {
-  const [page, setPage] = useState("dashboard");
+// Auth
+import Login from "./pages/Login";
+import OfficerDashboard from "./pages/OfficerDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+function MainApp() {
+  
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch posts from Laravel API (via service layer)
   useEffect(() => {
     fetchPosts()
       .then((res) => {
-        setPosts(res.data);   // axios response → data
+        setPosts(res.data);
       })
       .catch((err) => {
         console.error("API Error:", err);
@@ -35,26 +38,63 @@ export default function App() {
       });
   }, []);
 
-  const pages = {
-    dashboard: Dashboard,
-    alerts: Alerts,
-    prediction: Prediction,
-    mapview: MapView,
-    settings: Settings,
-    reports: Reports,
-    addlocation: AddLocation,
-    logout: Logout,
-    posts: Posts,
-  };
+return (
+    <Routes>
+      <Route
+        path="dashboard"
+        element={<Dashboard posts={posts} loading={loading} />}
+      />
+      <Route path="alerts" element={<Alerts />} />
+      <Route path="prediction" element={<Prediction />} />
+      <Route path="mapview" element={<MapView />} />
+      <Route path="settings" element={<Settings />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="addlocation" element={<AddLocation />} />
+      <Route path="logout" element={<Logout />} />
+      <Route path="posts" element={<Posts posts={posts} loading={loading} />} />
+    </Routes>
+  );
 
-  const PageComponent = pages[page] ?? Dashboard;
 
+}
+
+export default function App() {
   return (
-    <PageComponent
-      page={page}
-      setPage={setPage}
-      posts={posts}       // ✅ API data
-      loading={loading}   // ✅ loading state
-    />
+    <BrowserRouter>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<Login />} />
+
+        {/* Admin Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute role="admin">
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Officer Dashboard */}
+        <Route
+          path="/officer-dashboard"
+          element={
+            <ProtectedRoute role="officer">
+              <OfficerDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Optional Main App */}
+        <Route
+          path="/app/*"
+          element={
+            <ProtectedRoute>
+              <MainApp />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
