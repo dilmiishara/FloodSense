@@ -21,7 +21,7 @@ import OfficerDashboard from "./pages/OfficerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function MainApp() {
-  const [page, setPage] = useState("dashboard");
+  
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,28 +38,24 @@ function MainApp() {
       });
   }, []);
 
-  const pages = {
-    dashboard: Dashboard,
-    alerts: Alerts,
-    prediction: Prediction,
-    mapview: MapView,
-    settings: Settings,
-    reports: Reports,
-    addlocation: AddLocation,
-    logout: Logout,
-    posts: Posts,
-  };
-
-  const PageComponent = pages[page] ?? Dashboard;
-
-  return (
-    <PageComponent
-      page={page}
-      setPage={setPage}
-      posts={posts}
-      loading={loading}
-    />
+return (
+    <Routes>
+      <Route
+        path="dashboard"
+        element={<Dashboard posts={posts} loading={loading} />}
+      />
+      <Route path="alerts" element={<Alerts />} />
+      <Route path="prediction" element={<Prediction />} />
+      <Route path="mapview" element={<MapView />} />
+      <Route path="settings" element={<Settings />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="addlocation" element={<AddLocation />} />
+      <Route path="logout" element={<Logout />} />
+      <Route path="posts" element={<Posts posts={posts} loading={loading} />} />
+    </Routes>
   );
+
+
 }
 
 export default function App() {
@@ -91,7 +87,7 @@ export default function App() {
 
         {/* Optional Main App */}
         <Route
-          path="/app"
+          path="/app/*"
           element={
             <ProtectedRoute>
               <MainApp />
