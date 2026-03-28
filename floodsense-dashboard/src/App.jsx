@@ -12,7 +12,6 @@ import Reports from "./pages/Reports.jsx";
 import Prediction from "./pages/Prediction.jsx";
 import Settings from "./pages/Settings.jsx";
 import AddLocation from "./pages/AddLocation.jsx";
-import Logout from "./pages/Logout.jsx";
 import Posts from "./pages/Posts.jsx";
 
 // Auth
@@ -50,7 +49,6 @@ return (
       <Route path="settings" element={<Settings />} />
       <Route path="reports" element={<Reports />} />
       <Route path="addlocation" element={<AddLocation />} />
-      <Route path="logout" element={<Logout />} />
       <Route path="posts" element={<Posts posts={posts} loading={loading} />} />
     </Routes>
   );

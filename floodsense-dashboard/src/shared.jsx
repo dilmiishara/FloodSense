@@ -2,6 +2,7 @@
 // Shared theme constants, CSS, and reusable UI components for FloodSense Portal
 // Import these into every page component.
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export const C = {
     bg: "#f0ede8", white: "#ffffff", dark: "#1a1a1a", mid: "#666",
@@ -281,81 +282,170 @@ const NAV = [
 
 export const Sidebar = ({ page }) => {
     const navigate = useNavigate();
+    const [showModal, setShowModal] = useState(false);
+    const [status, setStatus] = useState("idle"); // "idle" | "loading"
 
     const handleNavigate = (id) => {
         navigate(`/app/${id}`);
     };
 
+    const handleConfirmLogout = () => {
+        setStatus("loading");
+        
+        // Professional delay to "Secure" the connection
+        setTimeout(() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            navigate("/", { replace: true });
+        }, 1800);
+    };
+
     return (
-        <div style={{
-            width: 196, minWidth: 196, marginRight: 14, background: "#ffffff",
-            borderRadius: 16, padding: "20px 12px", boxShadow: "0 1px 5px rgba(0,0,0,.07)",
-            display: "flex", flexDirection: "column", minHeight: 600,
-        }}>
-            <div style={{ fontSize: 17, fontWeight: 800, padding: "0 8px", marginBottom: 6, letterSpacing: -.3 }}>
-                FloodSense
+        <>
+            <div style={{
+                width: 196, minWidth: 196, marginRight: 14, background: "#ffffff",
+                borderRadius: 16, padding: "20px 12px", boxShadow: "0 1px 5px rgba(0,0,0,.07)",
+                display: "flex", flexDirection: "column", minHeight: 600,
+            }}>
+                <div style={{ fontSize: 17, fontWeight: 800, padding: "0 8px", marginBottom: 6, letterSpacing: -.3 }}>
+                    FloodSense
+                </div>
+
+                {NAV.map(item => (
+                    <div key={item.id}>
+                        {item.section && (
+                            <div style={{ fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: .8, padding: "10px 8px 4px" }}>
+                                {item.section}
+                            </div>
+                        )}
+                        <div
+                            onClick={() => handleNavigate(item.id)}
+                            style={{
+                                padding: "9px 12px", borderRadius: 10, fontSize: 13.5,
+                                fontWeight: page === item.id ? 700 : 500, cursor: "pointer",
+                                color: page === item.id ? "#1a1a1a" : "#666", marginBottom: 1,
+                                display: "flex", alignItems: "center", gap: 9,
+                                background: page === item.id ? "#eeebe6" : "transparent",
+                                transition: "background .15s",
+                            }}
+                        >
+                            {item.label}
+                        </div>
+                    </div>
+                ))}
+
+                <div style={{ height: 1, background: "#e8e4df", margin: "8px 0" }} />
+
+                <div
+                    onClick={() => setShowModal(true)}
+                    style={{
+                        padding: "9px 12px", borderRadius: 10, fontSize: 13.5, fontWeight: 600,
+                        cursor: "pointer", color: "#cc2200", display: "flex", alignItems: "center",
+                        gap: 9, marginTop: "auto", transition: "all .15s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#fff0ee"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                >
+                    <span style={{ fontSize: 15, width: 18, textAlign: "center" }}>⎋</span>
+                    Logout
+                </div>
             </div>
 
-            {NAV.map(item => (
-                <div key={item.id}>
-                    {item.section && (
-                        <div style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: "#bbb",
-                            textTransform: "uppercase",
-                            letterSpacing: .8,
-                            padding: "10px 8px 4px"
-                        }}>
-                            {item.section}
-                        </div>
-                    )}
+            {/* ─── PROFESSIONAL COMMAND CENTER MODAL ─── */}
+            {showModal && (
+                <div style={modalStyles.overlay}>
+                    <div className="fadeUp" style={modalStyles.modal}>
+                        {status === "idle" ? (
+                            <>
+                                <div style={modalStyles.iconBadge}>⎋</div>
+                                <h2 style={modalStyles.title}>Sign Out?</h2>
+                                <p style={modalStyles.subtitle}>End your administrative session and lock the portal.</p>
+                                
+                                {/* Session Context Box (Very Professional) */}
+                                <div style={modalStyles.sessionBox}>
+                                    <div style={modalStyles.sessionRow}>
+                                        <span>User Role</span>
+                                        <strong style={{color: '#1a1a1a'}}>System Admin</strong>
+                                    </div>
+                                    <div style={modalStyles.sessionRow}>
+                                        <span>Live Alerts</span>
+                                        <strong style={{color: '#cc2200'}}>3 Active</strong>
+                                    </div>
+                                    <div style={modalStyles.sessionRow}>
+                                        <span>Last Sync</span>
+                                        <strong style={{color: '#666'}}>Just now</strong>
+                                    </div>
+                                </div>
 
-                    <div
-                        onClick={() => handleNavigate(item.id)}
-                        style={{
-                            padding: "9px 12px",
-                            borderRadius: 10,
-                            fontSize: 13.5,
-                            fontWeight: page === item.id ? 700 : 500,
-                            cursor: "pointer",
-                            color: page === item.id ? "#1a1a1a" : "#666",
-                            marginBottom: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            background: page === item.id ? "#eeebe6" : "transparent",
-                            transition: "background .15s",
-                        }}
-                    >
-                        {item.label}
+                                <p style={modalStyles.warningText}>
+                                    Note: Automatic flood monitoring will continue in the background after you log out.
+                                </p>
+
+                                <div style={modalStyles.btnGroup}>
+                                    <button onClick={() => setShowModal(false)} style={modalStyles.cancelBtn}>
+                                        Stay
+                                    </button>
+                                    <button onClick={handleConfirmLogout} style={modalStyles.confirmBtn}>
+                                        Sign Out
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ padding: '20px 0' }}>
+                                <div className="spinner" style={{ width: 44, height: 44, borderTopColor: '#cc2200' }} />
+                                <h3 style={{ marginTop: 24, fontSize: 18, fontWeight: 800 }}>Securing System...</h3>
+                                <p style={{ fontSize: 13, color: '#999', marginTop: 8 }}>Cleaning session cache and credentials</p>
+                                <div className="progbar" style={{ width: '80%', margin: '20px auto 0' }}>
+                                    <div className="progfill" style={{ background: '#cc2200' }} />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-            ))}
-
-            <div style={{ height: 1, background: "#e8e4df", margin: "8px 0" }} />
-
-            <div
-                onClick={() => navigate("/logout")}
-                style={{
-                    padding: "9px 12px",
-                    borderRadius: 10,
-                    fontSize: 13.5,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    color: "#cc2200",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 9,
-                    marginTop: "auto",
-                }}
-            >
-                <span style={{ fontSize: 15, width: 18, textAlign: "center" }}>⎋</span>
-                Logout
-            </div>
-        </div>
+            )}
+        </>
     );
 };
+
+const modalStyles = {
+    overlay: {
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(26, 28, 30, 0.4)', backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+    },
+    modal: {
+        background: '#ffffff', width: '100%', maxWidth: '420px',
+        borderRadius: '28px', padding: '45px 40px', textAlign: 'center',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #e8e4df'
+    },
+    iconBadge: {
+        width: '64px', height: '64px', background: '#fff0ee', color: '#cc2200',
+        borderRadius: '20px', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', fontSize: '28px', margin: '0 auto 20px',
+    },
+    title: { fontSize: '24px', fontWeight: '900', color: '#1a1a1a', marginBottom: '8px' },
+    subtitle: { fontSize: '15px', color: '#666', marginBottom: '24px' },
+    sessionBox: {
+        background: '#f7f5f2', borderRadius: '16px', padding: '16px',
+        marginBottom: '20px', border: '1px solid #e8e4df'
+    },
+    sessionRow: {
+        display: 'flex', justifyContent: 'space-between', fontSize: '12px',
+        fontWeight: '600', color: '#aaa', padding: '4px 0', textTransform: 'uppercase'
+    },
+    warningText: { fontSize: '12px', color: '#aaa', fontStyle: 'italic', marginBottom: '32px' },
+    btnGroup: { display: 'flex', gap: '12px' },
+    cancelBtn: {
+        flex: 1, padding: '16px', borderRadius: '14px', border: '1.5px solid #e8e4df',
+        background: '#fff', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s'
+    },
+    confirmBtn: {
+        flex: 1, padding: '16px', borderRadius: '14px', border: 'none',
+        background: '#1a1a1a', color: '#fff', fontWeight: '700', cursor: 'pointer',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+    }
+};
+
 
 // ─── PAGE SHELL ───────────────────────────────────────────────────────────────
 // Wrap every page with this shell so header + sidebar are consistent.
