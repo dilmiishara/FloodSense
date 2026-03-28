@@ -14,6 +14,7 @@ import {
 } from "../shared.jsx";
 import { useStationData } from "../hooks/useStationData";
 
+
 // ── Interactive SVG station chart with hover tooltip ──
 const StationSVGChart = ({ id, data, max, color, times }) => {
   const tooltipRef = useRef(null);

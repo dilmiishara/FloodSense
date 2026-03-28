@@ -1,119 +1,136 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  fetchAllStations,
-  MONITORED_STATIONS,
-  STATION_META,
-  REFRESH_INTERVAL,
-  MAX_HISTORY,
-} from "../api";
+import { useEffect, useState, useRef } from "react";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const STATIONS_LATEST_API = "https://www.srilankafloodmonitor.site/api/levels/latest";
 
-function getStatus(waterLevel, station) {
-  if (waterLevel >= station.major_flood_level) return "critical";
-  if (waterLevel >= station.minor_flood_level) return "warning";
-  if (waterLevel >= station.alert_level)       return "warning";
-  return "normal";
+const MONITORED_STATIONS = ["Rathnapura", "Ellagawa", "Putupaula"];
+
+const STATION_META = {
+  Ellagawa:   { id: "s1", color: "#00a86b" },
+  Putupaula:  { id: "s2", color: "#00a86b" },
+  Rathnapura: { id: "s3", color: "#00a86b" },
+};
+
+const REFRESH_INTERVAL = 30000;
+const HISTORY_SIZE = 24;
+
+function mapStatus(alert_status) {
+  switch (alert_status?.toUpperCase()) {
+    case "MAJOR FLOOD": return "critical";
+    case "MINOR FLOOD": return "critical";
+    case "ALERT":       return "warning";
+    default:            return "normal";
+  }
 }
-
-function getColor(status) {
-  if (status === "critical") return "#e03030";
-  if (status === "warning")  return "#e07800";
-  return "#22c55e";
-}
-
-function formatTime(timestamp) {
-  // "2026-03-26 09:30:00" → "09:30"
-  return timestamp?.split(" ")[1]?.slice(0, 5) ?? "--:--";
-}
-
-function buildInitialState() {
-  return MONITORED_STATIONS.map((name) => ({
-    id:      STATION_META[name].id,
-    name,
-    time:    "--:--",
-    level:   0,
-    max:     STATION_META[name].max,
-    status:  "normal",
-    color:   "#22c55e",
-    data: Array(MAX_HISTORY).fill(0).map(() => STATION_META[name].max * 0.1), 
-    times: Array(MAX_HISTORY).fill("--:--"),
-    loading: true,
-    error:   false,
-  }));
-}
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useStationData() {
-  const [stationData, setStationData] = useState(buildInitialState);
-
-  // Holds rolling history without causing re-renders
   const historyRef = useRef(
-    Object.fromEntries(MONITORED_STATIONS.map((n) => [n, []]))
+    Object.fromEntries(MONITORED_STATIONS.map((name) => [name, []]))
   );
 
-  const processResults = useCallback((results) => {
-    setStationData((prev) =>
-      prev.map((s, i) => {
-        const { success, data } = results[i];
-
-        if (!success) return { ...s, loading: false, error: true };
-
-        const { station, latest_reading } = data;
-        const wl        = latest_reading.water_level;
-        const timeLabel = formatTime(latest_reading.timestamp);
-
-        // Append to rolling history
-        const hist = historyRef.current[s.name];
-        hist.push({ level: wl, time: timeLabel });
-        if (hist.length > MAX_HISTORY) hist.shift();
-
-        // Pad with current value until we have full 24 readings
-        const padded = [
-          ...Array(Math.max(0, MAX_HISTORY - hist.length)).fill({
-            level: wl,
-            time:  "--:--",
-          }),
-          ...hist,
-        ];
-
-        const status = getStatus(wl, station);
-        const color  = getColor(status);
-
-        return {
-          ...s,
-          time:    timeLabel,
-          level:   wl,
-          max:     STATION_META[s.name].max,
-          status,
-          color,
-          data:    padded.map((p) => p.level),
-          times:   padded.map((p) => p.time),
-          loading: false,
-          error:   false,
-        };
-      })
-    );
-  }, []);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const results = await fetchAllStations();
-      processResults(results);
-    } catch (err) {
-      console.error("Station fetch error:", err);
-      setStationData((prev) =>
-        prev.map((s) => ({ ...s, loading: false, error: true }))
-      );
-    }
-  }, [processResults]);
+  const [stationData, setStationData] = useState(
+    MONITORED_STATIONS.map((name) => ({
+      id:      STATION_META[name].id,
+      name,
+      color:   STATION_META[name].color,
+      time:    "--",
+      level:   0,
+      max:     10,
+      status:  "normal",
+      data:    Array(HISTORY_SIZE).fill(0),
+      times:   Array(HISTORY_SIZE).fill("--"),
+      loading: true,
+      error:   false,
+    }))
+  );
 
   useEffect(() => {
-    fetchData();                                         // fetch immediately on mount
-    const id = setInterval(fetchData, REFRESH_INTERVAL); // then every 30s
-    return () => clearInterval(id);                      // cleanup on unmount
-  }, [fetchData]);
+    let mounted = true;
+
+    async function loadLatest() {
+      try {
+        const res = await fetch(STATIONS_LATEST_API);
+        const all = await res.json();
+
+        if (!mounted) return;
+
+        const updated = MONITORED_STATIONS.map((name) => {
+          const found = all.find((item) => item.station_name === name);
+
+          if (!found) {
+            return {
+              id:      STATION_META[name].id,
+              name,
+              color:   STATION_META[name].color,
+              time:    "--",
+              level:   0,
+              max:     10,
+              status:  "normal",
+              data:    Array(HISTORY_SIZE).fill(0),
+              times:   Array(HISTORY_SIZE).fill("--"),
+              loading: false,
+              error:   true,
+            };
+          }
+
+          const t = new Date(found.timestamp);
+          const time = isNaN(t)
+            ? "--"
+            : t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+          const level = Number(found.water_level) || 0;
+
+          // Accumulate history from each poll
+          const bucket = historyRef.current[name];
+          const last   = bucket[bucket.length - 1];
+          if (!last || last.time !== time) {
+            bucket.push({ level, time });
+          }
+          if (bucket.length > HISTORY_SIZE) {
+            bucket.splice(0, bucket.length - HISTORY_SIZE);
+          }
+
+          // Pad front with zeros until we have 24 real readings
+          const padded = [
+            ...Array(Math.max(0, HISTORY_SIZE - bucket.length))
+              .fill({ level: 0, time: "--" }),
+            ...bucket,
+          ];
+
+          const data  = padded.map((e) => e.level);
+          const times = padded.map((e) => e.time);
+
+          const dataMax = Math.max(...data.filter((v) => v > 0));
+          const max = dataMax > 0 ? Math.ceil(dataMax * 1.4) : 10;
+
+          return {
+            id:      STATION_META[name].id,
+            name,
+            color:   STATION_META[name].color,
+            time,
+            level,
+            max,
+            status:  mapStatus(found.alert_status),
+            data,
+            times,
+            loading: false,
+            error:   false,
+          };
+        });
+
+        setStationData(updated);
+      } catch (err) {
+        console.error("useStationData error:", err);
+        if (!mounted) return;
+        setStationData((prev) =>
+          prev.map((s) => ({ ...s, loading: false, error: true }))
+        );
+      }
+    }
+
+    loadLatest();
+    const interval = setInterval(loadLatest, REFRESH_INTERVAL);
+    return () => { mounted = false; clearInterval(interval); };
+  }, []);
 
   return stationData;
 }
