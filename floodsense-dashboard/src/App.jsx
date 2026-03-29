@@ -13,6 +13,7 @@ import Prediction from "./pages/Prediction.jsx";
 import Settings from "./pages/Settings.jsx";
 import AddLocation from "./pages/AddLocation.jsx";
 import Posts from "./pages/Posts.jsx";
+import ManageUsers from "./pages/ManageUsers";
 
 // Auth
 import Login from "./pages/Login";
@@ -39,6 +40,7 @@ function MainApp() {
             <Route path="settings" element={<Settings />} />
             <Route path="reports" element={<Reports />} />
             <Route path="addlocation" element={<AddLocation />} />
+            <Route path="manage-users" element={<ManageUsers />} />
             <Route path="posts" element={<Posts posts={posts} loading={loading} />} />
         </Routes>
     );
