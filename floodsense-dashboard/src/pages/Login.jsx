@@ -19,7 +19,7 @@ function Login() {
       const res = await api.post("/login", { email, password });
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.user.role);
-      navigate(res.data.user.role === "admin" ? "/dashboard" : "/officer-dashboard");
+      navigate(res.data.user.role === 1 ? "/admin/dashboard" : "/officer/dashboard");
     } catch (err) {
       setError("Unauthorized access. Access restricted to Disaster Management personnel.");
     } finally {

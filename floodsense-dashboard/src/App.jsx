@@ -20,79 +20,67 @@ import OfficerDashboard from "./pages/OfficerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function MainApp() {
-  
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchPosts()
-      .then((res) => {
-        setPosts(res.data);
-      })
-      .catch((err) => {
-        console.error("API Error:", err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+    useEffect(() => {
+        fetchPosts()
+            .then((res) => setPosts(res.data))
+            .catch((err) => console.error("API Error:", err))
+            .finally(() => setLoading(false));
+    }, []);
 
-return (
-    <Routes>
-      <Route
-        path="dashboard"
-        element={<Dashboard posts={posts} loading={loading} />}
-      />
-      <Route path="alerts" element={<Alerts />} />
-      <Route path="prediction" element={<Prediction />} />
-      <Route path="mapview" element={<MapView />} />
-      <Route path="settings" element={<Settings />} />
-      <Route path="reports" element={<Reports />} />
-      <Route path="addlocation" element={<AddLocation />} />
-      <Route path="posts" element={<Posts posts={posts} loading={loading} />} />
-    </Routes>
-  );
-
-
+    return (
+        <Routes>
+            <Route path="dashboard" element={<Dashboard posts={posts} loading={loading} />} />
+            <Route path="alerts" element={<Alerts />} />
+            <Route path="prediction" element={<Prediction />} />
+            <Route path="mapview" element={<MapView />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="addlocation" element={<AddLocation />} />
+            <Route path="posts" element={<Posts posts={posts} loading={loading} />} />
+        </Routes>
+    );
 }
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<Login />} />
+    return (
+        <BrowserRouter>
+            <Routes>
+                {/* Public */}
+                <Route path="/" element={<Login />} />
 
-        {/* Admin Dashboard */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute role="admin">
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+                {/* Admin Dashboard */}
+                <Route
+                    path="/admin/dashboard"
+                    element={
+                        <ProtectedRoute role={1}>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
 
-        {/* Officer Dashboard */}
-        <Route
-          path="/officer-dashboard"
-          element={
-            <ProtectedRoute role="officer">
-              <OfficerDashboard />
-            </ProtectedRoute>
-          }
-        />
+                {/* Officer Dashboard */}
+                <Route
+                    path="/officer/dashboard"
+                    element={
+                        <ProtectedRoute role={2}>
+                            <OfficerDashboard />
+                        </ProtectedRoute>
+                    }
+                />
 
-        {/* Optional Main App */}
-        <Route
-          path="/app/*"
-          element={
-            <ProtectedRoute>
-              <MainApp />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-  );
+                {/* Optional Main App */}
+                <Route
+                    path="/app/*"
+                    element={
+                        <ProtectedRoute>
+                            <MainApp />
+                        </ProtectedRoute>
+                    }
+                />
+            </Routes>
+        </BrowserRouter>
+    );
 }
