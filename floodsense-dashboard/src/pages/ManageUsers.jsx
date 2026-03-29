@@ -93,6 +93,7 @@ const ManageUsers = () => {
   const handleDelete = async () => {
     setIsSaving(true);
     try {
+      // Backend එක දැන් destroy() වලදී status='inactive' කරන නිසා මෙහි වෙනසක් අවශ්‍ය නැත
       await api.delete(`/users/${selectedUser.id}`);
       setShowDelete(false);
       fetchUsers();
@@ -100,9 +101,11 @@ const ManageUsers = () => {
     finally { setIsSaving(false); }
   };
 
+  // ✅ පියවර 3: 'active' පරිශීලකයින් පමණක් පෙරීම සහ Search කිරීම
   const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    u.status === 'active' && 
+    (u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     u.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -120,22 +123,24 @@ const ManageUsers = () => {
           </Btn>
         </div>
 
-        {/* ─── COLORED STATS SUMMARY ─── */}
+        {/* ─── COLORED STATS SUMMARY (දැන් පෙන්වන්නේ Active අය පමණි) ─── */}
         <div style={styles.statsGrid}>
             <Card style={{ ...styles.statCard, borderLeft: '4px solid #cc2200' }}>
-                <span style={styles.statLabel}>Total Personnel</span>
-                <span style={{ ...styles.statValue, color: '#cc2200' }}>{users.length}</span>
+                <span style={styles.statLabel}>Total Active Personnel</span>
+                <span style={{ ...styles.statValue, color: '#cc2200' }}>
+                   {users.filter(u => u.status === 'active').length}
+                </span>
             </Card>
             <Card style={{ ...styles.statCard, borderLeft: '4px solid #ff9800' }}>
                 <span style={styles.statLabel}>Admins</span>
                 <span style={{ ...styles.statValue, color: '#ff9800' }}>
-                  {users.filter(u => u.role_data?.name === 'admin').length}
+                  {users.filter(u => u.status === 'active' && u.role_data?.name === 'admin').length}
                 </span>
             </Card>
             <Card style={{ ...styles.statCard, borderLeft: '4px solid #2e7d32' }}>
                 <span style={styles.statLabel}>Field Officers</span>
                 <span style={{ ...styles.statValue, color: '#2e7d32' }}>
-                  {users.filter(u => u.role_data?.name === 'maintainer').length}
+                  {users.filter(u => u.status === 'active' && u.role_data?.name === 'maintainer').length}
                 </span>
             </Card>
         </div>
