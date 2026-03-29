@@ -1,21 +1,19 @@
 import { Navigate } from "react-router-dom";
 
-function ProtectedRoute({ children, role }) {
-  const token = localStorage.getItem("token");
-  const userRole = localStorage.getItem("role");
+export default function ProtectedRoute({ role, children }) {
+  // get the user's role from localStorage
+  const userRole = localStorage.getItem("role"); // stored as string
 
-  // ❌ If no login → go to login page
-  if (!token) {
+  // if no role/token, redirect to login
+  if (!userRole) {
     return <Navigate to="/" />;
   }
 
-  // ❌ If role mismatch → block access
-  if (role && userRole !== role) {
+  // if a role is required and doesn't match, redirect to login
+  if (role && Number(userRole) !== Number(role)) {
     return <Navigate to="/" />;
   }
 
-  // ✅ Allow access
+  // user is authenticated and authorized
   return children;
 }
-
-export default ProtectedRoute;
