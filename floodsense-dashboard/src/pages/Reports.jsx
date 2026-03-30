@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { C, Card, Btn, Input, Select, FormGroup, globalCSS, Header, Sidebar, TabBar, Toast } from "../shared.jsx";
 
-export default function Reports({ page, setPage }) {
-  const [emergencyMode, setEmergencyMode] = useState(true);
+export default function Reports() {
   const [tab, setTab] = useState("generate");
   const [format, setFormat] = useState("PDF");
   const [toast, setToast] = useState(null);
@@ -39,10 +38,8 @@ export default function Reports({ page, setPage }) {
       <style>{globalCSS}</style>
 
       <div style={{ minHeight: "100vh", background: C.bg }}>
-        <Header emergencyMode={emergencyMode} setEmergencyMode={setEmergencyMode} />
 
         <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-          <Sidebar page={page} setPage={setPage} />
 
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
 

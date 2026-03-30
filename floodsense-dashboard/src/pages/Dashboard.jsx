@@ -165,8 +165,7 @@ const proStyles = `
   }
 `;
 
-export default function Dashboard({ page, setPage }) {
-  const [emergencyMode, setEmergencyMode] = useState(true);
+export default function Dashboard() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -219,11 +218,9 @@ export default function Dashboard({ page, setPage }) {
       <style>{globalCSS}</style>
       <style>{proStyles}</style>
       <div style={{ minHeight: "100vh", background: "#f0ede8", color: "#1e293b" }}>
-        <Header emergencyMode={emergencyMode} setEmergencyMode={setEmergencyMode} />
-        
+
         <div style={{ display: "flex", margin: "16px 20px" }}>
-          <Sidebar page={page} setPage={setPage} />
-          
+
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 20, overflowY: "auto", maxHeight: "calc(100vh - 100px)", paddingRight: 4 }}>
 
             {/* Alert Banner */}
