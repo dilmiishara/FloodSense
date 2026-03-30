@@ -13,6 +13,7 @@ import Prediction from "./pages/Prediction.jsx";
 import Settings from "./pages/Settings.jsx";
 import AddLocation from "./pages/AddLocation.jsx";
 import Posts from "./pages/Posts.jsx";
+import Users from "./pages/ManageUsers.jsx";
 
 // Auth
 import Login from "./pages/Login";
@@ -58,6 +59,12 @@ function MainApp() {
                 <Route path="reports" element={
                     <ProtectedRoute role={1}>
                         <Reports />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="Users" element={
+                    <ProtectedRoute role={1}>
+                        <Users />
                     </ProtectedRoute>
                 } />
 
