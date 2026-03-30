@@ -3,7 +3,7 @@ import { useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { C, Card, Badge, globalCSS, Header, Sidebar, TabBar } from "../shared.jsx";
+import { C, Card, Badge, globalCSS, TabBar } from "../shared.jsx";
 
 // Real Map Component (Leaflet)
 const SriLankaMap = ({ mode, layer }) => {
@@ -84,8 +84,7 @@ const SriLankaMap = ({ mode, layer }) => {
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────
-export default function MapView({ page, setPage }) {
-    const [emergencyMode, setEmergencyMode] = useState(true);
+export default function MapView() {
     const [tab, setTab] = useState("sensor");
     const [layer, setLayer] = useState("District");
 
@@ -123,13 +122,10 @@ export default function MapView({ page, setPage }) {
             <style>{globalCSS}</style>
 
             <div style={{ minHeight: "100vh", background: C.bg }}>
-                <Header
-                    emergencyMode={emergencyMode}
-                    setEmergencyMode={setEmergencyMode}
-                />
+               
 
                 <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-                    <Sidebar page={page} setPage={setPage} />
+                   
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
                         <TabBar tabs={tabs} active={tab} onChange={setTab} />

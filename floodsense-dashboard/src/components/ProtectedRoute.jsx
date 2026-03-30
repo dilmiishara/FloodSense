@@ -1,19 +1,23 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { rolePages } from "../shared/permissions";
 
-export default function ProtectedRoute({ role, children }) {
-  // get the user's role from localStorage
-  const userRole = localStorage.getItem("role"); // stored as string
+export default function ProtectedRoute({ children }) {
+  const location = useLocation();
+  const userRole = localStorage.getItem("role");
 
-  // if no role/token, redirect to login
   if (!userRole) {
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
 
-  // if a role is required and doesn't match, redirect to login
-  if (role && Number(userRole) !== Number(role)) {
-    return <Navigate to="/" />;
+  const allowedPages = rolePages[userRole] || [];
+
+  const canAccess = allowedPages.some(
+      (p) => p.path === location.pathname
+  );
+
+  if (!canAccess) {
+    return <Navigate to="/app/dashboard" replace />;
   }
 
-  // user is authenticated and authorized
   return children;
 }
