@@ -3,3 +3,9 @@ export const POSTS_API = `${API_BASE_URL}/posts`;
 
 // ── Only this one API is used for station data ──
 export const STATIONS_LATEST_API = "https://www.srilankafloodmonitor.site/api/levels/latest";
+
+export const WEATHER_API = {
+  KEY: "a201c7373afb43ff960185608250512",
+  BASE_URL: "https://api.weatherapi.com/v1",
+  RATNAPURA_COORDS: "6.6828,80.3992",
+};

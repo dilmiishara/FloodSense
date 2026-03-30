@@ -12,6 +12,9 @@ import {
   ProbBar,
   SriLankaMap,
 } from "../shared.jsx";
+
+import { fetchRatnapuraWeather } from "../api/services/weatherService";
+
 import { useStationData } from "../hooks/useStationData";
 
 
@@ -308,6 +311,16 @@ export default function Prediction({ page, setPage }) {
   const [tab, setTab]         = useState("waterlevel");
   const [timeRange, setTime]  = useState("Next 6H");
 
+const [weather, setWeather]           = useState(null);
+const [weatherLoading, setWeatherLoading] = useState(true);
+const [weatherError, setWeatherError]     = useState(null);
+
+useEffect(() => {
+  fetchRatnapuraWeather()
+    .then((data) => { setWeather(data); setWeatherLoading(false); })
+    .catch((err)  => { setWeatherError(err.message); setWeatherLoading(false); });
+}, []);
+
   // ── LIVE STATION DATA ──
   const stationData = useStationData();
 
@@ -390,7 +403,7 @@ export default function Prediction({ page, setPage }) {
                   <div style={{ display:"flex", alignItems:"center",
                     justifyContent:"space-between", marginBottom:12 }}>
                     <div>
-                      <div style={{ fontSize:14, fontWeight:700 }}>Real-time Station Water Levels</div>
+                      <div style={{ fontSize:14, fontWeight:700 }}>Kalu Ganga - Real-time Station Water Levels</div>
                       <div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>
                         Live sensor readings · Kalu Ganga basin · Auto-refresh 30s
                       </div>
@@ -628,58 +641,62 @@ export default function Prediction({ page, setPage }) {
                 </Card>
 
                 <div className="fadeUp" style={{ display:"flex", gap:12, alignItems:"stretch" }}>
-                  <Card style={{ flex:1 }}>
-                    <div style={{ fontSize:13, fontWeight:700, marginBottom:14, color:C.dark }}>
-                      Current Conditions — Ratnapura
-                    </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                      {[
-                        ["WIND",     "4 kph", "Dir: WSW"    ],
-                        ["HUMIDITY", "39%",   "Press: 1011 mb"],
-                        ["RAIN",     "0 mm",  "Cloud: 18%"  ],
-                        ["UV",       "13.3",  "Vis: 10 km"  ],
-                      ].map(([label, val, sub], i) => (
-                        <div key={i} style={{ background:C.bg, borderRadius:12, padding:"14px 16px",
-                          border:`1px solid ${C.border}` }}>
-                          <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase",
-                            letterSpacing:0.5, color:"#aaa", marginBottom:6 }}>{label}</div>
-                          <div style={{ fontSize:24, fontWeight:900, letterSpacing:-0.5, color:C.dark }}>{val}</div>
-                          <div style={{ fontSize:11, color:C.mid, marginTop:4 }}>{sub}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
+               <Card style={{ flex:1 }}>
+  <div style={{ fontSize:13, fontWeight:700, marginBottom:14, color:C.dark }}>
+    Current Conditions — Ratnapura
+  </div>
+  {weatherLoading && <div style={{ color:"#aaa", fontSize:12 }}>Loading weather data…</div>}
+  {weatherError   && <div style={{ color:C.red,  fontSize:12 }}>Error: {weatherError}</div>}
+  {weather && (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+      {[
+        ["WIND",     weather.current.wind,     weather.current.windDir  ],
+        ["HUMIDITY", weather.current.humidity,  weather.current.pressure ],
+        ["RAIN",     weather.current.rain,      weather.current.cloud    ],
+        ["UV",       weather.current.uv,        weather.current.vis      ],
+      ].map(([label, val, sub], i) => (
+        <div key={i} style={{ background:C.bg, borderRadius:12, padding:"14px 16px",
+          border:`1px solid ${C.border}` }}>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase",
+            letterSpacing:0.5, color:"#aaa", marginBottom:6 }}>{label}</div>
+          <div style={{ fontSize:24, fontWeight:900, letterSpacing:-0.5, color:C.dark }}>{val}</div>
+          <div style={{ fontSize:11, color:C.mid, marginTop:4 }}>{sub}</div>
+        </div>
+      ))}
+    </div>
+  )}
+</Card>
 
-                  <Card style={{ flex:1.6 }}>
-                    <div style={{ fontSize:13, fontWeight:700, marginBottom:14,
-                      textTransform:"uppercase", letterSpacing:0.5, color:C.dark }}>
-                      3-Day Forecast
-                    </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
-                      {[
-                        ["Sunday, Mar 22",  "🌦","Patchy rain nearby","34.5°","19°",  "93%","5 kph"  ],
-                        ["Monday, Mar 23",  "🌦","Patchy rain nearby","34.7°","18.5°","88%","9 kph"  ],
-                        ["Tuesday, Mar 24", "🌦","Patchy rain nearby","34.5°","18.9°","88%","7.9 kph"],
-                      ].map(([day, icon, desc, max, min, rain, wind], i) => (
-                        <div key={i} style={{ background:C.bg, borderRadius:12, padding:"14px 12px",
-                          border:`1px solid ${C.border}`, textAlign:"center" }}>
-                          <div style={{ fontSize:11, fontWeight:800, color:C.dark, marginBottom:10 }}>{day}</div>
-                          <div style={{ fontSize:32, marginBottom:8 }}>{icon}</div>
-                          <div style={{ fontSize:11, color:C.mid, marginBottom:10, lineHeight:1.4 }}>{desc}</div>
-                          <div style={{ display:"flex", justifyContent:"center", gap:8, marginBottom:8 }}>
-                            <span style={{ fontSize:13, fontWeight:800, color:C.red }}>Max: {max}</span>
-                            <span style={{ fontSize:13, fontWeight:800, color:C.blue }}>Min: {min}</span>
-                          </div>
-                          <div style={{ fontSize:11, color:C.mid }}>
-                            Rain Chance: <strong style={{ color:C.dark }}>{rain}</strong>
-                          </div>
-                          <div style={{ fontSize:11, color:C.mid, marginTop:2 }}>
-                            Max Wind: <strong style={{ color:C.dark }}>{wind}</strong>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
+             <Card style={{ flex:1.6 }}>
+  <div style={{ fontSize:13, fontWeight:700, marginBottom:14,
+    textTransform:"uppercase", letterSpacing:0.5, color:C.dark }}>
+    3-Day Forecast
+  </div>
+  {weatherLoading && <div style={{ color:"#aaa", fontSize:12 }}>Loading forecast…</div>}
+  {weatherError   && <div style={{ color:C.red,  fontSize:12 }}>Error: {weatherError}</div>}
+  {weather && (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+      {weather.forecast.map(({ label, icon, condition, max, min, rainChance, maxWind }, i) => (
+        <div key={i} style={{ background:C.bg, borderRadius:12, padding:"14px 12px",
+          border:`1px solid ${C.border}`, textAlign:"center" }}>
+          <div style={{ fontSize:11, fontWeight:800, color:C.dark, marginBottom:10 }}>{label}</div>
+          <div style={{ fontSize:32, marginBottom:8 }}>{icon}</div>
+          <div style={{ fontSize:11, color:C.mid, marginBottom:10, lineHeight:1.4 }}>{condition}</div>
+          <div style={{ display:"flex", justifyContent:"center", gap:8, marginBottom:8 }}>
+            <span style={{ fontSize:13, fontWeight:800, color:C.red }}>Max: {max}</span>
+            <span style={{ fontSize:13, fontWeight:800, color:C.blue }}>Min: {min}</span>
+          </div>
+          <div style={{ fontSize:11, color:C.mid }}>
+            Rain Chance: <strong style={{ color:C.dark }}>{rainChance}</strong>
+          </div>
+          <div style={{ fontSize:11, color:C.mid, marginTop:2 }}>
+            Max Wind: <strong style={{ color:C.dark }}>{maxWind}</strong>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</Card>
                 </div>
               </>
             )}
