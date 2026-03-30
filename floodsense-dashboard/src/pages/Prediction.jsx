@@ -6,8 +6,6 @@ import {
   Badge,
   Btn,
   globalCSS,
-  Header,
-  Sidebar,
   TabBar,
   ProbBar,
   SriLankaMap,
@@ -306,8 +304,7 @@ const StatCard = ({ label, value, valColor, sub, subColor, dark, extra }) => (
 );
 
 // ── Main Page ──
-export default function Prediction({ page, setPage }) {
-  const [emergencyMode, setEmergencyMode] = useState(true);
+export default function Prediction() {
   const [tab, setTab]         = useState("waterlevel");
   const [timeRange, setTime]  = useState("Next 6H");
 
@@ -365,9 +362,7 @@ useEffect(() => {
         }
       `}</style>
       <div style={{ minHeight: "100vh", background: C.bg }}>
-        <Header emergencyMode={emergencyMode} setEmergencyMode={setEmergencyMode} />
         <div style={{ display:"flex", margin:"12px 14px 14px" }}>
-          <Sidebar page={page} setPage={setPage} />
           <div style={{
             flex:1, minWidth:0, display:"flex", flexDirection:"column",
             gap:12, overflowY:"auto", maxHeight:"calc(100vh - 110px)", paddingRight:2,

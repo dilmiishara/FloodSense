@@ -8,14 +8,11 @@ import {
   Input,
   Select,
   globalCSS,
-  Header,
-  Sidebar,
   TabBar,
   ToggleRow,
 } from "../shared.jsx";
 
-export default function Alerts({ page, setPage }) {
-  const [emergencyMode, setEmergencyMode] = useState(true);
+export default function Alerts() {
   const [tab, setTab] = useState("active");
 
   const tabs = [
@@ -259,12 +256,7 @@ export default function Alerts({ page, setPage }) {
     <>
       <style>{globalCSS}</style>
       <div style={{ minHeight: "100vh", background: C.bg }}>
-        <Header
-          emergencyMode={emergencyMode}
-          setEmergencyMode={setEmergencyMode}
-        />
         <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-          <Sidebar page={page} setPage={setPage} />
           <div
             style={{
               flex: 1,

@@ -15,12 +15,38 @@ function Login() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
     try {
       const res = await api.post("/login", { email, password });
+
+      // Save token
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.user.role);
-      navigate(res.data.user.role === 1 ? "/admin/dashboard" : "/officer/dashboard");
+
+      // Determine role string based on backend role value
+      // Assuming role: 1 = admin, 2 = maintenance/officer
+      let roleString = "";
+      let redirectPath = "";
+
+      if (res.data.user.role === 1) {
+        roleString = "admin";
+        redirectPath = "/app/dashboard";
+      } else {
+        roleString = "maintenance";
+        redirectPath = "/app/dashboard";
+      }
+
+      // Save role and user data
+      localStorage.setItem("role", roleString);
+      localStorage.setItem("user", JSON.stringify({
+        ...res.data.user,
+        role: roleString // Store the string version
+      }));
+
+      // Navigate based on role
+      navigate(redirectPath, { replace: true });
+
     } catch (err) {
+      console.error("Login error:", err);
       setError("Unauthorized access. Access restricted to Disaster Management personnel.");
     } finally {
       setIsLoading(false);
@@ -28,97 +54,97 @@ function Login() {
   };
 
   return (
-    <div style={styles.container}>
-      {/* Left Side: Visual/Branding Section */}
-      <div style={styles.visualSide}>
-        <div style={styles.overlay}></div>
-        <div style={styles.brandingContent}>
-          <div style={styles.logoBadge}>
-            <Activity color="white" size={32} />
-          </div>
-          <h1 style={styles.heroTitle}>Flood<span style={{color: '#ff4d4d'}}>Sense</span></h1>
-          <p style={styles.heroSubtitle}>
-            National Flood Prediction & Risk Detection System. 
-            Real-time monitoring for the Democratic Socialist Republic of Sri Lanka.
-          </p>
-          <div style={styles.statsContainer}>
-            <div style={styles.statBox}>
-              <span style={styles.statValue}>24/7</span>
-              <span style={styles.statLabel}>Active Monitoring</span>
+      <div style={styles.container}>
+        {/* Left Side: Visual/Branding Section */}
+        <div style={styles.visualSide}>
+          <div style={styles.overlay}></div>
+          <div style={styles.brandingContent}>
+            <div style={styles.logoBadge}>
+              <Activity color="white" size={32} />
             </div>
-            <div style={styles.statBox}>
-              <span style={styles.statValue}>Live</span>
-              <span style={styles.statLabel}>Sensor Network</span>
+            <h1 style={styles.heroTitle}>Flood<span style={{color: '#ff4d4d'}}>Sense</span></h1>
+            <p style={styles.heroSubtitle}>
+              National Flood Prediction & Risk Detection System.
+              Real-time monitoring for the Democratic Socialist Republic of Sri Lanka.
+            </p>
+            <div style={styles.statsContainer}>
+              <div style={styles.statBox}>
+                <span style={styles.statValue}>24/7</span>
+                <span style={styles.statLabel}>Active Monitoring</span>
+              </div>
+              <div style={styles.statBox}>
+                <span style={styles.statValue}>Live</span>
+                <span style={styles.statLabel}>Sensor Network</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Right Side: Login Form */}
-      <div style={styles.formSide}>
-        <div style={styles.loginCard}>
-          <div style={{ marginBottom: '30px' }}>
-            <h2 style={styles.formTitle}>System Login</h2>
-            <p style={styles.formSubtitle}>Enter your official credentials to access the portal.</p>
+        {/* Right Side: Login Form */}
+        <div style={styles.formSide}>
+          <div style={styles.loginCard}>
+            <div style={{ marginBottom: '30px' }}>
+              <h2 style={styles.formTitle}>System Login</h2>
+              <p style={styles.formSubtitle}>Enter your official credentials to access the portal.</p>
+            </div>
+
+            {error && (
+                <div style={styles.errorBox}>
+                  <AlertCircle size={18} />
+                  <span>{error}</span>
+                </div>
+            )}
+
+            <form onSubmit={handleLogin}>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Official Email</label>
+                <div style={styles.inputWrapper}>
+                  <Mail style={styles.icon} size={20} />
+                  <input
+                      type="email"
+                      placeholder="admin@floodsense.gov.lk"
+                      style={styles.input}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                  />
+                </div>
+              </div>
+
+              <div style={styles.inputGroup}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <label style={styles.label}>Password</label>
+                  <span style={styles.forgotPass}>Request Reset</span>
+                </div>
+                <div style={styles.inputWrapper}>
+                  <Lock style={styles.icon} size={20} />
+                  <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      style={styles.input}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                  />
+                  <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={styles.eyeBtn}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" disabled={isLoading} style={styles.submitBtn}>
+                {isLoading ? "Authenticating..." : "Access Dashboard"}
+              </button>
+            </form>
+
+            <p style={styles.footerText}>
+              © 2026 FloodSense Sri Lanka. Secure Government Gateway.
+            </p>
           </div>
-
-          {error && (
-            <div style={styles.errorBox}>
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Official Email</label>
-              <div style={styles.inputWrapper}>
-                <Mail style={styles.icon} size={20} />
-                <input
-                  type="email"
-                  placeholder="admin@floodsense.gov.lk"
-                  style={styles.input}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div style={styles.inputGroup}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label style={styles.label}>Password</label>
-                <span style={styles.forgotPass}>Request Reset</span>
-              </div>
-              <div style={styles.inputWrapper}>
-                <Lock style={styles.icon} size={20} />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  style={styles.input}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={styles.eyeBtn}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-
-            <button type="submit" disabled={isLoading} style={styles.submitBtn}>
-              {isLoading ? "Authenticating..." : "Access Dashboard"}
-            </button>
-          </form>
-
-          <p style={styles.footerText}>
-            © 2026 FloodSense Sri Lanka. Secure Government Gateway.
-          </p>
         </div>
       </div>
-    </div>
   );
 }
 
@@ -132,7 +158,7 @@ const styles = {
   visualSide: {
     flex: 1.2,
     position: 'relative',
-    backgroundImage: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072")', // Tech Satellite Image
+    backgroundImage: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072")',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     display: 'flex',
@@ -253,6 +279,7 @@ const styles = {
     border: '1px solid #e2e8f0',
     fontSize: '1rem',
     outline: 'none',
+    transition: 'border-color 0.2s',
   },
   eyeBtn: {
     position: 'absolute',
@@ -280,6 +307,7 @@ const styles = {
     cursor: 'pointer',
     marginTop: '10px',
     boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
+    transition: 'all 0.2s',
   },
   footerText: {
     textAlign: 'center',
