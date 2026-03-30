@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import {
-  C, Card, Badge, Btn, Input, Select, globalCSS, Header, Sidebar, TabBar,
+  C,
+  Card,
+  Badge,
+  Btn,
+  Input,
+  Select,
+  globalCSS,
+  TabBar,
+  ToggleRow,
 } from "../shared.jsx";
 import { CheckCircle, X } from "lucide-react"; 
 
@@ -9,8 +17,7 @@ import { fetchActiveAlerts, fetchAlertHistory, resolveAlertAPI } from "../api/se
 import { fetchAreas } from "../api/services/userService";
 import ThresholdTable from "../components/ThresholdTable"; // 👈 අලුත් component එක
 
-export default function Alerts({ page, setPage }) {
-  const [emergencyMode, setEmergencyMode] = useState(true);
+export default function Alerts() {
   const [tab, setTab] = useState("active");
   
   const [activeAlerts, setActiveAlerts] = useState([]);
@@ -116,12 +123,28 @@ export default function Alerts({ page, setPage }) {
     <>
       <style>{globalCSS}</style>
       <div style={{ minHeight: "100vh", background: C.bg }}>
-        <Header emergencyMode={emergencyMode} setEmergencyMode={setEmergencyMode} />
         <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-          <Sidebar page={page} setPage={setPage} />
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: "calc(100vh - 110px)", paddingRight: 2 }}>
-            
-            <div className="fadeUp" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              overflowY: "auto",
+              maxHeight: "calc(100vh - 110px)",
+              paddingRight: 2,
+            }}
+          >
+            {/* Page header */}
+            <div
+              className="fadeUp"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
               <div>
                 <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.4 }}>Alerts</div>
                 <div style={{ fontSize: 12, color: "#aaa", marginTop: 3 }}>Monitor, manage and configure all system alerts</div>

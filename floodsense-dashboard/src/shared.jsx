@@ -3,7 +3,9 @@
 // Import these into every page component.
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import {rolePages} from "./shared/permissions.js";
 
+// ─── COLOR CONSTANTS ─────────────────────────────────────────────────────────
 export const C = {
     bg: "#f0ede8", white: "#ffffff", dark: "#1a1a1a", mid: "#666",
     light: "#f7f5f2", red: "#cc2200", orange: "#e86e00", yellow: "#c8920a",
@@ -13,6 +15,7 @@ export const C = {
     shadow: "0 1px 5px rgba(0,0,0,0.07)",
 };
 
+// ─── GLOBAL CSS ──────────────────────────────────────────────────────────────
 export const globalCSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -40,7 +43,7 @@ export const globalCSS = `
   .progfill{height:100%;background:#1a1a1a;border-radius:2px;animation:progAnim 1.8s ease forwards;}
 `;
 
-// ─── BADGE ───────────────────────────────────────────────────────────────────
+// ─── BADGE COMPONENT ─────────────────────────────────────────────────────────
 export const Badge = ({ type, children }) => {
     const styles = {
         critical: { background: "#fff0ee", color: "#cc2200" },
@@ -89,6 +92,7 @@ export const Btn = ({ children, variant = "dark", onClick, style = {}, disabled 
         }}>{children}</button>
     );
 };
+
 
 // ─── FORM GROUP ───────────────────────────────────────────────────────────────
 export const FormGroup = ({ label, hint, children }) => (
@@ -265,35 +269,17 @@ export const Header = ({ emergencyMode, setEmergencyMode }) => (
     </div>
 );
 
-// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-
-
-
-const NAV = [
-    { id: "dashboard",   icon: "⊞", label: "Dashboard",    section: "Main" },
-    { id: "mapview",     icon: "🗺", label: "Map View" },
-    { id: "alerts",      icon: "🔔", label: "Alerts" },
-    { id: "prediction",  icon: "🔮", label: "Prediction" },
-    { id: "addlocation", icon: "📍", label: "Add Location", section: "Manage" },
-    { id: "reports",     icon: "📊", label: "Reports" },
-    { id: "settings",    icon: "⚙",  label: "Settings" },
-    { id: "manage-users", icon: "👥", label: "Manage Users" },
-    { id: "posts",       icon: "📝", label: "Posts" },
-];
-
+// ─── SIDEBAR COMPONENT ──────────────────────────────────────────────────────
 export const Sidebar = ({ page }) => {
     const navigate = useNavigate();
     const [showModal, setShowModal] = useState(false);
-    const [status, setStatus] = useState("idle"); // "idle" | "loading"
+    const [status, setStatus] = useState("idle");
 
-    const handleNavigate = (id) => {
-        navigate(`/app/${id}`);
-    };
+    const role = localStorage.getItem("role") || "maintainer";
+    const NAV = rolePages[role] || [];
 
     const handleConfirmLogout = () => {
         setStatus("loading");
-        
-        // Professional delay to "Secure" the connection
         setTimeout(() => {
             localStorage.removeItem("token");
             localStorage.removeItem("role");
@@ -305,54 +291,69 @@ export const Sidebar = ({ page }) => {
         <>
             <div style={{
                 width: 196, minWidth: 196, marginRight: 14, background: "#ffffff",
-                borderRadius: 16, padding: "20px 12px", boxShadow: "0 1px 5px rgba(0,0,0,.07)",
+                borderRadius: 16, padding: "20px 12px",
+                boxShadow: "0 1px 5px rgba(0,0,0,.07)",
                 display: "flex", flexDirection: "column", minHeight: 600,
             }}>
-                <div style={{ fontSize: 17, fontWeight: 800, padding: "0 8px", marginBottom: 6, letterSpacing: -.3 }}>
+                <div style={{
+                    fontSize: 17, fontWeight: 800,
+                    padding: "0 8px", marginBottom: 6
+                }}>
                     FloodSense
                 </div>
 
-                {NAV.map(item => (
-                    <div key={item.id}>
-                        {item.section && (
-                            <div style={{ fontSize: 10, fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: .8, padding: "10px 8px 4px" }}>
-                                {item.section}
+                {NAV.map(item => {
+                    const id = item.path.split("/").pop();
+
+                    return (
+                        <div key={item.path}>
+                            <div
+                                onClick={() => navigate(item.path)}
+                                style={{
+                                    padding: "9px 12px",
+                                    borderRadius: 10,
+                                    fontSize: 13.5,
+                                    fontWeight: page === id ? 700 : 500,
+                                    cursor: "pointer",
+                                    color: page === id ? "#1a1a1a" : "#666",
+                                    marginBottom: 1,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 9,
+                                    background: page === id ? "#eeebe6" : "transparent",
+                                    transition: "background .15s",
+                                }}
+                            >
+                                {item.name}
                             </div>
-                        )}
-                        <div
-                            onClick={() => handleNavigate(item.id)}
-                            style={{
-                                padding: "9px 12px", borderRadius: 10, fontSize: 13.5,
-                                fontWeight: page === item.id ? 700 : 500, cursor: "pointer",
-                                color: page === item.id ? "#1a1a1a" : "#666", marginBottom: 1,
-                                display: "flex", alignItems: "center", gap: 9,
-                                background: page === item.id ? "#eeebe6" : "transparent",
-                                transition: "background .15s",
-                            }}
-                        >
-                            {item.label}
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
-                <div style={{ height: 1, background: "#e8e4df", margin: "8px 0" }} />
+                <div style={{
+                    height: 1,
+                    background: "#e8e4df",
+                    margin: "8px 0"
+                }} />
 
+                {/* Logout */}
                 <div
                     onClick={() => setShowModal(true)}
                     style={{
-                        padding: "9px 12px", borderRadius: 10, fontSize: 13.5, fontWeight: 600,
-                        cursor: "pointer", color: "#cc2200", display: "flex", alignItems: "center",
-                        gap: 9, marginTop: "auto", transition: "all .15s",
+                        padding: "9px 12px",
+                        borderRadius: 10,
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        color: "#cc2200",
+                        marginTop: "auto"
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "#fff0ee"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                 >
-                    <span style={{ fontSize: 15, width: 18, textAlign: "center" }}>⎋</span>
-                    Logout
+                    ⎋ Logout
                 </div>
             </div>
 
-            {/* ─── PROFESSIONAL COMMAND CENTER MODAL ─── */}
+            {/* Logout Modal */}
             {showModal && (
                 <div style={modalStyles.overlay}>
                     <div className="fadeUp" style={modalStyles.modal}>
@@ -361,7 +362,7 @@ export const Sidebar = ({ page }) => {
                                 <div style={modalStyles.iconBadge}>⎋</div>
                                 <h2 style={modalStyles.title}>Sign Out?</h2>
                                 <p style={modalStyles.subtitle}>End your administrative session and lock the portal.</p>
-                                
+
                                 {/* Session Context Box (Very Professional) */}
                                 <div style={modalStyles.sessionBox}>
                                     <div style={modalStyles.sessionRow}>
@@ -404,6 +405,7 @@ export const Sidebar = ({ page }) => {
                     </div>
                 </div>
             )}
+
         </>
     );
 };
@@ -447,9 +449,7 @@ const modalStyles = {
     }
 };
 
-//page
 // ─── PAGE SHELL ───────────────────────────────────────────────────────────────
-// Wrap every page with this shell so header + sidebar are consistent.
 export const PageShell = ({ page, setPage, children }) => {
     const [emergencyMode, setEmergencyMode] = useState(true);
     return (
@@ -479,3 +479,15 @@ export const Toast = ({ message }) =>
             display: "flex", alignItems: "center", gap: 8,
         }}>{message}</div>
     ) : null;
+
+// ─── SIDEBAR NAVIGATION ──────────────────────────────────────────────────────
+// const NAV = [
+//     { id: "dashboard",   icon: "⊞", label: "Dashboard",    section: "Main" },
+//     { id: "mapview",     icon: "🗺", label: "Map View" },
+//     { id: "alerts",      icon: "🔔", label: "Alerts" },
+//     { id: "prediction",  icon: "🔮", label: "Prediction" },
+//     { id: "addlocation", icon: "📍", label: "Add Location", section: "Manage" },
+//     { id: "reports",     icon: "📊", label: "Reports" },
+//     { id: "settings",    icon: "⚙",  label: "Settings" },
+//     { id: "posts",       icon: "📝", label: "Posts", section: "Manage" },
+// ];

@@ -2,10 +2,9 @@
 import { useState ,useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap  } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { C, Card, Badge, Btn, Input, Select, FormGroup, globalCSS, Header, Sidebar, TabBar, SriLankaMap, Toast } from "../shared.jsx";
+import { C, Card, Badge, Btn, Input, Select, FormGroup, globalCSS, TabBar, SriLankaMap, Toast } from "../shared.jsx";
 
-export default function AddLocation({ page, setPage }) {
-    const [emergencyMode, setEmergencyMode] = useState(true);
+export default function AddLocation() {
     const [tab, setTab]         = useState("sensor");
     const [confirm, setConfirm] = useState(null);
     const [toast, setToast]     = useState(null);
@@ -104,9 +103,7 @@ export default function AddLocation({ page, setPage }) {
         <>
             <style>{globalCSS}</style>
             <div style={{ minHeight: "100vh", background: C.bg }}>
-                <Header emergencyMode={emergencyMode} setEmergencyMode={setEmergencyMode} />
                 <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-                    <Sidebar page={page} setPage={setPage} />
                     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: "calc(100vh - 110px)", paddingRight: 2 }}>
 
                         {/* Page header */}
