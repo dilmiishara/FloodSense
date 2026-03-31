@@ -56,12 +56,23 @@ useEffect(() => {
   await saveSettings("system", { emergency_mode: newVal });
 };
 
+const toggleMaintenanceMode = async () => {
+  const current = systemSettings.maintenance_mode === true || 
+                  systemSettings.maintenance_mode === "true" || 
+                  systemSettings.maintenance_mode === "1" || 
+                  systemSettings.maintenance_mode === 1;
+  const newVal = !current;
+  setSystemSettings((prev) => ({ ...prev, maintenance_mode: newVal }));
+  await saveSettings("system", { maintenance_mode: newVal });
+};
+
   return (
     <SettingsContext.Provider value={{
       systemSettings,
       loading,
       updateSystemSettings,
       toggleEmergencyMode,
+      toggleMaintenanceMode,
     }}>
       {children}
     </SettingsContext.Provider>

@@ -89,9 +89,6 @@ const { systemSettings, updateSystemSettings, toggleEmergencyMode } = useSetting
   const navItems = [
     { id: "system",   label: "System Settings" },
     { id: "sensor",   label: "Sensor Config" },
-    { id: "alerts",   label: "Alert & Notifications" },
-    { id: "map",      label: "Map & Location" },
-    { id: "safezone", label: "Safe Zone Mgmt" },
   ];
 
   const GroupLabel = ({ children }) => (
@@ -346,93 +343,6 @@ const { systemSettings, updateSystemSettings, toggleEmergencyMode } = useSetting
                     <ToggleRow name="Predict Using Last Reading" desc="Use last known value for forecasting when sensor is offline" on={tog.predictOffline} onToggle={() => t("predictOffline")} />
                     <ToggleRow name="Auto-Reconnect Attempts" desc="Retry sensor connection every 60 seconds" on={tog.autoReconnect} onToggle={() => t("autoReconnect")} />
                     <SaveFooter label="Save Sensor Config" onSave={() => showToast("✅ Sensor config saved!")} />
-                  </Card>
-                )}
-
-                {/* ── ALERT & NOTIFICATIONS ── */}
-                {section === "alerts" && (
-                  <Card>
-                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
-                      Alert & Notification Settings
-                    </div>
-                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
-                      Configure how, when and to whom alerts are sent
-                    </div>
-                    <GroupLabel>Global Alert Thresholds</GroupLabel>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 4 }}>
-                      <FormGroup label="Warning Level (%)" hint="Trigger yellow alert">
-                        <Input defaultValue="60" type="number" />
-                      </FormGroup>
-                      <FormGroup label="High Alert Level (%)" hint="Trigger orange alert">
-                        <Input defaultValue="75" type="number" />
-                      </FormGroup>
-                      <FormGroup label="Critical Level (%)" hint="Trigger red / emergency">
-                        <Input defaultValue="88" type="number" />
-                      </FormGroup>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 4 }}>
-                      <FormGroup label="Rise Rate Warning (m/hr)">
-                        <Input defaultValue="0.20" type="number" step="0.01" />
-                      </FormGroup>
-                      <FormGroup label="Rise Rate Critical (m/hr)">
-                        <Input defaultValue="0.35" type="number" step="0.01" />
-                      </FormGroup>
-                      <FormGroup label="Repeat Alert Interval (min)">
-                        <Input defaultValue="15" type="number" />
-                      </FormGroup>
-                    </div>
-                    <GroupLabel>Notification Channels</GroupLabel>
-                    <ToggleRow name="App Push Notifications" desc="Send to all logged-in FloodSense mobile app users" on={tog.push} onToggle={() => t("push")} />
-                    <GroupLabel>Alert Behaviour</GroupLabel>
-                    <ToggleRow name="Quiet Hours" desc="Suppress non-critical notifications between 22:00 – 06:00" on={tog.quiet} onToggle={() => t("quiet")} />
-                    <ToggleRow name="Alert Deduplication" desc="Don't resend the same alert within the repeat interval" on={tog.dedup} onToggle={() => t("dedup")} />
-                    <ToggleRow name="All-Clear Notification" desc="Send notification when water levels return to safe range" on={tog.allclear} onToggle={() => t("allclear")} />
-                    <GroupLabel>Test & Diagnostics</GroupLabel>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {["Test Push", "Run Diagnostics"].map((l) => (
-                        <button key={l} onClick={() => showToast(`✅ ${l} completed`)}
-                          style={{ padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                    <SaveFooter label="Save Alert Settings" onSave={() => showToast("✅ Alert settings saved!")} />
-                  </Card>
-                )}
-
-                {/* ── MAP & LOCATION ── */}
-                {section === "map" && (
-                  <Card>
-                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
-                      Map & Location Settings
-                    </div>
-                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
-                      Default map view, layers and display preferences
-                    </div>
-                    <GroupLabel>Visible Layers</GroupLabel>
-                    <ToggleRow name="Sensor Location Pins"    desc="Show active sensor pins on all map views"                    on={tog.pins}     onToggle={() => t("pins")} />
-                    <ToggleRow name="Safe Zone Markers"       desc="Show shelter and safe zone markers on maps"                  on={tog.safepins} onToggle={() => t("safepins")} />
-                    <ToggleRow name="Affected Area Shading"   desc="Show colour-coded district shading by flood risk level"      on={tog.shading}  onToggle={() => t("shading")} />
-                    <ToggleRow name="Risk Heatmap Overlay"    desc="Show heat blobs over high-risk areas"                       on={tog.heat}     onToggle={() => t("heat")} />
-                    <ToggleRow name="District Boundary Lines" desc="Show administrative district borders"                       on={tog.borders}  onToggle={() => t("borders")} />
-                    <ToggleRow name="River / Water Body Labels" desc="Label rivers and water bodies on map"                     on={tog.rivers}   onToggle={() => t("rivers")} />
-                    <SaveFooter label="Save Map Settings" onSave={() => showToast("✅ Map settings saved!")} />
-                  </Card>
-                )}
-
-                {/* ── SAFE ZONE MGMT ── */}
-                {section === "safezone" && (
-                  <Card>
-                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
-                      Safe Zone Management
-                    </div>
-                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
-                      Configure defaults, capacity rules and activation triggers
-                    </div>
-                    <GroupLabel>Automatic Activation Rules</GroupLabel>
-                    <ToggleRow name="Auto-Open on Critical Alert"    desc="Automatically mark safe zones open when a Critical alert fires" on={tog.autoOpen} onToggle={() => t("autoOpen")} />
-                    <ToggleRow name="Notify Contacts on Activation" desc="Send SMS to safe zone contacts when activated"                  on={tog.notify}   onToggle={() => t("notify")} />
-                    <SaveFooter label="Save Safe Zone Settings" onSave={() => showToast("✅ Safe zone settings saved!")} />
                   </Card>
                 )}
 
