@@ -271,6 +271,7 @@ export default function Dashboard() {
 )}
 
 {/* ── MAINTENANCE BANNER — shows when maintenance mode is ON ── */}
+{/* maintanace mode on */}
 {isMaintenance && (
   <div className="fadeUp" style={{
     background: "linear-gradient(90deg, #f59e0b 0%, #b45309 100%)",
