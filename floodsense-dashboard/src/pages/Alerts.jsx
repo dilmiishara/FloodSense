@@ -11,7 +11,7 @@ import {
 } from "../shared.jsx";
 import { CheckCircle, AlertTriangle, ShieldAlert, Activity } from "lucide-react"; 
 
-// ✅ සේවා සහ Components සම්බන්ධ කිරීම
+
 import { fetchActiveAlerts, fetchAlertHistory, resolveAlertAPI } from "../api/services/alertService";
 import { fetchAreas } from "../api/services/userService";
 import ThresholdTable from "../components/ThresholdTable"; 
@@ -41,7 +41,7 @@ export default function Alerts() {
 
  useEffect(() => {
     const initialLoad = async () => {
-        // Tab එක මාරු වන විට අදාළ දත්ත පමණක් fetch කිරීමට loadData() මෙතැන තිබිය යුතුයි
+        
         await Promise.all([loadData(), loadDivisions()]);
         setLoading(false); 
     };
@@ -60,7 +60,7 @@ const loadData = async () => {
     try {
         if (tab === "active") {
             const res = await fetchActiveAlerts();
-            // Backend එකෙන් දත්ත එන ආකාරය අනුව (res.data හෝ res.data.data)
+            
             setActiveAlerts(res.data.data || res.data || []);
         } else if (tab === "history") {
             const res = await fetchAlertHistory();
@@ -70,7 +70,7 @@ const loadData = async () => {
     } catch (err) {
         console.error("Failed to fetch alerts:", err);
     }
-    // මෙතැන setLoading(false) අවශ්‍ය නැත, එය useEffect එකේ initial load එකේදී පමණක් තිබීම සෑහේ
+    
 };
 
   const loadDivisions = async () => {
@@ -218,7 +218,7 @@ const loadData = async () => {
             <Input 
                 placeholder="Search history…" 
                 style={{ flex: 1 }} 
-                onChange={(e) => setSearchTerm(e.target.value)} // Search එකට අවශ්‍ය නම්
+                onChange={(e) => setSearchTerm(e.target.value)} 
             />
             <Select style={{ width: 160 }}><option>Last 24 Hours</option></Select>
         </div>
