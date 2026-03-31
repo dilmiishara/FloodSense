@@ -8,18 +8,17 @@ import {
   Select,
   globalCSS,
   TabBar,
-  ToggleRow,
 } from "../shared.jsx";
-import { CheckCircle, X } from "lucide-react"; 
+import { CheckCircle, AlertTriangle, ShieldAlert, Activity } from "lucide-react"; 
 
-// ✅ සේවා සහ Components සම්බන්ධ කිරීම
+
 import { fetchActiveAlerts, fetchAlertHistory, resolveAlertAPI } from "../api/services/alertService";
 import { fetchAreas } from "../api/services/userService";
-import ThresholdTable from "../components/ThresholdTable"; // 👈 අලුත් component එක
+import ThresholdTable from "../components/ThresholdTable"; 
+import NotificationRecipients from "../components/NotificationRecipients";
 
 export default function Alerts() {
   const [tab, setTab] = useState("active");
-  
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [historyAlerts, setHistoryAlerts] = useState([]);
   const [areas, setAreas] = useState([]); 
@@ -40,28 +39,39 @@ export default function Alerts() {
     { id: "recipients", label: "Notification Recipients" },
   ];
 
-  useEffect(() => {
-    loadData();
-    loadDivisions(); 
-    const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
-  }, [tab]);
+ useEffect(() => {
+    const initialLoad = async () => {
+        
+        await Promise.all([loadData(), loadDivisions()]);
+        setLoading(false); 
+    };
+    
+    initialLoad();
 
-  const loadData = async () => {
+    const interval = setInterval(() => {
+        loadData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+}, [tab]);
+
+
+const loadData = async () => {
     try {
-      if (tab === "active") {
-        const res = await fetchActiveAlerts();
-        setActiveAlerts(res.data);
-      } else if (tab === "history") {
-        const res = await fetchAlertHistory();
-        setHistoryAlerts(res.data);
-      }
+        if (tab === "active") {
+            const res = await fetchActiveAlerts();
+            
+            setActiveAlerts(res.data.data || res.data || []);
+        } else if (tab === "history") {
+            const res = await fetchAlertHistory();
+            const historyData = res.data.data || res.data || [];
+            setHistoryAlerts(historyData);
+        }
     } catch (err) {
-      console.error("Failed to fetch alerts:", err);
-    } finally {
-      setLoading(false);
+        console.error("Failed to fetch alerts:", err);
     }
-  };
+    
+};
 
   const loadDivisions = async () => {
     try {
@@ -96,73 +106,50 @@ export default function Alerts() {
 
   const getSeverityConfig = (sev) => {
     const s = sev?.toLowerCase();
-    if (s === 'critical') return { color: C.red, badge: 'critical', pulse: true };
-    if (s === 'high') return { color: C.orange, badge: 'high', pulse: false };
-    return { color: C.yellow, badge: 'medium', pulse: false };
+    if (s === 'critical') return { color: C.red, badge: 'critical', pulse: true, icon: <ShieldAlert size={16}/> };
+    if (s === 'high') return { color: C.orange, badge: 'high', icon: <AlertTriangle size={16}/> };
+    return { color: C.yellow, badge: 'medium', icon: <Activity size={16}/> };
   };
 
   const actBtn = {
-    padding: "4px 10px", borderRadius: 7, border: `1.5px solid ${C.border}`,
-    background: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer",
+    padding: "4px 12px", borderRadius: 8, border: `1.5px solid ${C.border}`,
+    background: "#fff", fontSize: 11, fontWeight: 800, cursor: "pointer",
   };
   
   const locTag = {
-    fontSize: 11, background: C.light, borderRadius: 6, padding: "3px 8px", fontWeight: 600,
+    fontSize: 11, background: C.light, borderRadius: 6, padding: "3px 8px", fontWeight: 700,
   };
-
-  const [officers, setOfficers] = useState([
-    ["RK", "Ravi Kumara", "Senior Field Officer · Kuruwita", ["SMS", "Email", "App"], "#1a52cc"],
-    ["DK", "Dinesh Kumara", "Field Officer · Kahawaththa", ["SMS", "App"], "#883300"],
-    ["SP", "Saman Perera", "Field Officer · Kolonna", ["SMS", "Email"], "#555"],
-    ["NP", "Nuwan Perera", "Field Officer · Balangoda ", ["SMS", "App"], "#0a7f5a"],
-    ["AS", "Anura Silva", "Field Officer · Embilipitiya", ["SMS", "Email"], "#cc5500"],
-    ["WS", "Wasana Senanayake", "Field Officer · Ratnapura", ["SMS", "App"], "#6a0dad"],
-  ]);
 
   return (
     <>
       <style>{globalCSS}</style>
       <div style={{ minHeight: "100vh", background: C.bg }}>
         <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              overflowY: "auto",
-              maxHeight: "calc(100vh - 110px)",
-              paddingRight: 2,
-            }}
-          >
-            {/* Page header */}
-            <div
-              className="fadeUp"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: "calc(100vh - 110px)", paddingRight: 2 }}>
+            
+            {/* --- PAGE HEADER --- */}
+            <div className="fadeUp" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.4 }}>Alerts</div>
-                <div style={{ fontSize: 12, color: "#aaa", marginTop: 3 }}>Monitor, manage and configure all system alerts</div>
+                <h1 style={{ fontSize: 22, fontWeight: 950, letterSpacing: -0.6, margin: 0 }}>Incident Console</h1>
+                <p style={{ fontSize: 12, color: C.mid, margin: '4px 0 0' }}>Real-time flood risk monitoring & management</p>
               </div>
-              <Btn variant="red"> Broadcast Alert</Btn>
+              <Btn variant="red" style={{ borderRadius: 10, padding: '10px 20px' }}>Broadcast Alert</Btn>
             </div>
 
-            <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+            {/* --- STATS CARDS --- */}
+            <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
               {[
-                ["Critical", activeAlerts.filter(a => a.severity.toLowerCase() === 'critical').length, "Active critical threats", C.red],
-                ["High Alert", activeAlerts.filter(a => a.severity.toLowerCase() === 'high').length, "Urgent attention required", C.orange],
-                ["Medium", activeAlerts.filter(a => a.severity.toLowerCase() === 'medium').length, "Monitoring ongoing", C.yellow],
-                ["Resolved Today", historyAlerts.length, "Successful resolutions", C.green],
-              ].map(([label, val, sub, c], i) => (
-                <div key={i} style={{ background: C.white, borderRadius: 12, padding: "14px 16px", boxShadow: C.shadow, borderLeft: `4px solid ${c}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#aaa", textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: c, marginTop: 4 }}>{val}</div>
-                  <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>{sub}</div>
+                { label: "Critical Alerts", val: activeAlerts.filter(a => a.severity.toLowerCase() === 'critical').length, sub: "Immediate threats", color: C.red, icon: <ShieldAlert/> },
+                { label: "High Priority", val: activeAlerts.filter(a => a.severity.toLowerCase() === 'high').length, sub: "Urgent attention", color: C.orange, icon: <AlertTriangle/> },
+                { label: "Monitoring", val: activeAlerts.filter(a => a.severity.toLowerCase() === 'medium').length, sub: "Routine checks", color: C.yellow, icon: <Activity/> },
+              ].map((stat, i) => (
+                <div key={i} style={{ background: C.white, borderRadius: 12, padding: "20px", boxShadow: C.shadow, borderLeft: `5px solid ${stat.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: C.mid, textTransform: "uppercase" }}>{stat.label}</div>
+                    <div style={{ fontSize: 32, fontWeight: 950, color: '#1a1a1a', marginTop: 4 }}>{stat.val}</div>
+                    <div style={{ fontSize: 11, color: '#888' }}>{stat.sub}</div>
+                  </div>
+                  <div style={{ color: stat.color, opacity: 0.1 }}>{stat.icon}</div>
                 </div>
               ))}
             </div>
@@ -171,38 +158,51 @@ export default function Alerts() {
 
             {/* --- ACTIVE ALERTS TAB --- */}
             {tab === "active" && (
-              <Card style={{ padding: 0, overflow: "hidden" }}>
-                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 10 }}>
-                  <Input placeholder=" Search alerts by location, type…" style={{ flex: 1, padding: "8px 12px" }} onChange={(e) => setSearchTerm(e.target.value)} />
-                  <Select value={selSeverity} onChange={(e) => setSelSeverity(e.target.value)} style={{ width: 150 }}>
-                    <option value="All Severity">All Severity</option>
+              <Card style={{ padding: 0, overflow: "hidden", borderRadius: 12 }}>
+                <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 10, background: '#fcfcfc' }}>
+                  <Input placeholder="Search alerts by location, type…" style={{ flex: 1, height: 40 }} onChange={(e) => setSearchTerm(e.target.value)} />
+                  <Select value={selSeverity} onChange={(e) => setSelSeverity(e.target.value)} style={{ width: 150, height: 40 }}>
+                    <option value="All Severity">All Levels</option>
                     <option value="CRITICAL">Critical</option>
                     <option value="HIGH">High</option>
                     <option value="MEDIUM">Medium</option>
                   </Select>
-                  <Select value={selDivision} onChange={(e) => setSelDivision(e.target.value)} style={{ width: 180 }}>
-                    <option value="All DS Divisions">All DS Divisions</option>
+                  <Select value={selDivision} onChange={(e) => setSelDivision(e.target.value)} style={{ width: 180, height: 40 }}>
+                    <option value="All DS Divisions">All Areas</option>
                     {areas.map(area => <option key={area.id} value={area.name}>{area.name}</option>)}
                   </Select>
                 </div>
-                <table>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr><th style={{ width: 20 }}></th><th>Alert</th><th>Location</th><th>Time</th><th>Severity</th><th>Action</th></tr>
+                    <tr style={{ textAlign: 'left', background: '#f8f9fa' }}>
+                      <th style={{ padding: '14px', width: 40 }}></th>
+                      <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>INCIDENT</th>
+                      <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>LOCATION</th>
+                      <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>TIME</th>
+                      <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>SEVERITY</th>
+                      <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>ACTION</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {filteredAlerts.map((a, i) => {
                       const cfg = getSeverityConfig(a.severity);
                       return (
-                        <tr key={i} className="fadeUp">
-                          <td><span className={cfg.pulse ? "pulse" : ""} style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: cfg.color }} /></td>
-                          <td>
-                            <div style={{ fontSize: 13, fontWeight: 700 }}>{a.type}</div>
+                        <tr key={i} className="fadeUp" style={{ borderBottom: `1px solid ${C.border}` }}>
+                          <td style={{ padding: '14px' }}>
+                            <div className={cfg.pulse ? "pulse" : ""} style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color }} />
+                          </td>
+                          <td style={{ padding: '14px' }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#222' }}>{a.type}</div>
                             <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{a.message}</div>
                           </td>
-                          <td><span style={locTag}>{a.location}</span></td>
-                          <td><span style={{ fontSize: 11, color: C.mid, fontFamily: "DM Mono" }}>{new Date(a.detected_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></td>
-                          <td><Badge type={cfg.badge}>{a.severity.toUpperCase()}</Badge></td>
-                          <td><button onClick={() => { setSelectedAlert(a); setShowResolveModal(true); }} style={actBtn}>Respond</button></td>
+                          <td style={{ padding: '14px' }}><span style={locTag}>{a.location}</span></td>
+                          <td style={{ padding: '14px', fontSize: 12, color: '#555', fontFamily: 'monospace' }}>
+                            {new Date(a.detected_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td style={{ padding: '14px' }}><Badge type={cfg.badge}>{a.severity.toUpperCase()}</Badge></td>
+                          <td style={{ padding: '14px' }}>
+                            <button onClick={() => { setSelectedAlert(a); setShowResolveModal(true); }} style={actBtn}>Respond</button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -211,79 +211,66 @@ export default function Alerts() {
               </Card>
             )}
 
-            {/* --- HISTORY TAB --- */}
-            {tab === "history" && (
-              <Card style={{ padding: 0, overflow: "hidden" }}>
-                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 10 }}>
-                  <Input placeholder=" Search history…" style={{ flex: 1, padding: "8px 12px" }} />
-                  <Select style={{ width: 160 }}><option>Last 24 Hours</option></Select>
-                </div>
-                <table>
-                  <thead>
-                    <tr><th></th><th>Alert</th><th>Location</th><th>Time</th><th>Status</th><th>Resolved At</th></tr>
-                  </thead>
-                  <tbody>
-                    {historyAlerts.map((a, i) => (
-                      <tr key={i} className="fadeUp">
-                        <td><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: C.green }} /></td>
-                        <td>
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>{a.type}</div>
-                          <div style={{ fontSize: 11, color: C.mid }}>{a.message}</div>
-                        </td>
-                        <td><span style={locTag}>{a.location}</span></td>
-                        <td style={{ fontSize: 11, color: C.mid, fontFamily: "DM Mono" }}>{new Date(a.detected_at).toLocaleDateString()}</td>
-                        <td><Badge type="active">RESOLVED</Badge></td>
-                        <td style={{ fontSize: 11, color: C.mid, fontFamily: "DM Mono" }}>{new Date(a.updated_at).toLocaleTimeString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Card>
-            )}
+           {/* --- HISTORY TAB --- */}
+{tab === "history" && (
+    <Card style={{ padding: 0, overflow: "hidden", minHeight: '200px' }}>
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 10 }}>
+            <Input 
+                placeholder="Search history…" 
+                style={{ flex: 1 }} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+            <Select style={{ width: 160 }}><option>Last 24 Hours</option></Select>
+        </div>
 
-            {/* --- THRESHOLDS TAB (Updated) --- */}
+        {loading && historyAlerts.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: C.mid }}>Loading history records...</div>
+        ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                    <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
+                        <th style={{ padding: '14px', width: 40 }}></th>
+                        <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>ALERT</th>
+                        <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>LOCATION</th>
+                        <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>STATUS</th>
+                        <th style={{ fontSize: 11, fontWeight: 800, color: C.mid }}>RESOLVED AT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {historyAlerts.length > 0 ? historyAlerts.map((a, i) => (
+                        <tr key={i} className="fadeUp" style={{ borderBottom: `1px solid ${C.border}` }}>
+                            <td style={{ padding: '14px' }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} /></td>
+                            <td style={{ padding: '14px' }}>
+                                <div style={{ fontWeight: 700, fontSize: 13 }}>{a.type}</div>
+                                <div style={{ fontSize: 11, color: C.mid }}>{a.message}</div>
+                            </td>
+                            <td style={{ padding: '14px' }}><Badge type="outline" style={{ fontWeight: 700 }}>{a.location}</Badge></td>
+                            <td style={{ padding: '14px' }}><Badge type="active">RESOLVED</Badge></td>
+                            <td style={{ padding: '14px', fontSize: 11, color: '#555', fontFamily: 'monospace' }}>
+                                {new Date(a.updated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                            </td>
+                        </tr>
+                    )) : (
+                        <tr>
+                            <td colSpan="5" style={{ padding: 40, textAlign: 'center', color: '#aaa' }}>No history records found.</td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        )}
+    </Card>
+)}
+
+            {/* --- THRESHOLDS TAB --- */}
             {tab === "thresholds" && (
-              <Card>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>Alert Threshold Configuration</div>
-                  <Btn style={{ fontSize: 12, padding: "7px 14px" }}>+ Add Threshold</Btn>
-                </div>
-                {/* ✅ වෙනම JSX file එකකින් එන Table එක */}
-                <ThresholdTable /> 
-              </Card>
+              <Card style={{ padding: 20 }}><ThresholdTable /></Card>
             )}
 
             {/* --- RECIPIENTS TAB --- */}
             {tab === "recipients" && (
-               <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-               <Card>
-                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
-                   Ratnapura Field Officers
-                   <Btn variant="outline" style={{ fontSize: 11, padding: "4px 10px" }}>+ Add</Btn>
-                 </div>
-                 {officers.map(([init, name, role, chs, color], i) => (
-                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < officers.length - 1 ? `1px solid #fafafa` : "none" }}>
-                     <div style={{ width: 32, height: 32, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{init}</div>
-                     <div style={{ flex: 1 }}>
-                       <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
-                       <div style={{ fontSize: 11, color: C.mid }}>{role}</div>
-                     </div>
-                     <div style={{ display: "flex", gap: 4 }}>
-                       {chs.map((ch) => <span key={ch} style={{ fontSize: 10, background: C.light, borderRadius: 5, padding: "2px 7px", fontWeight: 600, color: C.mid }}>{ch}</span>)}
-                     </div>
-                   </div>
-                 ))}
-               </Card>
-               <Card style={{ height: 200, overflowY: "auto" }}>
-                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Alert Channels</div>
-                 {[["", "SMS Alert", "Dialog · Airtel · Hutch", "active"], ["", "Push Notifications", "FloodSense Mobile App", "active"]].map(([icon, name, sub, status], i) => (
-                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < 3 ? `1px solid #fafafa` : "none" }}>
-                     <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div><div style={{ fontSize: 11, color: C.mid }}>{sub}</div></div>
-                     <Badge type={status}>{status === "active" ? "ACTIVE" : "MANUAL"}</Badge>
-                   </div>
-                 ))}
-               </Card>
-             </div>
+              <div className="fadeUp">
+                <NotificationRecipients /> 
+              </div>
             )}
           </div>
         </div>
@@ -296,25 +283,14 @@ export default function Alerts() {
             <div style={modalStyles.iconCircle}>
                 <CheckCircle size={32} color={C.green} />
             </div>
-            
-            <h2 style={{ fontWeight: 800, textAlign: 'center', marginBottom: 10 }}>Mark as Resolved?</h2>
+            <h2 style={{ fontWeight: 900, textAlign: 'center', marginBottom: 10, letterSpacing: -0.5 }}>Mark as Resolved?</h2>
             <p style={{ textAlign: 'center', color: '#666', fontSize: 14, lineHeight: 1.5, marginBottom: 25 }}>
-                You are about to confirm that the alert for <strong style={{color: '#1a1a1a'}}>{selectedAlert?.location}</strong> has been handled. 
-                This will move the record to history.
+                Confirm handling of <strong style={{color: '#1a1a1a'}}>{selectedAlert?.location}</strong> incident.
             </p>
-
-            {isProcessing && (
-                <div style={modalStyles.progressContainer}>
-                    <div style={modalStyles.progressBar}></div>
-                </div>
-            )}
-
             <div style={{ display: 'flex', gap: 12 }}>
-                <Btn variant="outline" onClick={() => setShowResolveModal(false)} style={{ flex: 1 }} disabled={isProcessing}>
-                    Cancel
-                </Btn>
-                <Btn variant="dark" onClick={confirmResolve} style={{ flex: 1, background: C.green, borderColor: C.green }} disabled={isProcessing}>
-                    {isProcessing ? "Processing..." : "Confirm Resolve"}
+                <Btn variant="outline" onClick={() => setShowResolveModal(false)} style={{ flex: 1 }} disabled={isProcessing}>Cancel</Btn>
+                <Btn variant="dark" onClick={confirmResolve} style={{ flex: 1, background: C.green, border: 'none' }} disabled={isProcessing}>
+                    {isProcessing ? "Finalizing..." : "Confirm Resolve"}
                 </Btn>
             </div>
           </div>
@@ -325,9 +301,7 @@ export default function Alerts() {
 }
 
 const modalStyles = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 },
-  modal: { background: '#fff', width: '90%', maxWidth: '400px', padding: '40px 30px', borderRadius: '28px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', position: 'relative' },
-  iconCircle: { width: 70, height: 70, background: '#e8f5e9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  progressContainer: { width: '100%', height: '4px', background: '#f0f0f0', borderRadius: '2px', marginBottom: '20px', overflow: 'hidden' },
-  progressBar: { height: '100%', background: C.green, width: '100%', animation: 'loadingBar 1.5s infinite linear' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 },
+  modal: { background: '#fff', width: '90%', maxWidth: '380px', padding: '35px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' },
+  iconCircle: { width: 64, height: 64, background: '#e8f5e9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
 };

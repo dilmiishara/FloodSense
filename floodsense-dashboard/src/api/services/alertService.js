@@ -28,3 +28,4 @@ export const updateThresholdAPI = (data) => {
 export const resolveAlertAPI = (id) => {
     return axiosInstance.put(`${ALERTS_ACTIVE_API.replace('/active', '')}/${id}/resolve`);
 };
+
