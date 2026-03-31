@@ -1,5 +1,5 @@
 // ─── Settings.jsx ─────────────────────────────────────────────────────────────
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   C,
   Card,
@@ -13,6 +13,7 @@ import {
   globalCSS,
   Toast,
 } from "../shared.jsx";
+import { fetchSettings, saveSettings } from "../api/settings";
 
 export default function Settings() {
   const [section, setSection] = useState("system");
@@ -45,6 +46,46 @@ export default function Settings() {
     capacity: true,
     autoClose: false,
   });
+
+
+const [formData, setFormData] = useState({
+  system_name:      'FloodSense Portal',
+  org_name:         'FloodSense.gov.lk',
+  timezone:         'Asia/Colombo',
+  date_format:      'DD/MM/YYYY',
+  refresh_rate:     'Every 30 seconds',
+  default_map_view: 'Detailed Map',
+});
+
+const [loading, setLoading] = useState(false);
+
+// Load settings when section changes
+useEffect(() => {
+  setLoading(true);
+  fetchSettings(section)
+    .then((data) => {
+      // Separate toggles from text fields
+      const toggleKeys = ['emergency_mode', 'maintenance_mode'];
+      const newTog = { ...tog };
+      const newForm = { ...formData };
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (toggleKeys.includes(key)) {
+          // Map DB key to tog key  e.g. emergency_mode → emergency
+          const togKey = key.replace('_mode', '');
+          newTog[togKey] = value === true || value === 'true';
+        } else {
+          newForm[key] = value;
+        }
+      });
+
+      setTog(newTog);
+      setFormData(newForm);
+    })
+    .catch(console.error)
+    .finally(() => setLoading(false));
+}, [section]);
+
   const t = (k) => setTog((p) => ({ ...p, [k]: !p[k] }));
   const showToast = (msg) => {
     setToast(msg);
@@ -57,7 +98,7 @@ export default function Settings() {
     { id: "alerts", label: "Alert & Notifications" },
     { id: "map", label: "Map & Location" },
     { id: "safezone", label: "Safe Zone Mgmt" },
-    { id: "users", label: "User & Access" },
+   
   ];
 
   const GroupLabel = ({ children }) => (
@@ -228,7 +269,16 @@ export default function Settings() {
                       }}
                     >
                       <FormGroup label="System Name">
-                        <Input defaultValue="FloodSense Portal" />
+                        <Input
+                            value={formData.system_name}
+                            onChange={(e) => setFormData(p => ({ ...p, system_name: e.target.value }))}
+                          />
+
+           
+                          <Input
+                            value={formData.org_name}
+                            onChange={(e) => setFormData(p => ({ ...p, org_name: e.target.value }))}
+                          />
                       </FormGroup>
                       <FormGroup label="Organization / Authority Name">
                         <Input defaultValue="FloodSense.gov.lk" />
@@ -297,9 +347,18 @@ export default function Settings() {
                       onToggle={() => t("maintenance")}
                     />
                     {/* <ToggleRow name="Public Data API" desc="Allow read-only access to sensor data via public API" on={tog.api} onToggle={() => t("api")}/> */}
+                
                     <SaveFooter
                       label=" Save System Settings"
-                      onSave={() => showToast("System settings saved!")}
+                      onSave={async () => {
+                        const payload = {
+                          ...formData,
+                          emergency_mode:   tog.emergency,
+                          maintenance_mode: tog.maintenance,
+                        };
+                        await saveSettings('system', payload);
+                        showToast('✅ System settings saved!');
+                      }}
                     />
                   </Card>
                 )}
@@ -651,229 +710,7 @@ export default function Settings() {
                   </Card>
                 )}
 
-                {/* ── USER & ACCESS ── */}
-                {section === "users" && (
-                  <Card>
-                    <div
-                      style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}
-                    >
-                      {" "}
-                      User & Access Management
-                    </div>
-                    <div
-                      style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}
-                    >
-                      Manage accounts, roles and access permissions
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        marginBottom: 12,
-                      }}
-                    >
-                      <Btn
-                        style={{ fontSize: 12, padding: "7px 14px" }}
-                        onClick={() => showToast("✅ Invitation sent!")}
-                      >
-                        + Invite User
-                      </Btn>
-                    </div>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>User</th>
-                          <th>Email</th>
-                          <th>Role</th>
-                          <th>Last Login</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          [
-                            "MR",
-                            "Ravi Kumara",
-                            "m.rajapaksa@floodsense.gov.lk",
-                            "admin",
-                            "21 Mar 14:32",
-                            "active",
-                            "#1a1a1a",
-                          ],
-                          [
-                            "RK",
-                            "Ravi Kumara",
-                            "r.kumara@floodsense.gov.lk",
-                            "officer",
-                            "21 Mar 12:15",
-                            "active",
-                            "#1a52cc",
-                          ],
-                          [
-                            "SM",
-                            "Sarath Mendis",
-                            "s.mendis@floodsense.gov.lk",
-                            "officer",
-                            "20 Mar 09:45",
-                            "active",
-                            "#883300",
-                          ],
-                          [
-                            "AN",
-                            "A. Navaratne",
-                            "a.navaratne@dmc.gov.lk",
-                            "view",
-                            "19 Mar 16:00",
-                            "active",
-                            "#555",
-                          ],
-                          [
-                            "NP",
-                            "Nilantha Perera",
-                            "n.perera@floodsense.gov.lk",
-                            "officer",
-                            "15 Mar 11:20",
-                            "inactive",
-                            "#aaa",
-                          ],
-                        ].map(
-                          (
-                            [init, name, email, role, login, status, color],
-                            i,
-                          ) => (
-                            <tr key={i}>
-                              <td>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: 32,
-                                      height: 32,
-                                      borderRadius: "50%",
-                                      background: color,
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      color: "#fff",
-                                      fontSize: 12,
-                                      fontWeight: 700,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {init}
-                                  </div>
-                                  <div
-                                    style={{ fontWeight: 700, fontSize: 13 }}
-                                  >
-                                    {name}
-                                  </div>
-                                </div>
-                              </td>
-                              <td
-                                style={{
-                                  fontFamily: "DM Mono",
-                                  fontSize: 11,
-                                  color: C.mid,
-                                }}
-                              >
-                                {email}
-                              </td>
-                              <td>
-                                <Badge
-                                  type={
-                                    role === "admin"
-                                      ? "admin"
-                                      : role === "officer"
-                                        ? "officer"
-                                        : "view"
-                                  }
-                                >
-                                  {role.toUpperCase()}
-                                </Badge>
-                              </td>
-                              <td
-                                style={{
-                                  fontFamily: "DM Mono",
-                                  fontSize: 11,
-                                  color: C.mid,
-                                }}
-                              >
-                                {login}
-                              </td>
-                              <td>
-                                <Badge type={status}>
-                                  {status.toUpperCase()}
-                                </Badge>
-                              </td>
-                              <td>
-                                <div style={{ display: "flex", gap: 5 }}>
-                                  <button style={actBtn}>✏ Edit</button>
-                                  {i > 0 && (
-                                    <button
-                                      style={{
-                                        ...actBtn,
-                                        color: C.red,
-                                        border: "1.5px solid #ffd5cc",
-                                      }}
-                                    >
-                                      🗑
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ),
-                        )}
-                      </tbody>
-                    </table>
-
-                    <GroupLabel>Role Permissions</GroupLabel>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Permission</th>
-                          <th style={{ textAlign: "center" }}>Admin</th>
-                          <th style={{ textAlign: "center" }}>Officer</th>
-                          <th style={{ textAlign: "center" }}>View Only</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          ["View Dashboard & Alerts", true, true, true],
-                          [
-                            "Acknowledge & Respond to Alerts",
-                            true,
-                            true,
-                            false,
-                          ],
-                          ["Add / Remove Locations", true, true, false],
-                          ["Broadcast Emergency Alert", true, false, false],
-                          ["Modify System Settings", true, false, false],
-                          ["Manage Users", true, false, false],
-                        ].map(([perm, admin, off, view], i) => (
-                          <tr key={i}>
-                            <td>{perm}</td>
-                            <td style={{ textAlign: "center" }}>
-                              {admin ? "✅" : "❌"}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {off ? "✅" : "❌"}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {view ? "✅" : "❌"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </Card>
-                )}
+               
               </div>
             </div>
           </div>

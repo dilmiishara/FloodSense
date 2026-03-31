@@ -125,7 +125,7 @@ export const Select = ({ children, style = {}, ...props }) => (
 export const Toggle = ({ on, onToggle }) => (
     <div onClick={onToggle} style={{
         width: 40, height: 22, borderRadius: 11,
-        background: on ? "#1a1a1a" : "#ddd",
+        background: on ? "#050101" : "#ddd",
         position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .2s",
     }}>
         <div style={{
