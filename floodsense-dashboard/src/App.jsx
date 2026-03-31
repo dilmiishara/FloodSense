@@ -14,6 +14,7 @@ import Settings from "./pages/Settings.jsx";
 import AddLocation from "./pages/AddLocation.jsx";
 import Posts from "./pages/Posts.jsx";
 import Users from "./pages/ManageUsers.jsx"
+import { SettingsProvider } from './context/SettingsContext';
 
 // Auth
 import Login from "./pages/Login";
@@ -112,11 +113,16 @@ export default function App() {
                     path="/app/*"
                     element={
                         <ProtectedRoute>
-                            <MainApp />
+                              <SettingsProvider>
+                                 <MainApp />
+                            </SettingsProvider>
                         </ProtectedRoute>
                     }
                 />
             </Routes>
         </BrowserRouter>
     );
+
+
+    
 }

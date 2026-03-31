@@ -1,364 +1,282 @@
 // ─── Settings.jsx ─────────────────────────────────────────────────────────────
 import { useState, useEffect } from "react";
 import {
-  C,
-  Card,
-  Badge,
-  Btn,
-  Input,
-  Select,
-  FormGroup,
-  Toggle,
-  ToggleRow,
-  globalCSS,
-  Toast,
+  C, Card, Badge, Btn, Input, Select,
+  FormGroup, Toggle, ToggleRow, globalCSS, Toast,
 } from "../shared.jsx";
-import { fetchSettings, saveSettings } from "../api/settings";
+import { saveSettings } from "../api/settings";
+import { useSettings } from "../context/SettingsContext";
 
 export default function Settings() {
   const [section, setSection] = useState("system");
   const [toast, setToast] = useState(null);
 
-  const [tog, setTog] = useState({
-    emergency: true,
-    escalation: true,
-    maintenance: false,
-    api: true,
-    sensorAlert: true,
-    predictOffline: true,
-    autoReconnect: false,
-    sms: true,
-    email: true,
-    push: true,
-    radio: false,
-    siren: false,
-    quiet: false,
-    dedup: true,
-    allclear: true,
-    pins: true,
-    safepins: true,
-    shading: true,
-    heat: false,
-    borders: true,
-    rivers: true,
-    autoOpen: true,
-    notify: true,
-    capacity: true,
-    autoClose: false,
+  // ── Get global settings from context ──────────────────────────────
+const { systemSettings, updateSystemSettings, toggleEmergencyMode } = useSettings();
+
+  // ── Single formData state (no duplicates) ─────────────────────────
+  const [formData, setFormData] = useState({
+    system_name:      "FloodSense Portal",
+    org_name:         "FloodSense.gov.lk",
+    timezone:         "Asia/Colombo",
+    date_format:      "DD/MM/YYYY",
+    refresh_rate:     "Every 30 seconds",
+    default_map_view: "Detailed Map",
   });
 
+  // ── All toggles in one place ───────────────────────────────────────
+  const [tog, setTog] = useState({
+    emergency:      false,
+    maintenance:    false,
+    sensorAlert:    true,
+    predictOffline: true,
+    autoReconnect:  false,
+    push:           true,
+    quiet:          false,
+    dedup:          true,
+    allclear:       true,
+    pins:           true,
+    safepins:       true,
+    shading:        true,
+    heat:           false,
+    borders:        true,
+    rivers:         true,
+    autoOpen:       true,
+    notify:         true,
+  });
 
-const [formData, setFormData] = useState({
-  system_name:      'FloodSense Portal',
-  org_name:         'FloodSense.gov.lk',
-  timezone:         'Asia/Colombo',
-  date_format:      'DD/MM/YYYY',
-  refresh_rate:     'Every 30 seconds',
-  default_map_view: 'Detailed Map',
-});
-
-const [loading, setLoading] = useState(false);
-
-// Load settings when section changes
-useEffect(() => {
-  setLoading(true);
-  fetchSettings(section)
-    .then((data) => {
-      // Separate toggles from text fields
-      const toggleKeys = ['emergency_mode', 'maintenance_mode'];
-      const newTog = { ...tog };
-      const newForm = { ...formData };
-
-      Object.entries(data).forEach(([key, value]) => {
-        if (toggleKeys.includes(key)) {
-          // Map DB key to tog key  e.g. emergency_mode → emergency
-          const togKey = key.replace('_mode', '');
-          newTog[togKey] = value === true || value === 'true';
-        } else {
-          newForm[key] = value;
-        }
-      });
-
-      setTog(newTog);
-      setFormData(newForm);
-    })
-    .catch(console.error)
-    .finally(() => setLoading(false));
-}, [section]);
+  // ── Sync formData + toggles from context when context loads ───────
+  useEffect(() => {
+    if (!systemSettings) return;
+    setFormData({
+      system_name:      systemSettings.system_name      ?? "FloodSense Portal",
+      org_name:         systemSettings.org_name         ?? "FloodSense.gov.lk",
+      timezone:         systemSettings.timezone         ?? "Asia/Colombo",
+      date_format:      systemSettings.date_format      ?? "DD/MM/YYYY",
+      refresh_rate:     systemSettings.refresh_rate     ?? "Every 30 seconds",
+      default_map_view: systemSettings.default_map_view ?? "Detailed Map",
+    });
+    setTog((prev) => ({
+      ...prev,
+      emergency:   systemSettings.emergency_mode   ?? false,
+      maintenance: systemSettings.maintenance_mode ?? false,
+    }));
+  }, [systemSettings]);
 
   const t = (k) => setTog((p) => ({ ...p, [k]: !p[k] }));
+
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
+  // ── Save system settings ───────────────────────────────────────────
+  const handleSystemSave = async () => {
+    try {
+      await updateSystemSettings({
+        ...formData,
+        emergency_mode:   tog.emergency,
+        maintenance_mode: tog.maintenance,
+      });
+      showToast("✅ System settings saved!");
+    } catch (e) {
+      showToast("❌ Failed to save. Check console.");
+      console.error(e);
+    }
+  };
+
+  // ── Nav items ──────────────────────────────────────────────────────
   const navItems = [
-    { id: "system", label: "System Settings" },
-    { id: "sensor", label: "Sensor Config" },
-    { id: "alerts", label: "Alert & Notifications" },
-    { id: "map", label: "Map & Location" },
+    { id: "system",   label: "System Settings" },
+    { id: "sensor",   label: "Sensor Config" },
+    { id: "alerts",   label: "Alert & Notifications" },
+    { id: "map",      label: "Map & Location" },
     { id: "safezone", label: "Safe Zone Mgmt" },
-   
   ];
 
   const GroupLabel = ({ children }) => (
-    <div
-      style={{
-        fontSize: 12,
-        fontWeight: 800,
-        color: C.mid,
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        margin: "18px 0 12px",
-        paddingBottom: 8,
-        borderBottom: `1px solid ${C.border}`,
-      }}
-    >
+    <div style={{
+      fontSize: 12, fontWeight: 800, color: C.mid,
+      textTransform: "uppercase", letterSpacing: 0.5,
+      margin: "18px 0 12px", paddingBottom: 8,
+      borderBottom: `1px solid ${C.border}`,
+    }}>
       {children}
     </div>
   );
 
-  const SaveFooter = ({ label = " Save Changes", onSave }) => (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        gap: 10,
-        marginTop: 18,
-        paddingTop: 16,
-        borderTop: `1px solid ${C.border}`,
-      }}
-    >
+  // ── FIX: SaveFooter now correctly calls onSave ─────────────────────
+  const SaveFooter = ({ label = "Save Changes", onSave }) => (
+    <div style={{
+      display: "flex", justifyContent: "flex-end",
+      gap: 10, marginTop: 18, paddingTop: 16,
+      borderTop: `1px solid ${C.border}`,
+    }}>
       <Btn variant="outline">Reset</Btn>
-      <Btn
-        onClick={() =>
-          showToast(
-            ` ${label.replace(" ", "").replace(" Changes", "")} saved!`,
-          )
-        }
-      >
+      <Btn onClick={onSave}>   {/* ✅ directly calls onSave */}
         {label}
       </Btn>
     </div>
   );
 
   const actBtn = {
-    padding: "4px 9px",
-    borderRadius: 7,
+    padding: "4px 9px", borderRadius: 7,
     border: `1.5px solid ${C.border}`,
-    background: "#fff",
-    fontSize: 11,
-    fontWeight: 700,
-    cursor: "pointer",
+    background: "#fff", fontSize: 11,
+    fontWeight: 700, cursor: "pointer",
   };
 
   return (
     <>
       <style>{globalCSS}</style>
       <div style={{ minHeight: "100vh", background: C.bg }}>
-      
         <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              overflowY: "auto",
-              maxHeight: "calc(100vh - 110px)",
-              paddingRight: 2,
-            }}
-          >
+          <div style={{
+            flex: 1, minWidth: 0, display: "flex",
+            flexDirection: "column", gap: 12,
+            overflowY: "auto", maxHeight: "calc(100vh - 110px)", paddingRight: 2,
+          }}>
             <div className="fadeUp">
-              <div
-                style={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.4 }}
-              >
-                 Settings
+              <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.4 }}>
+                Settings
               </div>
               <div style={{ fontSize: 12, color: "#aaa", marginTop: 3 }}>
                 Configure system, sensors, alerts, map, safe zones and users
               </div>
             </div>
 
-            <div
-              className="fadeUp"
-              style={{ display: "flex", gap: 14, alignItems: "flex-start" }}
-            >
-              {/* Settings Nav */}
-              <div
-                style={{
-                  width: 200,
-                  background: C.white,
-                  borderRadius: 14,
-                  padding: 8,
-                  boxShadow: C.shadow,
-                  flexShrink: 0,
-                }}
-              >
+            <div className="fadeUp" style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+
+              {/* ── Settings Nav ── */}
+              <div style={{
+                width: 200, background: C.white, borderRadius: 14,
+                padding: 8, boxShadow: C.shadow, flexShrink: 0,
+              }}>
                 {navItems.map((item, i) => (
                   <div key={item.id}>
-                    {i === 5 && (
-                      <div
-                        style={{
-                          height: 1,
-                          background: C.border,
-                          margin: "6px 0",
-                        }}
-                      />
-                    )}
+                    {i === 5 && <div style={{ height: 1, background: C.border, margin: "6px 0" }} />}
                     <div
                       onClick={() => setSection(item.id)}
                       style={{
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        fontSize: 13,
+                        padding: "10px 14px", borderRadius: 10, fontSize: 13,
                         fontWeight: section === item.id ? 700 : 500,
                         cursor: "pointer",
                         color: section === item.id ? "#fff" : C.mid,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 9,
+                        display: "flex", alignItems: "center", gap: 9,
                         marginBottom: 1,
-                        background:
-                          section === item.id ? C.dark : "transparent",
+                        background: section === item.id ? C.dark : "transparent",
                         transition: "all .15s",
                       }}
                     >
-                      <span
-                        style={{ fontSize: 15, width: 18, textAlign: "center" }}
-                      >
-                        {item.icon}
-                      </span>
                       {item.label}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Content */}
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
+              {/* ── Content ── */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+
                 {/* ── SYSTEM SETTINGS ── */}
                 {section === "system" && (
                   <Card>
-                    <div
-                      style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}
-                    >
+                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
                       System Settings
                     </div>
-                    <div
-                      style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}
-                    >
-                      General portal configuration, timezone and display
-                      preferences
+                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
+                      General portal configuration, timezone and display preferences
                     </div>
+
                     <GroupLabel>Portal Identity</GroupLabel>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 14,
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 4 }}>
+
+                      {/* ✅ FIX: each input is in its own FormGroup */}
                       <FormGroup label="System Name">
                         <Input
-                            value={formData.system_name}
-                            onChange={(e) => setFormData(p => ({ ...p, system_name: e.target.value }))}
-                          />
-
-           
-                          <Input
-                            value={formData.org_name}
-                            onChange={(e) => setFormData(p => ({ ...p, org_name: e.target.value }))}
-                          />
+                          value={formData.system_name || ""}
+                          onChange={(e) => setFormData(p => ({ ...p, system_name: e.target.value }))}
+                        />
                       </FormGroup>
+
                       <FormGroup label="Organization / Authority Name">
-                        <Input defaultValue="FloodSense.gov.lk" />
+                        <Input
+                          value={formData.org_name || ""}
+                          onChange={(e) => setFormData(p => ({ ...p, org_name: e.target.value }))}
+                        />
                       </FormGroup>
                     </div>
+
                     <GroupLabel>Regional Settings</GroupLabel>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gap: 14,
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 4 }}>
                       <FormGroup label="Time Zone">
-                        <Select>
-                          <option>Asia / Colombo (UTC+5:30)</option>
-                          <option>UTC</option>
+                        <Select
+                          value={formData.timezone || ""}
+                          onChange={(e) => setFormData(p => ({ ...p, timezone: e.target.value }))}
+                        >
+                          <option value="Asia/Colombo">Asia / Colombo (UTC+5:30)</option>
+                          <option value="UTC">UTC</option>
                         </Select>
                       </FormGroup>
-                      {/* <FormGroup label="Language"><Select><option>English</option><option>සිංහල</option><option>தமிழ்</option></Select></FormGroup> */}
                       <FormGroup label="Date Format">
-                        <Select>
+                        <Select
+                          value={formData.date_format || ""}
+                          onChange={(e) => setFormData(p => ({ ...p, date_format: e.target.value }))}
+                        >
                           <option>DD/MM/YYYY</option>
                           <option>MM/DD/YYYY</option>
                           <option>YYYY-MM-DD</option>
                         </Select>
                       </FormGroup>
                     </div>
+
                     <GroupLabel>Data & Performance</GroupLabel>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 14,
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 4 }}>
                       <FormGroup label="Data Refresh Rate">
-                        <Select>
+                        <Select
+                          value={formData.refresh_rate || ""}
+                          onChange={(e) => setFormData(p => ({ ...p, refresh_rate: e.target.value }))}
+                        >
                           <option>Every 30 seconds</option>
                           <option>Every 1 minute</option>
                           <option>Every 5 minutes</option>
                         </Select>
                       </FormGroup>
                       <FormGroup label="Default Map View">
-                        <Select>
+                        <Select
+                          value={formData.default_map_view || ""}
+                          onChange={(e) => setFormData(p => ({ ...p, default_map_view: e.target.value }))}
+                        >
                           <option>Detailed Map</option>
                           <option>District Overview</option>
                           <option>Heatmap</option>
                         </Select>
                       </FormGroup>
                     </div>
+
                     <GroupLabel>System Features</GroupLabel>
-                    <ToggleRow
+                 <ToggleRow
                       name="Emergency Mode"
                       desc="Override all thresholds and broadcast to all channels"
-                      on={tog.emergency}
-                      onToggle={() => t("emergency")}
+                      on={systemSettings.emergency_mode}
+                      onToggle={toggleEmergencyMode}
                     />
-                    {/* <ToggleRow name="Auto-Escalation" desc="Automatically escalate unacknowledged critical alerts" on={tog.escalation} onToggle={() => t("escalation")}/> */}
-                    <ToggleRow
-                      name="Maintenance Mode"
-                      desc="Suppress all alerts during scheduled maintenance"
-                      on={tog.maintenance}
-                      onToggle={() => t("maintenance")}
-                    />
-                    {/* <ToggleRow name="Public Data API" desc="Allow read-only access to sensor data via public API" on={tog.api} onToggle={() => t("api")}/> */}
-                
+                  <ToggleRow
+  name="Maintenance Mode"
+  desc="Suppress all alerts during scheduled maintenance"
+  on={systemSettings.maintenance_mode}
+  onToggle={() => {
+    updateSystemSettings({
+      ...formData,
+      emergency_mode:   systemSettings.emergency_mode,
+      maintenance_mode: !systemSettings.maintenance_mode,
+    });
+  }}
+/>
+
+                    {/* ✅ FIX: onSave is correctly wired to handleSystemSave */}
                     <SaveFooter
-                      label=" Save System Settings"
-                      onSave={async () => {
-                        const payload = {
-                          ...formData,
-                          emergency_mode:   tog.emergency,
-                          maintenance_mode: tog.maintenance,
-                        };
-                        await saveSettings('system', payload);
-                        showToast('✅ System settings saved!');
-                      }}
+                      label="Save System Settings"
+                      onSave={handleSystemSave}
                     />
                   </Card>
                 )}
@@ -366,25 +284,14 @@ useEffect(() => {
                 {/* ── SENSOR CONFIG ── */}
                 {section === "sensor" && (
                   <Card>
-                    <div
-                      style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}
-                    >
+                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
                       Sensor Configuration
                     </div>
-                    <div
-                      style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}
-                    >
+                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
                       Calibration, polling intervals and sensor-level settings
                     </div>
                     <GroupLabel>Global Sensor Defaults</GroupLabel>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gap: 14,
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 4 }}>
                       <FormGroup label="Default Poll Interval">
                         <Select>
                           <option>Every 30 seconds</option>
@@ -407,157 +314,63 @@ useEffect(() => {
                     <table>
                       <thead>
                         <tr>
-                          <th>Sensor</th>
-                          <th>Poll Rate</th>
-                          <th>Calibration</th>
-                          <th>Status</th>
-                          <th>Action</th>
+                          <th>Sensor</th><th>Poll Rate</th>
+                          <th>Calibration</th><th>Status</th><th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {[
-                          [
-                            "Ratnapura-A2",
-                            "865213859621",
-                            "30s",
-                            "+0.05m",
-                            "active",
-                          ],
-                          [
-                            "Kalutara-B1",
-                            "865213859548",
-                            "30s",
-                            "+0.00m",
-                            "active",
-                          ],
-                          [
-                            "Colombo-West",
-                            "865213859302",
-                            "1min",
-                            "−0.02m",
-                            "warn",
-                          ],
-                          [
-                            "Kandy-Central",
-                            "865213859410",
-                            "30s",
-                            "+0.01m",
-                            "active",
-                          ],
-                          [
-                            "Jaffna-North",
-                            "865213859110",
-                            "30s",
-                            "+0.00m",
-                            "active",
-                          ],
+                          ["Ratnapura-A2",  "865213859621", "30s",  "+0.05m", "active"],
+                          ["Kalutara-B1",   "865213859548", "30s",  "+0.00m", "active"],
+                          ["Colombo-West",  "865213859302", "1min", "−0.02m", "warn"],
+                          ["Kandy-Central", "865213859410", "30s",  "+0.01m", "active"],
+                          ["Jaffna-North",  "865213859110", "30s",  "+0.00m", "active"],
                         ].map(([name, imei, poll, cal, status], i) => (
                           <tr key={i}>
                             <td>
-                              <div style={{ fontWeight: 700, fontSize: 13 }}>
-                                {name}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  color: C.mid,
-                                  fontFamily: "DM Mono",
-                                }}
-                              >
-                                {imei}
-                              </div>
+                              <div style={{ fontWeight: 700, fontSize: 13 }}>{name}</div>
+                              <div style={{ fontSize: 10, color: C.mid, fontFamily: "DM Mono" }}>{imei}</div>
                             </td>
-                            <td style={{ fontFamily: "DM Mono", fontSize: 12 }}>
-                              {poll}
-                            </td>
-                            <td style={{ fontFamily: "DM Mono", fontSize: 12 }}>
-                              {cal}
-                            </td>
+                            <td style={{ fontFamily: "DM Mono", fontSize: 12 }}>{poll}</td>
+                            <td style={{ fontFamily: "DM Mono", fontSize: 12 }}>{cal}</td>
                             <td>
-                              <Badge type={status}>
-                                {status === "active" ? "ACTIVE" : "WEAK SIG"}
-                              </Badge>
+                              <Badge type={status}>{status === "active" ? "ACTIVE" : "WEAK SIG"}</Badge>
                             </td>
-                            <td>
-                              <button style={actBtn}>⚙ Edit</button>
-                            </td>
+                            <td><button style={actBtn}>⚙ Edit</button></td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                     <GroupLabel>Offline Behaviour</GroupLabel>
-                    <ToggleRow
-                      name="Alert on Sensor Offline"
-                      desc="Trigger alert if a sensor stops sending data for 2+ minutes"
-                      on={tog.sensorAlert}
-                      onToggle={() => t("sensorAlert")}
-                    />
-                    <ToggleRow
-                      name="Predict Using Last Reading"
-                      desc="Use last known value for forecasting when sensor is offline"
-                      on={tog.predictOffline}
-                      onToggle={() => t("predictOffline")}
-                    />
-                    <ToggleRow
-                      name="Auto-Reconnect Attempts"
-                      desc="Retry sensor connection every 60 seconds"
-                      on={tog.autoReconnect}
-                      onToggle={() => t("autoReconnect")}
-                    />
-                    <SaveFooter label=" Save Sensor Config" />
+                    <ToggleRow name="Alert on Sensor Offline" desc="Trigger alert if a sensor stops sending data for 2+ minutes" on={tog.sensorAlert} onToggle={() => t("sensorAlert")} />
+                    <ToggleRow name="Predict Using Last Reading" desc="Use last known value for forecasting when sensor is offline" on={tog.predictOffline} onToggle={() => t("predictOffline")} />
+                    <ToggleRow name="Auto-Reconnect Attempts" desc="Retry sensor connection every 60 seconds" on={tog.autoReconnect} onToggle={() => t("autoReconnect")} />
+                    <SaveFooter label="Save Sensor Config" onSave={() => showToast("✅ Sensor config saved!")} />
                   </Card>
                 )}
 
                 {/* ── ALERT & NOTIFICATIONS ── */}
                 {section === "alerts" && (
                   <Card>
-                    <div
-                      style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}
-                    >
-                      {" "}
+                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
                       Alert & Notification Settings
                     </div>
-                    <div
-                      style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}
-                    >
+                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
                       Configure how, when and to whom alerts are sent
                     </div>
                     <GroupLabel>Global Alert Thresholds</GroupLabel>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gap: 14,
-                        marginBottom: 4,
-                      }}
-                    >
-                      <FormGroup
-                        label="Warning Level (%)"
-                        hint="Trigger yellow alert"
-                      >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 4 }}>
+                      <FormGroup label="Warning Level (%)" hint="Trigger yellow alert">
                         <Input defaultValue="60" type="number" />
                       </FormGroup>
-                      <FormGroup
-                        label="High Alert Level (%)"
-                        hint="Trigger orange alert"
-                      >
+                      <FormGroup label="High Alert Level (%)" hint="Trigger orange alert">
                         <Input defaultValue="75" type="number" />
                       </FormGroup>
-                      <FormGroup
-                        label="Critical Level (%)"
-                        hint="Trigger red / emergency"
-                      >
+                      <FormGroup label="Critical Level (%)" hint="Trigger red / emergency">
                         <Input defaultValue="88" type="number" />
                       </FormGroup>
                     </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr",
-                        gap: 14,
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 4 }}>
                       <FormGroup label="Rise Rate Warning (m/hr)">
                         <Input defaultValue="0.20" type="number" step="0.01" />
                       </FormGroup>
@@ -569,148 +382,60 @@ useEffect(() => {
                       </FormGroup>
                     </div>
                     <GroupLabel>Notification Channels</GroupLabel>
-                    {/* <ToggleRow name=" SMS Gateway" desc="Dialog · Airtel · Hutch — Send SMS to registered field officers" on={tog.sms} onToggle={() => t("sms")}/> */}
-                    {/* <ToggleRow name=" Email Alerts" desc="alerts@floodsense.gov.lk — SMTP configured" on={tog.email} onToggle={() => t("email")}/> */}
-                    <ToggleRow
-                      name="App Push Notifications"
-                      desc="Send to all logged-in FloodSense mobile app users"
-                      on={tog.push}
-                      onToggle={() => t("push")}
-                    />
-                    {/* <ToggleRow name=" Public Broadcast (Radio)" desc="SLBC · Sirasa FM — Manual approval required" on={tog.radio} onToggle={() => t("radio")}/> */}
-                    {/* <ToggleRow name=" Emergency Siren Activation" desc="Trigger district siren network on critical alerts only" on={tog.siren} onToggle={() => t("siren")}/> */}
+                    <ToggleRow name="App Push Notifications" desc="Send to all logged-in FloodSense mobile app users" on={tog.push} onToggle={() => t("push")} />
                     <GroupLabel>Alert Behaviour</GroupLabel>
-                    <ToggleRow
-                      name="Quiet Hours"
-                      desc="Suppress non-critical notifications between 22:00 – 06:00"
-                      on={tog.quiet}
-                      onToggle={() => t("quiet")}
-                    />
-                    <ToggleRow
-                      name="Alert Deduplication"
-                      desc="Don't resend the same alert within the repeat interval"
-                      on={tog.dedup}
-                      onToggle={() => t("dedup")}
-                    />
-                    <ToggleRow
-                      name="All-Clear Notification"
-                      desc="Send notification when water levels return to safe range"
-                      on={tog.allclear}
-                      onToggle={() => t("allclear")}
-                    />
+                    <ToggleRow name="Quiet Hours" desc="Suppress non-critical notifications between 22:00 – 06:00" on={tog.quiet} onToggle={() => t("quiet")} />
+                    <ToggleRow name="Alert Deduplication" desc="Don't resend the same alert within the repeat interval" on={tog.dedup} onToggle={() => t("dedup")} />
+                    <ToggleRow name="All-Clear Notification" desc="Send notification when water levels return to safe range" on={tog.allclear} onToggle={() => t("allclear")} />
                     <GroupLabel>Test & Diagnostics</GroupLabel>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {[" Test Push", " Run Diagnostics"].map((l) => (
-                        <button
-                          key={l}
-                          onClick={() => showToast(`✅ ${l} completed`)}
-                          style={{
-                            padding: "7px 14px",
-                            borderRadius: 8,
-                            border: `1.5px solid ${C.border}`,
-                            background: "#fff",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
+                      {["Test Push", "Run Diagnostics"].map((l) => (
+                        <button key={l} onClick={() => showToast(`✅ ${l} completed`)}
+                          style={{ padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                           {l}
                         </button>
                       ))}
                     </div>
-                    <SaveFooter label="💾 Save Alert Settings" />
+                    <SaveFooter label="Save Alert Settings" onSave={() => showToast("✅ Alert settings saved!")} />
                   </Card>
                 )}
 
                 {/* ── MAP & LOCATION ── */}
                 {section === "map" && (
                   <Card>
-                    <div
-                      style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}
-                    >
-                      {" "}
+                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
                       Map & Location Settings
                     </div>
-                    <div
-                      style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}
-                    >
+                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
                       Default map view, layers and display preferences
                     </div>
-
                     <GroupLabel>Visible Layers</GroupLabel>
-                    <ToggleRow
-                      name="Sensor Location Pins"
-                      desc="Show active sensor pins on all map views"
-                      on={tog.pins}
-                      onToggle={() => t("pins")}
-                    />
-                    <ToggleRow
-                      name="Safe Zone Markers"
-                      desc="Show shelter and safe zone markers on maps"
-                      on={tog.safepins}
-                      onToggle={() => t("safepins")}
-                    />
-                    <ToggleRow
-                      name="Affected Area Shading"
-                      desc="Show colour-coded district shading by flood risk level"
-                      on={tog.shading}
-                      onToggle={() => t("shading")}
-                    />
-                    <ToggleRow
-                      name="Risk Heatmap Overlay"
-                      desc="Show heat blobs over high-risk areas"
-                      on={tog.heat}
-                      onToggle={() => t("heat")}
-                    />
-                    <ToggleRow
-                      name="District Boundary Lines"
-                      desc="Show administrative district borders"
-                      on={tog.borders}
-                      onToggle={() => t("borders")}
-                    />
-                    <ToggleRow
-                      name="River / Water Body Labels"
-                      desc="Label rivers and water bodies on map"
-                      on={tog.rivers}
-                      onToggle={() => t("rivers")}
-                    />
-                    <SaveFooter label=" Save Map Settings" />
+                    <ToggleRow name="Sensor Location Pins"    desc="Show active sensor pins on all map views"                    on={tog.pins}     onToggle={() => t("pins")} />
+                    <ToggleRow name="Safe Zone Markers"       desc="Show shelter and safe zone markers on maps"                  on={tog.safepins} onToggle={() => t("safepins")} />
+                    <ToggleRow name="Affected Area Shading"   desc="Show colour-coded district shading by flood risk level"      on={tog.shading}  onToggle={() => t("shading")} />
+                    <ToggleRow name="Risk Heatmap Overlay"    desc="Show heat blobs over high-risk areas"                       on={tog.heat}     onToggle={() => t("heat")} />
+                    <ToggleRow name="District Boundary Lines" desc="Show administrative district borders"                       on={tog.borders}  onToggle={() => t("borders")} />
+                    <ToggleRow name="River / Water Body Labels" desc="Label rivers and water bodies on map"                     on={tog.rivers}   onToggle={() => t("rivers")} />
+                    <SaveFooter label="Save Map Settings" onSave={() => showToast("✅ Map settings saved!")} />
                   </Card>
                 )}
 
                 {/* ── SAFE ZONE MGMT ── */}
                 {section === "safezone" && (
                   <Card>
-                    <div
-                      style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}
-                    >
-                      {" "}
+                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>
                       Safe Zone Management
                     </div>
-                    <div
-                      style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}
-                    >
+                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 14 }}>
                       Configure defaults, capacity rules and activation triggers
                     </div>
                     <GroupLabel>Automatic Activation Rules</GroupLabel>
-                    <ToggleRow
-                      name="Auto-Open on Critical Alert"
-                      desc="Automatically mark safe zones open when a Critical alert fires"
-                      on={tog.autoOpen}
-                      onToggle={() => t("autoOpen")}
-                    />
-                    <ToggleRow
-                      name="Notify Contacts on Activation"
-                      desc="Send SMS to safe zone contacts when activated"
-                      on={tog.notify}
-                      onToggle={() => t("notify")}
-                    />
-
-                    <SaveFooter label=" Save Safe Zone Settings" />
+                    <ToggleRow name="Auto-Open on Critical Alert"    desc="Automatically mark safe zones open when a Critical alert fires" on={tog.autoOpen} onToggle={() => t("autoOpen")} />
+                    <ToggleRow name="Notify Contacts on Activation" desc="Send SMS to safe zone contacts when activated"                  on={tog.notify}   onToggle={() => t("notify")} />
+                    <SaveFooter label="Save Safe Zone Settings" onSave={() => showToast("✅ Safe zone settings saved!")} />
                   </Card>
                 )}
 
-               
               </div>
             </div>
           </div>
