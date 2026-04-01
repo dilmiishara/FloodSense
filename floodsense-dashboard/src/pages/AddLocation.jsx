@@ -3,6 +3,8 @@ import { useState ,useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap  } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { C, Card, Badge, Btn, Input, Select, FormGroup, globalCSS, TabBar, SriLankaMap, Toast } from "../shared.jsx";
+import axios from "axios";
+import { SAFE_LOCATIONS_API } from "../api";
 
 export default function AddLocation() {
     const [tab, setTab]         = useState("sensor");
@@ -52,11 +54,6 @@ export default function AddLocation() {
         return null;
     };
 
-    const [address, setAddress] = useState("");
-    const [safeLat, setSafeLat] = useState(6.9);
-    const [safeLng, setSafeLng] = useState(80.5);
-    const [safePosition, setSafePosition] = useState([6.9, 80.5]);
-
     const searchAddress = async () => {
         if (!address) return;
 
@@ -98,6 +95,23 @@ export default function AddLocation() {
         { name:"Ratnapura School", lat:6.70, lng:80.41 },
         { name:"Kalutara Ground", lat:6.59, lng:79.99 },
     ];
+
+    const [locationName, setLocationName] = useState("");
+    const [locationType, setLocationType] = useState("");
+    const [address, setAddress] = useState("");
+    const [district, setDistrict] = useState("");
+    const [province, setProvince] = useState("Sabaragamuwa Province");
+    const [safeLat, setSafeLat] = useState("");
+    const [safeLng, setSafeLng] = useState("");
+    const [elevation, setElevation] = useState("");
+    const [maxCapacity, setMaxCapacity] = useState("");
+    const [contactPerson, setContactPerson] = useState("");
+    const [contactNumber, setContactNumber] = useState("");
+    const [safePosition, setSafePosition] = useState([6.9, 80.5]);
+
+
+// For storing validation errors from API
+    const [errors, setErrors] = useState({});
 
     return (
         <>

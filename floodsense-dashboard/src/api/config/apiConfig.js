@@ -21,3 +21,5 @@ export const WEATHER_API = {
   BASE_URL: "https://api.weatherapi.com/v1",
   RATNAPURA_COORDS: "6.6828,80.3992",
 };
+
+export const SAFE_LOCATIONS_API = "/safelocations";
