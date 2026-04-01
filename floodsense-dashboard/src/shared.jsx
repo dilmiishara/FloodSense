@@ -4,6 +4,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {rolePages} from "./shared/permissions.js";
+import { useSettings } from "./context/SettingsContext";
 
 // ─── COLOR CONSTANTS ─────────────────────────────────────────────────────────
 export const C = {
@@ -125,7 +126,7 @@ export const Select = ({ children, style = {}, ...props }) => (
 export const Toggle = ({ on, onToggle }) => (
     <div onClick={onToggle} style={{
         width: 40, height: 22, borderRadius: 11,
-        background: on ? "#1a1a1a" : "#ddd",
+        background: on ? "#050101" : "#ddd",
         position: "relative", cursor: "pointer", flexShrink: 0, transition: "background .2s",
     }}>
         <div style={{
@@ -239,35 +240,83 @@ export const SriLankaMap = ({ mode = "sensor" }) => {
 };
 
 // ─── HEADER ───────────────────────────────────────────────────────────────────
-export const Header = ({ emergencyMode, setEmergencyMode }) => (
+export const Header = () => {
+  // Get global state from context
+  const { systemSettings, toggleEmergencyMode } = useSettings();
+
+  return (
     <div style={{
-        background: "#ffffff", borderRadius: 16, margin: "14px 14px 0",
-        padding: "13px 22px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", boxShadow: "0 1px 5px rgba(0,0,0,.07)",
+      background: "#ffffff",
+      borderRadius: 16,
+      margin: "14px 14px 0",
+      padding: "13px 22px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      boxShadow: "0 1px 5px rgba(0,0,0,.07)",
     }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 17, fontWeight: 800, letterSpacing: -.3 }}>
-            <div style={{ width: 34, height: 34, background: "#1a1a1a", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" width="20" height="20">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" opacity=".3"/>
-                    <path d="M5 15 Q8.5 9 12 13 Q15.5 17 19 11"/>
-                </svg>
-            </div>
-            FloodSense Portal
+
+      {/* LEFT SIDE — System Name (now dynamic from DB) */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        fontSize: 17, fontWeight: 800, letterSpacing: -.3
+      }}>
+        <div style={{
+          width: 34, height: 34, background: "#1a1a1a",
+          borderRadius: 9, display: "flex",
+          alignItems: "center", justifyContent: "center"
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff"
+            strokeWidth="2.2" strokeLinecap="round" width="20" height="20">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" opacity=".3"/>
+            <path d="M5 15 Q8.5 9 12 13 Q15.5 17 19 11"/>
+          </svg>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ position: "relative", cursor: "pointer" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                <div style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, background: "#cc2200", borderRadius: "50%", border: "2px solid #fff" }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#666" }}>Emergency Mode</span>
-            <Toggle on={emergencyMode} onToggle={() => setEmergencyMode(p => !p)} />
-            <div style={{ width: 34, height: 34, background: "#1a1a1a", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700 }}>MR</div>
+
+        {/* ✅ This now comes from the database */}
+        {systemSettings.system_name}
+      </div>
+
+      {/* RIGHT SIDE — Emergency Mode Toggle */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+
+        {/* Notification bell */}
+        <div style={{ position: "relative", cursor: "pointer" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="#555" strokeWidth="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <div style={{
+            position: "absolute", top: -2, right: -2,
+            width: 8, height: 8, background: "#cc2200",
+            borderRadius: "50%", border: "2px solid #fff"
+          }} />
         </div>
+
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#666" }}>
+          Emergency Mode
+        </span>
+
+        {/* ✅ This toggle is now synced with Settings page */}
+        <Toggle
+          on={systemSettings.emergency_mode}
+          onToggle={toggleEmergencyMode}
+        />
+
+        {/* Avatar */}
+        <div style={{
+          width: 34, height: 34, background: "#1a1a1a",
+          borderRadius: "50%", display: "flex",
+          alignItems: "center", justifyContent: "center",
+          color: "#fff", fontSize: 12, fontWeight: 700
+        }}>
+          MR
+        </div>
+      </div>
     </div>
-);
+  );
+};
 
 // ─── SIDEBAR COMPONENT ──────────────────────────────────────────────────────
 export const Sidebar = ({ page }) => {
@@ -451,12 +500,11 @@ const modalStyles = {
 
 // ─── PAGE SHELL ───────────────────────────────────────────────────────────────
 export const PageShell = ({ page, setPage, children }) => {
-    const [emergencyMode, setEmergencyMode] = useState(true);
     return (
         <>
             <style>{globalCSS}</style>
             <div style={{ minHeight: "100vh", background: "#f0ede8" }}>
-                <Header emergencyMode={emergencyMode} setEmergencyMode={setEmergencyMode} />
+                <Header />   {/* ← no props needed, Header uses context directly */}
                 <div style={{ display: "flex", margin: "12px 14px 14px", gap: 0 }}>
                     <Sidebar page={page} setPage={setPage} />
                     <div style={{ flex: 1, minWidth: 0, maxHeight: "calc(100vh - 110px)", overflowY: "auto", paddingRight: 2 }}>

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { C, Card, Badge, Toggle, globalCSS, Header, Sidebar, Toast } from "../shared.jsx";
+import { useSettings } from "../context/SettingsContext";
 
 // Fix for default marker icons in Leaflet + React
 import L from 'leaflet';
@@ -167,6 +168,9 @@ const proStyles = `
 
 export default function Dashboard() {
   const [isLoaded, setIsLoaded] = useState(false);
+   const { systemSettings } = useSettings();
+  const isEmergency    = systemSettings.emergency_mode;
+  const isMaintenance  = systemSettings.maintenance_mode;
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 150);
@@ -223,7 +227,7 @@ export default function Dashboard() {
 
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 20, overflowY: "auto", maxHeight: "calc(100vh - 100px)", paddingRight: 4 }}>
 
-            {/* Alert Banner */}
+            Alert Banner
             <div className="fadeUp" style={{ 
               background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)", 
               color: "#fff", borderRadius: 12, padding: "14px 20px", 
@@ -237,6 +241,90 @@ export default function Dashboard() {
               </div>
               <Badge style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)" }}>3 ACTIVE INCIDENTS</Badge>
             </div>
+
+            {/* ── EMERGENCY BANNER — shows when emergency mode is ON ── */}
+{isEmergency && (
+  <div className="fadeUp" style={{
+    background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
+    color: "#fff", borderRadius: 12, padding: "14px 20px",
+    display: "flex", alignItems: "center", gap: 12,
+    boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.3)",
+    animation: "pulse-red 2s infinite",
+  }}>
+   
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, textTransform: "uppercase" }}>
+        ⚠ Emergency Mode Active
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 600 }}>
+        All thresholds overridden. Broadcasting to all channels. Immediate action required.
+      </div>
+    </div>
+    <span style={{
+      fontSize: 10, fontWeight: 800, padding: "4px 10px",
+      borderRadius: 6, background: "rgba(255,255,255,0.2)",
+      border: "1px solid rgba(255,255,255,0.3)",
+    }}>
+      EMERGENCY
+    </span>
+  </div>
+)}
+
+{/* ── MAINTENANCE BANNER — shows when maintenance mode is ON ── */}
+{/* maintanace mode on */}
+{isMaintenance && (
+  <div className="fadeUp" style={{
+    background: "linear-gradient(90deg, #f59e0b 0%, #b45309 100%)",
+    color: "#fff", borderRadius: 12, padding: "14px 20px",
+    display: "flex", alignItems: "center", gap: 12,
+    boxShadow: "0 10px 15px -3px rgba(245, 158, 11, 0.3)",
+  }}>
+   
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, textTransform: "uppercase" }}>
+      ⚠ Maintenance Mode Active
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 600 }}>
+        All alerts suppressed during scheduled maintenance. Monitoring continues in background.
+      </div>
+    </div>
+    <span style={{
+      fontSize: 10, fontWeight: 800, padding: "4px 10px",
+      borderRadius: 6, background: "rgba(255,255,255,0.2)",
+      border: "1px solid rgba(255,255,255,0.3)",
+    }}>
+      MAINTENANCE
+    </span>
+  </div>
+)}
+
+{/* ── DEFAULT BANNER — shows when both are OFF ── */}
+{/* {!isEmergency && !isMaintenance && (
+  <div className="fadeUp" style={{
+    background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
+    color: "#fff", borderRadius: 12, padding: "14px 20px",
+    display: "flex", alignItems: "center", gap: 12,
+    boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.3)",
+  }}>
+    <span style={{ fontSize: 20 }}>⚠️</span>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, textTransform: "uppercase" }}>
+        System Alert
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 600 }}>
+        Ratnapura Sector: Water levels exceeding 90% threshold. Monitoring active.
+      </div>
+    </div>
+    <span style={{
+      fontSize: 10, fontWeight: 800, padding: "4px 10px",
+      borderRadius: 6, background: "rgba(255,255,255,0.2)",
+      border: "1px solid rgba(255,255,255,0.3)",
+    }}>
+      3 ACTIVE INCIDENTS
+    </span>
+  </div>
+)} */}
+
 
             {/* STAT CARDS ROW */}
             <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20 }}>

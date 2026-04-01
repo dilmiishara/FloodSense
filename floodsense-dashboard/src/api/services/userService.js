@@ -31,3 +31,7 @@ export const fetchAreas = () => {
 export const fetchRoles = () => {
   return axiosInstance.get(ROLES_API);
 };
+
+export const fetchFieldOfficers = () => {
+    return axiosInstance.get('/field-officers'); 
+};
