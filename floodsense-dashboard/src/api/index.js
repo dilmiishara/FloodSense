@@ -10,5 +10,5 @@ export {
   MONITORED_STATIONS,
   STATION_META,
   REFRESH_INTERVAL,
-  MAX_HISTORY,
+  MAX_HISTORY
 } from "./services/stationService";

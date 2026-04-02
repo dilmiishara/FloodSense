@@ -22,4 +22,5 @@ export const WEATHER_API = {
   RATNAPURA_COORDS: "6.6828,80.3992",
 };
 
+// SafeLocations endpoint
 export const SAFE_LOCATIONS_API = "/safelocations";
