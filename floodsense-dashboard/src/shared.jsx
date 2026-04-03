@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {rolePages} from "./shared/permissions.js";
 import { useSettings } from "./context/SettingsContext";
+import { User, LogOut, Edit, Bell, ChevronDown } from "lucide-react";
 
 // ─── COLOR CONSTANTS ─────────────────────────────────────────────────────────
 export const C = {
@@ -241,81 +242,151 @@ export const SriLankaMap = ({ mode = "sensor" }) => {
 
 // ─── HEADER ───────────────────────────────────────────────────────────────────
 export const Header = () => {
-  // Get global state from context
+  const [showDropdown, setShowDropdown] = useState(false);
+  
+  // පද්ධතියේ Settings ලබා ගැනීම (Context එකෙන්)
   const { systemSettings, toggleEmergencyMode } = useSettings();
 
-  return (
-    <div style={{
-      background: "#ffffff",
-      borderRadius: 16,
-      margin: "14px 14px 0",
-      padding: "13px 22px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      boxShadow: "0 1px 5px rgba(0,0,0,.07)",
-    }}>
+  // LocalStorage එකෙන් ලොග් වුණු User ගේ විස්තර ලබා ගැනීම
+  const user = JSON.parse(localStorage.getItem("user")) || { 
+    first_name: "User", 
+    last_name: "", 
+    email: "user@example.com" 
+  };
 
-      {/* LEFT SIDE — System Name (now dynamic from DB) */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 10,
-        fontSize: 17, fontWeight: 800, letterSpacing: -.3
-      }}>
-        <div style={{
-          width: 34, height: 34, background: "#1a1a1a",
-          borderRadius: 9, display: "flex",
-          alignItems: "center", justifyContent: "center"
-        }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff"
-            strokeWidth="2.2" strokeLinecap="round" width="20" height="20">
+  // නමේ මුල් අකුරු ලබා ගැනීම (Initials) - උදා: Madhuka Ranasinghe -> MR
+  const getInitials = () => {
+    const f = user.first_name ? user.first_name[0] : "";
+    const l = user.last_name ? user.last_name[0] : "";
+    return (f + l).toUpperCase() || "U";
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  };
+
+  return (
+    <div style={headerContainer}>
+      
+      {/* LEFT SIDE — System Name (Dynamic from DB) */}
+      <div style={systemInfo}>
+        <div style={logoBox}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" width="20" height="20">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" opacity=".3"/>
             <path d="M5 15 Q8.5 9 12 13 Q15.5 17 19 11"/>
           </svg>
         </div>
-
-        {/* ✅ This now comes from the database */}
-        {systemSettings.system_name}
+        {systemSettings?.system_name || "FloodSense"}
       </div>
 
-      {/* RIGHT SIDE — Emergency Mode Toggle */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-
-        {/* Notification bell */}
-        <div style={{ position: "relative", cursor: "pointer" }}>
-          <svg width="20" height="20" viewBox="0 0 24 24"
-            fill="none" stroke="#555" strokeWidth="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <div style={{
-            position: "absolute", top: -2, right: -2,
-            width: 8, height: 8, background: "#cc2200",
-            borderRadius: "50%", border: "2px solid #fff"
-          }} />
+      {/* RIGHT SIDE — Emergency Mode & Profile */}
+      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        
+        {/* Emergency Mode & Notifications */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ position: "relative", cursor: "pointer", display: "flex" }}>
+            <Bell size={20} color="#555" />
+            <div style={notificationDot} />
+          </div>
+          <span style={emergencyLabel}>Emergency Mode</span>
+          <Toggle
+            on={systemSettings?.emergency_mode}
+            onToggle={toggleEmergencyMode}
+          />
         </div>
 
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#666" }}>
-          Emergency Mode
-        </span>
+        {/* PROFILE AVATAR & DROPDOWN */}
+        <div style={{ position: 'relative' }}>
+          <div 
+            onClick={() => setShowDropdown(!showDropdown)}
+            style={profileCircleStyle}
+          >
+            {getInitials()}
+          </div>
 
-        {/* ✅ This toggle is now synced with Settings page */}
-        <Toggle
-          on={systemSettings.emergency_mode}
-          onToggle={toggleEmergencyMode}
-        />
-
-        {/* Avatar */}
-        <div style={{
-          width: 34, height: 34, background: "#1a1a1a",
-          borderRadius: "50%", display: "flex",
-          alignItems: "center", justifyContent: "center",
-          color: "#fff", fontSize: 12, fontWeight: 700
-        }}>
-          MR
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <div className="fadeUp" style={dropdownStyle}>
+              <div style={dropdownUserHeader}>
+                <div style={userName}>{user.first_name} {user.last_name}</div>
+                <div style={userEmail}>{user.email}</div>
+              </div>
+              
+              <button style={menuItem} onClick={() => window.location.href='/app/profile'}>
+                <Edit size={14} /> Edit Profile
+              </button>
+              
+              <button style={{ ...menuItem, color: '#ef4444' }} onClick={handleLogout}>
+                <LogOut size={14} /> Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
+};
+
+// ─── STYLES (Add these inside shared.jsx as well) ──────────────────────────────
+
+const headerContainer = {
+  background: "#ffffff",
+  borderRadius: 16,
+  margin: "14px 14px 0",
+  padding: "10px 22px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  boxShadow: "0 1px 5px rgba(0,0,0,.07)",
+  position: 'relative',
+  zIndex: 1000
+};
+
+const systemInfo = {
+  display: "flex", alignItems: "center", gap: 10,
+  fontSize: 17, fontWeight: 800, letterSpacing: -.3
+};
+
+const logoBox = {
+  width: 34, height: 34, background: "#1a1a1a",
+  borderRadius: 9, display: "flex",
+  alignItems: "center", justifyContent: "center"
+};
+
+const notificationDot = {
+  position: "absolute", top: -2, right: -2,
+  width: 8, height: 8, background: "#cc2200",
+  borderRadius: "50%", border: "2px solid #fff"
+};
+
+const emergencyLabel = { fontSize: 13, fontWeight: 600, color: "#666" };
+
+const profileCircleStyle = {
+  width: 36, height: 36, borderRadius: "50%", background: "#1a1a1a",
+  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+  fontSize: 12, fontWeight: 700, cursor: "pointer", border: "2px solid #fff",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.1)", transition: "0.2s"
+};
+
+const dropdownStyle = {
+  position: "absolute", top: 45, right: 0, width: 200, background: "#fff",
+  borderRadius: 14, boxShadow: "0 10px 30px rgba(0,0,0,0.15)", zIndex: 1001, 
+  padding: '6px', border: "1px solid #eee"
+};
+
+const dropdownUserHeader = {
+  padding: '12px 14px', borderBottom: '1px solid #f5f5f5', marginBottom: '4px', textAlign: 'left'
+};
+
+const userName = { fontWeight: 800, fontSize: 14, color: "#1a1a1a" };
+const userEmail = { fontSize: 11, color: '#888', marginTop: 2 };
+
+const menuItem = {
+  width: '100%', padding: '10px 12px', border: 'none', background: 'none',
+  display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer',
+  textAlign: 'left', borderRadius: 10, transition: '0.2s', fontWeight: 600, color: "#444"
 };
 
 // ─── SIDEBAR COMPONENT ──────────────────────────────────────────────────────
