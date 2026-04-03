@@ -96,13 +96,30 @@ const loadData = async () => {
     }
   };
 
-  const filteredAlerts = activeAlerts.filter(a => {
-    const matchesSearch = a.location.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          a.type.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSeverity = selSeverity === "All Severity" || a.severity.toUpperCase() === selSeverity.toUpperCase();
-    const matchesDivision = selDivision === "All DS Divisions" || a.location === selDivision;
-    return matchesSearch && matchesSeverity && matchesDivision;
-  });
+  const filteredAlerts = (activeAlerts || []).filter(a => {
+  
+  const searchLower = (searchTerm || "").toLowerCase();
+  
+  
+  const locationText = (a?.location || "").toLowerCase();
+  const typeText = (a?.type || "").toLowerCase();
+
+  const matchesSearch = locationText.includes(searchLower) || 
+                        typeText.includes(searchLower);
+
+ 
+  const alertSeverity = (a?.severity || "").toUpperCase();
+  const selectedSev = (selSeverity || "All Severity").toUpperCase();
+  
+  const matchesSeverity = selSeverity === "All Severity" || 
+                          alertSeverity === selectedSev;
+
+  const matchesDivision = selDivision === "All DS Divisions" || 
+                          a?.location === selDivision;
+
+
+  return matchesSearch && matchesSeverity && matchesDivision;
+});
 
   const getSeverityConfig = (sev) => {
     const s = sev?.toLowerCase();
