@@ -17,7 +17,7 @@ export default function ProfileEdit() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // නමේ මුල් අකුරු ලබා ගැනීම (Initials)
+
   const getInitials = () => {
     const f = formData.first_name ? formData.first_name[0] : "";
     const l = formData.last_name ? formData.last_name[0] : "";
@@ -38,7 +38,7 @@ export default function ProfileEdit() {
     } catch (err) {
       setToast(err.response?.data?.message || "Update failed.");
     } finally { setLoading(false); }
-  };
+  }; 
 
   return (
     <div style={{ padding: "40px 20px", maxWidth: "1000px", margin: "0 auto" }}>
@@ -51,7 +51,7 @@ export default function ProfileEdit() {
 
       <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) 2fr", gap: 32 }}>
         
-        {/* LEFT: PROFILE PREVIEW (Label Removed) */}
+        {/* LEFT: PROFILE PREVIEW */}
         <Card style={{ padding: 40, textAlign: 'center', height: 'fit-content', borderRadius: 32, boxShadow: "0 10px 40px rgba(0,0,0,0.04)", border: "1px solid #f0f0f0" }}>
           <div style={{ margin: '0 auto', width: 'fit-content' }}>
             <div style={largeAvatarStyle}>
