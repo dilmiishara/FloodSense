@@ -15,6 +15,7 @@ import AddLocation from "./pages/AddLocation.jsx";
 import Posts from "./pages/Posts.jsx";
 import Users from "./pages/ManageUsers.jsx"
 import { SettingsProvider } from './context/SettingsContext';
+import ProfileEdit from "./pages/ProfileEdit";
 
 // Auth
 import Login from "./pages/Login";
@@ -87,11 +88,19 @@ function MainApp() {
                     </ProtectedRoute>
                 } />
 
+                <Route path="profile" element={
+                    <ProtectedRoute>
+                        <ProfileEdit />
+                    </ProtectedRoute>
+                } />
+
                 <Route path="posts" element={
                     <ProtectedRoute>
                         <Posts posts={posts} loading={loading} />
                     </ProtectedRoute>
                 } />
+
+                
 
                 {/* default redirect */}
                 <Route path="*" element={<Navigate to="dashboard" />} />
@@ -105,10 +114,10 @@ export default function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Login */}
+                
                 <Route path="/" element={<Login />} />
 
-                {/* Protected App */}
+                
                 <Route
                     path="/app/*"
                     element={

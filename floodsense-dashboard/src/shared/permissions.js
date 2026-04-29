@@ -10,11 +10,13 @@ export const rolePages = {
         { name: "Prediction", path: "/app/prediction" },
         { name: "Add Location", path: "/app/addlocation" },
         { name: "Posts", path: "/app/posts" },
+        { path: "/app/profile" },
     ],
 
     maintenance: [
         { name: "Dashboard", path: "/app/dashboard" },
         { name: "Settings", path: "/app/settings" },
         { name: "Posts", path: "/app/posts" },
+        { path: "/app/profile" },
     ],
 };

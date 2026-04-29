@@ -138,7 +138,7 @@ export default function Reports() {
               <Card style={{ padding: 28, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Zap size={20} color={C.blue} /> Configuration
+                     Configuration
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 30 }}>
                     <FormGroup label="REPORT CATEGORY">

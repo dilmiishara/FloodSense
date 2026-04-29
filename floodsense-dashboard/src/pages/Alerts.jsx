@@ -96,18 +96,15 @@ const loadData = async () => {
     }
   };
 
-  const filteredAlerts = (activeAlerts || []).filter(a => {
-  
+ const filteredAlerts = (activeAlerts || []).filter(a => {
   const searchLower = (searchTerm || "").toLowerCase();
   
-  
-  const locationText = (a?.location || "").toLowerCase();
+  const areaName = a?.area?.name || a?.location || ""; 
   const typeText = (a?.type || "").toLowerCase();
 
-  const matchesSearch = locationText.includes(searchLower) || 
+  const matchesSearch = areaName.toLowerCase().includes(searchLower) || 
                         typeText.includes(searchLower);
 
- 
   const alertSeverity = (a?.severity || "").toUpperCase();
   const selectedSev = (selSeverity || "All Severity").toUpperCase();
   
@@ -115,8 +112,7 @@ const loadData = async () => {
                           alertSeverity === selectedSev;
 
   const matchesDivision = selDivision === "All DS Divisions" || 
-                          a?.location === selDivision;
-
+                          areaName === selDivision;
 
   return matchesSearch && matchesSeverity && matchesDivision;
 });
@@ -212,7 +208,7 @@ const loadData = async () => {
                             <div style={{ fontSize: 14, fontWeight: 700, color: '#222' }}>{a.type}</div>
                             <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{a.message}</div>
                           </td>
-                          <td style={{ padding: '14px' }}><span style={locTag}>{a.location}</span></td>
+                          <td style={{ padding: '14px' }}><span style={locTag}>{a.area?.name || a.location || "Unknown"}</span></td>
                           <td style={{ padding: '14px', fontSize: 12, color: '#555', fontFamily: 'monospace' }}>
                             {new Date(a.detected_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </td>
@@ -261,7 +257,7 @@ const loadData = async () => {
                                 <div style={{ fontWeight: 700, fontSize: 13 }}>{a.type}</div>
                                 <div style={{ fontSize: 11, color: C.mid }}>{a.message}</div>
                             </td>
-                            <td style={{ padding: '14px' }}><Badge type="outline" style={{ fontWeight: 700 }}>{a.location}</Badge></td>
+                            <td style={{ padding: '14px' }}><Badge type="outline" style={{ fontWeight: 700 }}>{a.area?.name || a.location || "N/A"}</Badge></td>
                             <td style={{ padding: '14px' }}><Badge type="active">RESOLVED</Badge></td>
                             <td style={{ padding: '14px', fontSize: 11, color: '#555', fontFamily: 'monospace' }}>
                                 {new Date(a.updated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}

@@ -58,13 +58,12 @@ export default function ThresholdTable() {
         t.area?.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading && data.length === 0) {
-        return (
-            <div style={{ padding: 40, textAlign: 'center', color: '#aaa' }}>
-                <div className="pulse" style={{ fontSize: 13, fontWeight: 600 }}> Syncing Configurations...</div>
-            </div>
-        );
-    }
+     if (loading)
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "#aaa" }}>
+        Loading Threshold...
+      </div>
+    );
 
     return (
         <div style={{ opacity: loading ? 0.7 : 1, transition: '0.3s' }}>
