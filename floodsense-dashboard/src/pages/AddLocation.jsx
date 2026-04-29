@@ -1,564 +1,709 @@
-// ─── AddLocation.jsx ──────────────────────────────────────────────────────────
-import { useState ,useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap  } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import { C, Card, Badge, Btn, Input, Select, FormGroup, globalCSS, TabBar, SriLankaMap, Toast } from "../shared.jsx";
+// ─── AddLocation.jsx ─────────────────────────────────────────────────────────
+// Matches the FloodSense shared.jsx design system exactly:
+// warm beige bg (#f0ede8), white cards, DM Sans, same Badge/Card/Btn/FormGroup/TabBar.
 
+import React, { useState } from "react";
+import { C, Card, Badge, globalCSS, TabBar, FormGroup, Btn } from "../shared.jsx";
+// import { createLocation, deleteLocation, getAllLocations } from "../api/services/locationService.js";
+// import { fetchAreas } from "../api/services/alertService.js";
+
+// ─── LOCAL CONSTANTS ──────────────────────────────────────────────────────────
+const DISTRICTS = [
+    "Ratnapura","Kalutara","Colombo","Galle","Kandy",
+    "Matara","Kegalle","Badulla","Hambantota","Kurunegala",
+];
+
+const SENSOR_CHIPS = [
+    { icon:"💧", label:"Humidity",    sub:"DHT22 — relative %",    color:C.blue },
+    { icon:"🌡️", label:"Temperature", sub:"DHT22 — °C",            color:C.orange },
+    { icon:"🌧️", label:"Rainfall",    sub:"Tipping bucket — mm",   color:C.green },
+    { icon:"📡", label:"Ultrasonic",  sub:"HC-SR04 — cm distance", color:"#7c3aed" },
+];
+
+const INITIAL_GATEWAYS = [
+    { id:"gw-001", name:"Gateway-001", eui:"AA:BB:CC:DD:EE:FF:00:01", location:"Ratnapura", status:"active" },
+    { id:"gw-002", name:"Gateway-002", eui:"AA:BB:CC:DD:EE:FF:00:02", location:"Kalutara",  status:"active" },
+];
+
+// ─── EXTRA LOCAL STYLES ───────────────────────────────────────────────────────
+const extraCSS = `
+  .al-icon-btn-del:hover { background: #fff0ee !important; color: #cc2200 !important; border-color: #ffdcc2 !important; }
+  .al-node-card:hover { border-color: #d0cdc8 !important; background: #faf9f7 !important; }
+  input:focus, select:focus { border-color: #1a1a1a !important; outline: none; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .fadeUp { animation: fadeUp .25s ease both; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.5)} }
+  .pulse { animation: pulse 1.4s ease-in-out infinite; }
+`;
+
+// ─── SECTION LABEL ────────────────────────────────────────────────────────────
+const SectionLabel = ({ step, label }) => (
+    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+        <div style={{
+            width:22, height:22, borderRadius:7, background:"#1a1a1a",
+            color:"#fff", fontSize:10, fontWeight:800,
+            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
+        }}>{step}</div>
+        <span style={{ fontSize:12, fontWeight:700, color:"#888", textTransform:"uppercase", letterSpacing:.5 }}>
+            {label}
+        </span>
+    </div>
+);
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+const Modal = ({ show, onClose, title, children, footer }) => {
+    if (!show) return null;
+    return (
+        <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+             style={{ position:"fixed", inset:0, background:"rgba(26,26,26,.45)", zIndex:200,
+                 display:"flex", alignItems:"center", justifyContent:"center", padding:20,
+                 backdropFilter:"blur(6px)" }}>
+            <div className="fadeUp"
+                 style={{ background:"#fff", borderRadius:20, width:"100%", maxWidth:480,
+                     maxHeight:"90vh", overflowY:"auto",
+                     boxShadow:"0 20px 60px rgba(0,0,0,.18)", border:"1px solid #e8e4df" }}>
+                <div style={{ padding:"18px 22px", borderBottom:"1px solid #e8e4df",
+                    display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                    <div style={{ fontSize:15, fontWeight:800 }}>{title}</div>
+                    <button onClick={onClose}
+                            style={{ background:"#f7f5f2", border:"1.5px solid #e8e4df", color:"#666",
+                                width:30, height:30, borderRadius:8, cursor:"pointer", fontSize:14,
+                                display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+                </div>
+                <div style={{ padding:22 }}>{children}</div>
+                {footer && (
+                    <div style={{ padding:"14px 22px", borderTop:"1px solid #e8e4df",
+                        display:"flex", gap:8, justifyContent:"flex-end" }}>
+                        {footer}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─── STAT PILL ────────────────────────────────────────────────────────────────
+const StatPill = ({ label, value, accent }) => (
+    <div style={{ background:"#f7f5f2", borderRadius:10, padding:"8px 14px",
+        border:"1.5px solid #e8e4df", display:"flex", flexDirection:"column",
+        alignItems:"center", minWidth:64 }}>
+        <div style={{ fontSize:20, fontWeight:900, color:accent, lineHeight:1,
+            fontFamily:"'DM Mono',monospace" }}>{value}</div>
+        <div style={{ fontSize:9, fontWeight:700, color:"#aaa", textTransform:"uppercase",
+            letterSpacing:.5, marginTop:2 }}>{label}</div>
+    </div>
+);
+
+// ─── ICON BUTTON ─────────────────────────────────────────────────────────────
+const IconBtn = ({ onClick, children }) => (
+    <button className="al-icon-btn-del" onClick={onClick}
+            style={{ width:30, height:30, borderRadius:8, border:"1.5px solid #e8e4df",
+                background:"#f7f5f2", color:"#aaa", cursor:"pointer", fontSize:13,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                transition:".15s" }}>
+        {children}
+    </button>
+);
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function AddLocation() {
-    const [tab, setTab]         = useState("sensor");
-    const [confirm, setConfirm] = useState(null);
-    const [toast, setToast]     = useState(null);
+    const [activeTab, setActiveTab]       = useState("register");
+    const [nodes, setNodes]               = useState([]);
+    const [gateways, setGateways]         = useState(INITIAL_GATEWAYS);
+    const [selectedId, setSelectedId]     = useState(null);
+    const [toastMsg, setToastMsg]         = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [showGwModal, setShowGwModal]   = useState(false);
+    const [searchQ, setSearchQ]           = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
 
-    const tabs = [
-        { id: "sensor",   label: "Add Sensor Location" },
-        { id: "safezone", label: "Add Safe Zone" },
-        { id: "manage",   label: "Manage Locations" },
-        { id: "verify",   label: "Verify on Map" },
-    ];
+    // Register form state
+    const [rName, setRName]         = useState("");
+    const [rGateway, setRGateway]   = useState("");
+    const [rDevEui, setRDevEui]     = useState("");
+    const [rAppEui, setRAppEui]     = useState("");
+    const [rLocName, setRLocName]   = useState("");
+    const [rDistrict, setRDistrict] = useState("");
+    const [rLat, setRLat]           = useState("");
+    const [rLng, setRLng]           = useState("");
+    const [rWarn, setRWarn]         = useState("");
+    const [rCrit, setRCrit]         = useState("");
+    const [rHeight, setRHeight]     = useState("");
 
-    const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+    // Gateway form state
+    const [gwName, setGwName] = useState("");
+    const [gwEui, setGwEui]   = useState("");
+    const [gwLoc, setGwLoc]   = useState("");
+    const [gwLat, setGwLat]   = useState("");
+    const [gwLng, setGwLng]   = useState("");
 
-    const sensors = [
-        { name:"Ratnapura-A2",  imei:"865213859621", district:"Ratnapura", coords:"6.68°N 80.40°E", pct:87, color:C.red,    status:"active", badge:"ACTIVE" },
-        { name:"Kalutara-B1",   imei:"865213859548", district:"Kalutara",  coords:"6.58°N 80.00°E", pct:74, color:C.red,    status:"active", badge:"ACTIVE" },
-        { name:"Colombo-West",  imei:"865213859302", district:"Colombo",   coords:"6.93°N 79.85°E", pct:55, color:C.orange, status:"warn",   badge:"WEAK SIG" },
-        { name:"Kandy-Central", imei:"865213859410", district:"Kandy",     coords:"7.29°N 80.63°E", pct:38, color:C.yellow, status:"active", badge:"ACTIVE" },
-        { name:"Jaffna-North",  imei:"865213859110", district:"Jaffna",    coords:"9.66°N 80.02°E", pct:12, color:C.green,  status:"active", badge:"ACTIVE" },
-    ];
+    // ── API hooks (wire to backend) ───────────────────────────────────────────
+    // useEffect(() => { fetchZones(); }, []);
+    // const fetchZones = async () => { const res = await getAllLocations(); setNodes(res.data); };
 
-    const safeZones = [
-        { name:"Ratnapura Central School",  type:"School",   district:"Ratnapura", cap:240, occ:0,  status:"active", badge:"AVAILABLE" },
-        { name:"Kalutara District Ground",  type:"Ground",   district:"Kalutara",  cap:500, occ:0,  status:"active", badge:"AVAILABLE" },
-        { name:"Colombo National Hospital", type:"Hospital", district:"Colombo",   cap:120, occ:72, status:"warn",   badge:"PARTIAL" },
-        { name:"Galle Fort Community Hall", type:"Hall",     district:"Galle",     cap:180, occ:0,  status:"active", badge:"AVAILABLE" },
-    ];
-
-    const fieldStyle = { display: "grid", gap: 14, marginBottom: 14 };
-    const actBtn = (danger) => ({ padding: "4px 9px", borderRadius: 7, border: `1.5px solid ${danger ? "#ffd5cc" : C.border}`, background: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", color: danger ? C.red : C.dark });
-
-    const [lat, setLat] = useState(6.8234);
-    const [lng, setLng] = useState(80.4012);
-    const [position, setPosition] = useState([6.8234, 80.4012]);
-
-    useEffect(() => {
-        if (!isNaN(lat) && !isNaN(lng)) {
-            setPosition([parseFloat(lat), parseFloat(lng)]);
-        }
-    }, [lat, lng]);
-
-    const ChangeView = ({ center }) => {
-        const map = useMap();
-        map.setView(center, 10);
-        return null;
+    const toast = (msg, isError = false) => {
+        setToastMsg({ msg, isError });
+        setTimeout(() => setToastMsg(null), 2800);
     };
 
-    const [address, setAddress] = useState("");
-    const [safeLat, setSafeLat] = useState(6.9);
-    const [safeLng, setSafeLng] = useState(80.5);
-    const [safePosition, setSafePosition] = useState([6.9, 80.5]);
-
-    const searchAddress = async () => {
-        if (!address) return;
-
-        try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${address}`
-            );
-            const data = await res.json();
-
-            if (data.length > 0) {
-                const lat = parseFloat(data[0].lat);
-                const lng = parseFloat(data[0].lon);
-
-                setSafeLat(lat);
-                setSafeLng(lng);
-                setSafePosition([lat, lng]);
-            } else {
-                alert("Location not found");
-            }
-        } catch (err) {
-            console.error(err);
-        }
+    const clearForm = () => {
+        setRName(""); setRGateway(""); setRDevEui(""); setRAppEui("");
+        setRLocName(""); setRDistrict(""); setRLat(""); setRLng("");
+        setRWarn(""); setRCrit(""); setRHeight("");
     };
 
-    useEffect(() => {
-        if (!isNaN(safeLat) && !isNaN(safeLng)) {
-            setSafePosition([parseFloat(safeLat), parseFloat(safeLng)]);
+    const registerNode = () => {
+        if (!rName || !rGateway || !rDevEui || !rLocName || !rLat || !rLng) {
+            toast("Fill all required fields (*)", true); return;
         }
-    }, [safeLat, safeLng]);
+        const gw = gateways.find(g => g.id === rGateway);
+        const node = {
+            id: "node-" + Date.now(),
+            name: rName, gateway: gw?.name || rGateway, gatewayId: rGateway,
+            deveui: rDevEui.toUpperCase(), appeui: rAppEui,
+            location: rLocName, district: rDistrict,
+            lat: parseFloat(rLat), lng: parseFloat(rLng),
+            warn: rWarn, crit: rCrit, height: rHeight,
+            status: "active", lastSeen: "just now",
+            rssi: -75 - Math.floor(Math.random() * 30),
+            snr: (Math.random() * 10 + 2).toFixed(1),
+            hum: (60 + Math.random() * 30).toFixed(1),
+            temp: (24 + Math.random() * 10).toFixed(1),
+            rain: (Math.random() * 5).toFixed(2),
+            dist: (150 + Math.random() * 100).toFixed(0),
+        };
+        // await createLocation(payload);
+        setNodes(prev => [...prev, node]);
+        toast(`Node "${rName}" registered`);
+        clearForm();
+        setActiveTab("manage");
+    };
 
-    const [mapFilter, setMapFilter] = useState("All");
+    const addGateway = () => {
+        if (!gwName || !gwEui || !gwLoc) { toast("Fill all required fields", true); return; }
+        setGateways(prev => [...prev, {
+            id:"gw-"+Date.now(), name:gwName, eui:gwEui,
+            location:gwLoc, lat:gwLat, lng:gwLng, status:"active"
+        }]);
+        toast(`Gateway "${gwName}" added`);
+        setShowGwModal(false);
+        setGwName(""); setGwEui(""); setGwLoc(""); setGwLat(""); setGwLng("");
+    };
 
-    const allsensors = [
-        { name:"Ratnapura-A2", lat:6.68, lng:80.40, status:"active" },
-        { name:"Kalutara-B1", lat:6.58, lng:80.00, status:"active" },
+    const confirmDelete = () => {
+        if (!deleteTarget) return;
+        // await deleteLocation(deleteTarget.id);
+        setNodes(prev => prev.filter(n => n.id !== deleteTarget.id));
+        if (selectedId === deleteTarget.id) setSelectedId(null);
+        toast("Node removed");
+        setDeleteTarget(null);
+    };
+
+    const selectedNode = nodes.find(n => n.id === selectedId);
+    const filteredNodes = nodes.filter(n => {
+        const q = searchQ.toLowerCase();
+        return (n.name.toLowerCase().includes(q) || n.location.toLowerCase().includes(q))
+            && (statusFilter ? n.status === statusFilter : true);
+    });
+    const activeCount = nodes.filter(n => n.status === "active").length;
+
+    const TABS = [
+        { id:"register", label:"Register Node" },
+        { id:"manage",   label:"Manage Nodes" },
+        { id:"gateways", label:"Gateways" },
     ];
 
-    const allsafeZones = [
-        { name:"Ratnapura School", lat:6.70, lng:80.41 },
-        { name:"Kalutara Ground", lat:6.59, lng:79.99 },
-    ];
+    // Input style matching shared.jsx aesthetic
+    const inp = {
+        padding:"10px 13px", borderRadius:10, border:"1.5px solid #e8e4df",
+        background:"#f7f5f2", fontSize:13, color:"#1a1a1a", outline:"none",
+        width:"100%", transition:"border .15s", fontFamily:"'DM Sans',sans-serif",
+    };
+    const sel = {
+        ...inp, appearance:"none", cursor:"pointer",
+        backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
+        backgroundRepeat:"no-repeat", backgroundPosition:"right 12px center", paddingRight:34,
+    };
+    const g2 = { display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 };
+    const g3 = { display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14 };
 
     return (
         <>
-            <style>{globalCSS}</style>
-            <div style={{ minHeight: "100vh", background: C.bg }}>
-                <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", maxHeight: "calc(100vh - 110px)", paddingRight: 2 }}>
+            <style>{globalCSS}{extraCSS}</style>
 
-                        {/* Page header */}
-                        <div className="fadeUp" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div>
-                                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: -.4 }}>Add Location</div>
-                                <div style={{ fontSize: 12, color: "#aaa", marginTop: 3 }}>Register sensor locations, safe zones and verify placements on map</div>
-                            </div>
+            <div style={{ minHeight:"100vh", background:C.bg }}>
+
+                {/* ── PAGE HEADER ── */}
+                <div style={{ background:"#fff", borderRadius:16, margin:"14px 14px 0",
+                    padding:"14px 22px", display:"flex", alignItems:"center",
+                    justifyContent:"space-between", boxShadow:C.shadow }}>
+                    <div>
+                        <div style={{ fontSize:17, fontWeight:900, letterSpacing:-.3 }}>IoT Node Manager</div>
+                        <div style={{ fontSize:12, color:"#aaa", marginTop:2 }}>
+                            FloodSense — LoRa Network Administration
                         </div>
+                    </div>
+                    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                        <StatPill label="Total"    value={nodes.length}    accent="#1a1a1a" />
+                        <StatPill label="Active"   value={activeCount}     accent={C.green} />
+                        <StatPill label="Gateways" value={gateways.length} accent={C.blue}  />
+                        <StatPill label="Alerts"   value={0}               accent={C.red}   />
+                    </div>
+                </div>
 
-                        {/* Stats */}
-                        <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
-                            {[["Total Sensors","5",C.dark],["Safe Zones","12",C.green],["Pending Verify","2",C.orange],["Inactive","1","#aaa"]].map(([l,v,c],i) => (
-                                <Card key={i} style={{ padding: "13px 16px" }}>
-                                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: .4, color: "#aaa", marginBottom: 5 }}>{l}</div>
-                                    <div style={{ fontSize: 22, fontWeight: 900, color: c }}>{v}</div>
-                                </Card>
-                            ))}
-                        </div>
+                <div style={{ display:"flex", margin:"12px 14px 14px", gap:12 }}>
 
-                        <TabBar tabs={tabs} active={tab} onChange={setTab} />
+                    {/* ── LEFT MAIN ── */}
+                    <div style={{ flex:1, display:"flex", flexDirection:"column", gap:12, minWidth:0 }}>
 
-                        {/* ── ADD SENSOR ── */}
-                        {tab === "sensor" && (
-                            <div className="fadeUp" style={{ display: "flex", gap: 14 }}>
-                                <Card style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>Register New Sensor</div>
-                                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 18 }}>Enter sensor details and confirm placement on the map</div>
+                        {/* Shared TabBar component */}
+                        <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
-                                        <FormGroup label="Sensor IMEI Number *" hint="15-digit IMEI from device label"><Input placeholder="e.g. 865213859621"/></FormGroup>
-                                        <FormGroup label="Sensor Model"><Select><option>FloodSense v2 Pro</option><option>FloodSense v1 Standard</option><option>FloodSense v3 Ultra</option></Select></FormGroup>
-                                    </div>
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
-                                        <FormGroup label="Area / Location Name *"><Input placeholder="e.g. Ratnapura-A2"/></FormGroup>
-                                        <FormGroup label="District *"><Select><option value="">Select District</option><option>Ratnapura</option><option>Kalutara</option><option>Colombo</option><option>Galle</option><option>Kandy</option><option>Jaffna</option></Select></FormGroup>
-                                    </div>
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
-                                        <FormGroup label="River / Water Body"><Input placeholder="e.g. Kalu Ganga"/></FormGroup>
-                                        <FormGroup label="Sensor Type"><Select><option>Water Level + Rainfall</option><option>Water Level Only</option><option>Rainfall Only</option></Select></FormGroup>
-                                    </div>
-                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr"}}>
-                                        <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr"}}>
-                                            <FormGroup label="GPS Latitude *">
-                                                <Input
-                                                    placeholder="e.g. 6.6828"
-                                                    type="number"
-                                                    value={lat}
-                                                    onChange={(e) => setLat(e.target.value)}
-                                                />
-                                            </FormGroup>
+                        {/* ══ REGISTER TAB ══ */}
+                        {activeTab === "register" && (
+                            <div className="fadeUp" style={{ display:"flex", flexDirection:"column", gap:12 }}>
 
-                                            <FormGroup label="GPS Longitude *">
-                                                <Input
-                                                    placeholder="e.g. 80.3992"
-                                                    type="number"
-                                                    value={lng}
-                                                    onChange={(e) => setLng(e.target.value)}
-                                                />
-                                            </FormGroup>
-                                        </div>
+                                {/* Step 1 — Node Identity */}
+                                <Card>
+                                    <SectionLabel step="1" label="Node Identity" />
+                                    <div style={{ ...g2, marginBottom:14 }}>
+                                        <FormGroup label="Node Name *">
+                                            <input style={inp} value={rName}
+                                                   onChange={e=>setRName(e.target.value)}
+                                                   placeholder="e.g. Ratnapura-A1" />
+                                        </FormGroup>
+                                        <FormGroup label="Gateway *">
+                                            <select style={sel} value={rGateway}
+                                                    onChange={e=>setRGateway(e.target.value)}>
+                                                <option value="">Select gateway…</option>
+                                                {gateways.map(g => (
+                                                    <option key={g.id} value={g.id}>
+                                                        {g.name} — {g.location}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </FormGroup>
                                     </div>
-                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr"}}>
-                                        <FormGroup label="Warning Threshold (m)"><Input placeholder="e.g. 4.0"
-                                                                                        type="number"/></FormGroup>
-                                        <FormGroup label="Critical Threshold (m)"><Input placeholder="e.g. 5.2"
-                                                                                         type="number"/></FormGroup>
-                                        <FormGroup label="Sensor Height (m)"><Input placeholder="e.g. 6.0"
-                                                                                    type="number"/></FormGroup>
-                                    </div>
-                                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
-                                        <Btn variant="outline">Clear Form</Btn>
-                                        <Btn onClick={() => showToast("Sensor registered successfully!")}>Register Sensor</Btn>
+                                    <div style={g2}>
+                                        <FormGroup label="LoRa Dev EUI *" hint="16-char hex from device label">
+                                            <input style={{ ...inp, fontFamily:"'DM Mono',monospace", fontSize:12 }}
+                                                   value={rDevEui} onChange={e=>setRDevEui(e.target.value)}
+                                                   placeholder="70B3D57ED0050123" />
+                                        </FormGroup>
+                                        <FormGroup label="LoRa App EUI">
+                                            <input style={{ ...inp, fontFamily:"'DM Mono',monospace", fontSize:12 }}
+                                                   value={rAppEui} onChange={e=>setRAppEui(e.target.value)}
+                                                   placeholder="0000000000000001" />
+                                        </FormGroup>
                                     </div>
                                 </Card>
 
-                                {/* Map + Signal */}
-                                <div style={{ width: 280, display: "flex", flexDirection: "column", gap: 12 }}>
-                                    <Card style={{ padding: 0, overflow: "hidden" }}>
-                                        <div style={{
-                                            padding: "12px 14px",
-                                            borderBottom: `1px solid ${C.border}`,
-                                            fontSize: 13,
-                                            fontWeight: 700
-                                        }}>
-                                            📍 Pin on Map
-                                        </div>
-
-                                        {/* REAL MAP */}
-                                        <div style={{ height: 260 }}>
-                                            <MapContainer
-                                                center={position}
-                                                zoom={10}
-                                                style={{ height: "100%", width: "100%" }}
-                                            >
-                                                <TileLayer
-                                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                                />
-
-                                                <ChangeView center={position} />
-
-                                                <Marker position={position}>
-                                                    <Popup>{lat}, {lng}</Popup>
-                                                </Marker>
-                                            </MapContainer>
-                                        </div>
-
-                                        {/* Show coordinates */}
-                                        <div style={{
-                                            padding: "8px 14px",
-                                            fontSize: 11,
-                                            fontFamily: "DM Mono",
-                                            color: C.mid
-                                        }}>
-                                            {lat}°N , {lng}°E
-                                        </div>
-
-                                    </Card>
-                                    <Card style={{ padding: "14px 16px" }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: .4, marginBottom: 10 }}>Signal Check</div>
-                                        {[["📶","Signal Strength",78,C.green],["🔋","Battery Level",92,C.green]].map(([icon,label,pct,c],i) => (
-                                            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i === 0 ? 10 : 0 }}>
-                                                <span style={{ fontSize: 18 }}>{icon}</span>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 3 }}>{label}</div>
-                                                    <div style={{ background: "#f0f0f0", height: 6, borderRadius: 3 }}><div style={{ width: `${pct}%`, background: c, height: "100%", borderRadius: 3 }}/></div>
+                                {/* Step 2 — Sensors */}
+                                <Card>
+                                    <SectionLabel step="2" label="Sensors in this Node" />
+                                    <div style={g2}>
+                                        {SENSOR_CHIPS.map(({ icon, label, sub, color }) => (
+                                            <div key={label}
+                                                 style={{ background:"#f7f5f2", borderRadius:12,
+                                                     border:"1.5px solid #e8e4df", padding:"12px 14px",
+                                                     display:"flex", alignItems:"center", gap:10 }}>
+                                                <div style={{ width:36, height:36, background:`${color}18`,
+                                                    borderRadius:10, display:"flex", alignItems:"center",
+                                                    justifyContent:"center", fontSize:18, flexShrink:0 }}>
+                                                    {icon}
                                                 </div>
-                                                <span style={{ fontSize: 12, fontWeight: 800, color: c }}>{pct}%</span>
+                                                <div style={{ flex:1 }}>
+                                                    <div style={{ fontSize:13, fontWeight:700 }}>{label}</div>
+                                                    <div style={{ fontSize:10, color:"#aaa", marginTop:1 }}>{sub}</div>
+                                                </div>
+                                                <span className="pulse"
+                                                      style={{ width:7, height:7, borderRadius:"50%",
+                                                          background:C.green, flexShrink:0,
+                                                          display:"inline-block" }} />
                                             </div>
                                         ))}
-                                        <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenBg, borderRadius: 8, fontSize: 11, color: C.green, fontWeight: 600 }}>Location suitable for sensor deployment</div>
-                                    </Card>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ── ADD SAFE ZONE ── */}
-                        {tab === "safezone" && (
-                            <div className="fadeUp" style={{ display: "flex", gap: 14 }}>
-                                <Card style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>Register Safe Zone</div>
-                                    <div style={{ fontSize: 12, color: "#aaa", marginBottom: 18 }}>Add an evacuation shelter or community safe location</div>
-
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
-                                        <FormGroup label="Location Name *"><Input placeholder="e.g. Ratnapura Central School"/></FormGroup>
-                                        <FormGroup label="Location Type *"><Select><option>School / Education</option><option>Community Hall</option><option>Hospital / Medical</option><option>Sports Ground</option><option>Government Building</option></Select></FormGroup>
                                     </div>
-                                    <div style={{ marginBottom: 14 }}>
-                                        <FormGroup label="Full Address *">
-                                            <Input
-                                                placeholder="Street address, city, district…"
-                                                value={address}
-                                                onChange={(e) => setAddress(e.target.value)}
-                                            />
+                                    <div style={{ marginTop:10, padding:"9px 14px", background:"#f7f5f2",
+                                        border:"1.5px solid #e8e4df", borderRadius:10,
+                                        fontSize:11, color:"#aaa" }}>
+                                        All 4 sensors are fixed per node — configured in firmware
+                                    </div>
+                                </Card>
+
+                                {/* Step 3 — Location */}
+                                <Card>
+                                    <SectionLabel step="3" label="Location" />
+                                    <div style={{ ...g2, marginBottom:14 }}>
+                                        <FormGroup label="Location Name *">
+                                            <input style={inp} value={rLocName}
+                                                   onChange={e=>setRLocName(e.target.value)}
+                                                   placeholder="e.g. Ratnapura Field A" />
                                         </FormGroup>
-
-                                        <Btn
-                                            style={{ marginBottom: 14 }}
-                                            onClick={searchAddress}
-                                        >
-                                            Find Location
-                                        </Btn>
+                                        <FormGroup label="District">
+                                            <select style={sel} value={rDistrict}
+                                                    onChange={e=>setRDistrict(e.target.value)}>
+                                                <option value="">Select district…</option>
+                                                {DISTRICTS.map(d => <option key={d}>{d}</option>)}
+                                            </select>
+                                        </FormGroup>
                                     </div>
-                                    <div style={{ ...fieldStyle, gridTemplateColumns: "1fr 1fr" }}>
-                                        <FormGroup label="District *"><Select><option value="">Select District</option><option>Ratnapura</option><option>Kalutara</option><option>Colombo</option><option>Galle</option><option>Kandy</option></Select></FormGroup>
-                                        <FormGroup label="Province"><Select><option>Sabaragamuwa Province</option><option>Western Province</option><option>Southern Province</option><option>Central Province</option></Select></FormGroup>
-                                    </div>
-                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr"}}>
-
+                                    <div style={g2}>
                                         <FormGroup label="GPS Latitude *">
-                                            <Input
-                                                placeholder="e.g. 6.6828"
-                                                type="number"
-                                                value={safeLat}
-                                                onChange={(e) => setSafeLat(e.target.value)}
-                                            />
+                                            <div style={{ position:"relative" }}>
+                                                <input style={{ ...inp, paddingRight:38 }}
+                                                       type="number" step="0.0001" value={rLat}
+                                                       onChange={e=>setRLat(e.target.value)} placeholder="6.6828" />
+                                                <span style={{ position:"absolute", right:13, top:"50%",
+                                                    transform:"translateY(-50%)", fontSize:11, color:"#aaa",
+                                                    pointerEvents:"none", fontFamily:"'DM Mono',monospace" }}>°N</span>
+                                            </div>
                                         </FormGroup>
-
                                         <FormGroup label="GPS Longitude *">
-                                            <Input
-                                                placeholder="e.g. 80.3992"
-                                                type="number"
-                                                value={safeLng}
-                                                onChange={(e) => setSafeLng(e.target.value)}
-                                            />
+                                            <div style={{ position:"relative" }}>
+                                                <input style={{ ...inp, paddingRight:38 }}
+                                                       type="number" step="0.0001" value={rLng}
+                                                       onChange={e=>setRLng(e.target.value)} placeholder="80.3992" />
+                                                <span style={{ position:"absolute", right:13, top:"50%",
+                                                    transform:"translateY(-50%)", fontSize:11, color:"#aaa",
+                                                    pointerEvents:"none", fontFamily:"'DM Mono',monospace" }}>°E</span>
+                                            </div>
                                         </FormGroup>
-
-                                        <FormGroup label="Elevation (m)">
-                                            <Input
-                                                placeholder="e.g. 42"
-                                                type="number"
-                                            />
-                                        </FormGroup>
-
-                                    </div>
-                                    <div style={{...fieldStyle, gridTemplateColumns: "1fr 1fr 1fr"}}>
-                                        <FormGroup label="Max Capacity *" hint="Total people capacity"><Input
-                                            placeholder="e.g. 240" type="number"/></FormGroup>
-                                        <FormGroup label="Contact Person"><Input
-                                            placeholder="e.g. Mr. Perera"/></FormGroup>
-                                        <FormGroup label="Contact Number"><Input
-                                            placeholder="e.g. 077-1234567"/></FormGroup>
-                                    </div>
-
-                                    <div style={{marginBottom: 14}}>
-                                        <div style={{fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Available Facilities</div>
-                                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                            {[["Water Supply",true],["Food Storage",true],["Generator",true],["Medical Unit",false],["Sanitation",true],["Disabled Access",false]].map(([f,sel],i) => (
-                                                <div key={i} style={{ padding: "7px 14px", borderRadius: 10, border: `1.5px solid ${sel ? C.dark : C.border}`, background: sel ? C.dark : "#fff", color: sel ? "#fff" : C.mid, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{f}</div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
-                                        <Btn variant="outline">Clear Form</Btn>
-                                        <Btn variant="green" onClick={() => showToast("Safe zone registered successfully!")}>Register Safe Zone</Btn>
                                     </div>
                                 </Card>
 
-                                {/* Map + Assessment */}
-                                <div style={{ width: 280, display: "flex", flexDirection: "column", gap: 12 }}>
-                                    <Card style={{ padding: 0, overflow: "hidden" }}>
-                                        <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, fontSize: 13, fontWeight: 700 }}>📍 Pin Safe Zone</div>
-                                        <div style={{ background: "#e8f4ee", position: "relative" }}>
-                                            <div style={{height: 260}}>
-                                                <MapContainer
-                                                    center={safePosition}
-                                                    zoom={12}
-                                                    style={{height: "100%", width: "100%"}}
-                                                >
-                                                    <TileLayer
-                                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-
-                                                    <ChangeView center={safePosition}/>
-
-                                                    <Marker position={safePosition}>
-                                                        <Popup>{address || `${safeLat}, ${safeLng}`}</Popup>
-                                                    </Marker>
-                                                </MapContainer>
-                                            </div>
-                                            <div style={{
-                                                position: "absolute",
-                                                bottom: 10,
-                                                left: 10,
-                                                background: "rgba(26,26,26,.85)",
-                                                color: "#fff",
-                                                borderRadius: 7,
-                                                padding: "5px 10px",
-                                                fontSize: 11,
-                                                fontFamily: "DM Mono"
-                                            }}>6.9014°N 80.5122°E
-                                            </div>
-                                        </div>
-                                    </Card>
-                                    <Card style={{padding: "14px 16px"}}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: .4, marginBottom: 10 }}>Location Assessment</div>
-                                        {[["Elevation above flood zone","+12m ✅",C.green],["Distance to nearest flood zone","2.4km ✅",C.green],["Road access in flood event","Available ✅",C.green],["Historical flood record","None ✅",C.green]].map(([k,v,c],i) => (
-                                            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: i < 3 ? `1px solid #fafafa` : "none" }}>
-                                                <span style={{ color: C.mid }}>{k}</span>
-                                                <span style={{ fontWeight: 700, color: c }}>{v}</span>
-                                            </div>
+                                {/* Step 4 — Thresholds */}
+                                <Card>
+                                    <SectionLabel step="4" label="Alert Thresholds" />
+                                    <div style={g3}>
+                                        {[
+                                            ["Warning Level", rWarn,   setRWarn,   "4.0", C.orange],
+                                            ["Critical Level",rCrit,   setRCrit,   "5.2", C.red],
+                                            ["Sensor Height", rHeight, setRHeight, "6.0", "#1a1a1a"],
+                                        ].map(([label, val, setter, ph, accent]) => (
+                                            <FormGroup key={label} label={label}>
+                                                <div style={{ position:"relative" }}>
+                                                    <input style={{ ...inp, paddingRight:32,
+                                                        borderLeft:`3px solid ${accent}` }}
+                                                           type="number" step="0.1" value={val}
+                                                           onChange={e=>setter(e.target.value)} placeholder={ph} />
+                                                    <span style={{ position:"absolute", right:13, top:"50%",
+                                                        transform:"translateY(-50%)", fontSize:11, color:"#aaa",
+                                                        pointerEvents:"none",
+                                                        fontFamily:"'DM Mono',monospace" }}>m</span>
+                                                </div>
+                                            </FormGroup>
                                         ))}
-                                        <div style={{ marginTop: 10, padding: "8px 10px", background: C.greenBg, borderRadius: 8, fontSize: 11, color: C.green, fontWeight: 600 }}>Location approved as safe zone</div>
-                                    </Card>
+                                    </div>
+                                    <div style={{ marginTop:12, padding:"10px 14px", background:"#fff4ec",
+                                        border:"1.5px solid #ffdcc2", borderRadius:10,
+                                        fontSize:11, color:C.orange }}>
+                                        💡 Water level = sensor_height − surface_distance_reading
+                                    </div>
+                                </Card>
+
+                                <div style={{ display:"flex", justifyContent:"flex-end", gap:10 }}>
+                                    <Btn variant="outline" onClick={clearForm}>Clear Form</Btn>
+                                    <Btn variant="dark" onClick={registerNode}>Register Node</Btn>
                                 </div>
                             </div>
                         )}
 
-                        {/* ── MANAGE LOCATIONS ── */}
-                        {tab === "manage" && (
-                            <div className="fadeUp" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                {/* Filter bar */}
-                                <div style={{ display: "flex", gap: 10 }}>
-                                    <Input placeholder="Search locations…" style={{ flex: 1 }}/>
-                                    <Select style={{ width: 160 }}><option>All Types</option><option>Sensors</option><option>Safe Zones</option></Select>
-                                    <Select style={{ width: 160 }}><option>All Districts</option><option>Ratnapura</option><option>Kalutara</option><option>Colombo</option></Select>
-                                    <Select style={{ width: 140 }}><option>All Status</option><option>Active</option><option>Inactive</option><option>Pending</option></Select>
-                                </div>
-
-                                {/* Sensors table */}
-                                <Card style={{ padding: 0, overflow: "hidden" }}>
-                                    <div style={{ padding: "13px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700 }}>Sensor Locations <span style={{ fontSize: 12, color: "#aaa", fontWeight: 400 }}>(5 total)</span></div>
-                                        <Btn style={{ fontSize: 12, padding: "6px 14px" }}>+ Add Sensor</Btn>
-                                    </div>
-                                    <table>
-                                        <thead><tr><th>Location</th><th>IMEI</th><th>District</th><th>Coordinates</th><th>Water Lv</th><th>Status</th><th>Actions</th></tr></thead>
-                                        <tbody>
-                                        {sensors.map((s, i) => (
-                                            <tr key={i}>
-                                                <td><div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div><div style={{ fontSize: 11, color: C.mid }}>FloodSense v2</div></td>
-                                                <td style={{ fontFamily: "DM Mono", fontSize: 11, color: C.mid }}>{s.imei}</td>
-                                                <td>{s.district}</td>
-                                                <td style={{ fontFamily: "DM Mono", fontSize: 11, color: C.mid }}>{s.coords}</td>
-                                                <td><span style={{ fontWeight: 800, color: s.color }}>{s.pct}%</span></td>
-                                                <td><Badge type={s.status}>{s.badge}</Badge></td>
-                                                <td>
-                                                    <div style={{ display: "flex", gap: 5 }}>
-                                                        <button style={actBtn(false)}>✏ Edit</button>
-                                                        <button style={actBtn(false)}>🗺 View</button>
-                                                        <button onClick={() => setConfirm(s.name)} style={actBtn(true)}>🗑</button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
-                                </Card>
-
-                                {/* Safe zones table */}
-                                <Card style={{ padding: 0, overflow: "hidden" }}>
-                                    <div style={{ padding: "13px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700 }}>Safe Zone Locations <span style={{ fontSize: 12, color: "#aaa", fontWeight: 400 }}>(12 total)</span></div>
-                                        <Btn variant="green" style={{ fontSize: 12, padding: "6px 14px" }}>+ Add Safe Zone</Btn>
-                                    </div>
-                                    <table>
-                                        <thead><tr><th>Name</th><th>Type</th><th>District</th><th>Capacity</th><th>Occupancy</th><th>Status</th><th>Actions</th></tr></thead>
-                                        <tbody>
-                                        {safeZones.map((z, i) => (
-                                            <tr key={i}>
-                                                <td><div style={{ fontWeight: 700, fontSize: 13 }}>{z.name}</div></td>
-                                                <td>{z.type}</td>
-                                                <td>{z.district}</td>
-                                                <td><span style={{ fontWeight: 700 }}>{z.cap}</span></td>
-                                                <td><span style={{ fontWeight: 700, color: z.occ > 0 ? C.orange : C.green }}>{Math.round((z.occ / z.cap) * 100)}%</span></td>
-                                                <td><Badge type={z.status}>{z.badge}</Badge></td>
-                                                <td>
-                                                    <div style={{ display: "flex", gap: 5 }}>
-                                                        <button style={actBtn(false)}>✏ Edit</button>
-                                                        <button onClick={() => setConfirm(z.name)} style={actBtn(true)}>🗑</button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
-                                </Card>
-                            </div>
-                        )}
-
-                        {/* ── VERIFY ON MAP ── */}
-                        {tab === "verify" && (
-                            <div className="fadeUp" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-                                <Card style={{ padding: 0, overflow: "hidden" }}>
-
-                                    {/* Header */}
-                                    <div style={{
-                                        padding: "14px 16px",
-                                        borderBottom: `1px solid ${C.border}`,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between"
-                                    }}>
+                        {/* ══ MANAGE TAB ══ */}
+                        {activeTab === "manage" && (
+                            <div className="fadeUp">
+                                <Card>
+                                    <div style={{ display:"flex", alignItems:"center",
+                                        justifyContent:"space-between", marginBottom:14 }}>
                                         <div>
-                                            <div style={{ fontSize: 14, fontWeight: 800 }}>
-                                                Location Map
-                                            </div>
-                                            <div style={{ fontSize: 11, color: C.mid }}>
-                                                View and filter all sensors and safe zones
+                                            <div style={{ fontSize:14, fontWeight:800 }}>Sensor Nodes</div>
+                                            <div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>
+                                                Manage registered network nodes
                                             </div>
                                         </div>
+                                        <Btn variant="dark" onClick={() => setActiveTab("register")}
+                                             style={{ fontSize:12, padding:"8px 16px" }}>+ New Node</Btn>
+                                    </div>
 
-                                        {/* Filter Buttons */}
-                                        <div style={{ display: "flex", gap: 6 }}>
-                                            {["All", "Sensors", "Safe Zones"].map(l => (
-                                                <button
-                                                    key={l}
-                                                    onClick={() => setMapFilter(l)}
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        borderRadius: 8,
-                                                        border: `1px solid ${mapFilter === l ? C.dark : C.border}`,
-                                                        background: mapFilter === l ? C.dark : "#fff",
-                                                        color: mapFilter === l ? "#fff" : C.mid,
-                                                        fontSize: 12,
-                                                        fontWeight: 700,
-                                                        cursor: "pointer",
-                                                        transition: "0.2s"
-                                                    }}
-                                                >
-                                                    {l}
-                                                </button>
+                                    {/* Filters */}
+                                    <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+                                        <input value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+                                               placeholder="Search by name or location…"
+                                               style={{ ...inp, flex:1 }} />
+                                        <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}
+                                                style={{ ...sel, width:150 }}>
+                                            <option value="">All Status</option>
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
+                                    </div>
+
+                                    {filteredNodes.length === 0 ? (
+                                        <div style={{ padding:"40px 0", textAlign:"center" }}>
+                                            <div style={{ fontSize:38, marginBottom:10 }}>📡</div>
+                                            <div style={{ fontSize:14, fontWeight:700, marginBottom:4 }}>
+                                                No nodes yet
+                                            </div>
+                                            <div style={{ fontSize:12, color:"#aaa" }}>
+                                                Register a node to get started
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <table>
+                                            <thead>
+                                            <tr>
+                                                {["Node","Dev EUI","Gateway","Location","Status","Last Seen",""].map(h => (
+                                                    <th key={h}>{h}</th>
+                                                ))}
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {filteredNodes.map(n => (
+                                                <tr key={n.id} onClick={() => setSelectedId(n.id)}
+                                                    style={{ cursor:"pointer",
+                                                        background: selectedId===n.id ? "#faf9f7" : "transparent" }}>
+                                                    <td>
+                                                        <div style={{ fontWeight:700, fontSize:13 }}>{n.name}</div>
+                                                        <div style={{ fontSize:10, color:"#aaa" }}>{n.district}</div>
+                                                    </td>
+                                                    <td style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#666" }}>
+                                                        {n.deveui.slice(0,8)}…
+                                                    </td>
+                                                    <td>{n.gateway}</td>
+                                                    <td>{n.location}</td>
+                                                    <td><Badge type={n.status}>{n.status.toUpperCase()}</Badge></td>
+                                                    <td style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#aaa" }}>
+                                                        {n.lastSeen}
+                                                    </td>
+                                                    <td>
+                                                        <IconBtn onClick={e => { e.stopPropagation(); setDeleteTarget(n); }}>
+                                                            ✕
+                                                        </IconBtn>
+                                                    </td>
+                                                </tr>
                                             ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Map */}
-                                    <div style={{ height: 450 }}>
-                                        <MapContainer
-                                            center={[6.8, 80.4]}
-                                            zoom={9}
-                                            style={{ height: "100%", width: "100%" }}
-                                        >
-                                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-                                            {/* Sensors */}
-                                            {(mapFilter === "All" || mapFilter === "Sensors") &&
-                                                allsensors.map((s, i) => (
-                                                    <Marker key={`s-${i}`} position={[s.lat, s.lng]}>
-                                                        <Popup>{s.name}</Popup>
-                                                    </Marker>
-                                                ))
-                                            }
-
-                                            {/* Safe Zones */}
-                                            {(mapFilter === "All" || mapFilter === "Safe Zones") &&
-                                                allsafeZones.map((z, i) => (
-                                                    <Marker key={`z-${i}`} position={[z.lat, z.lng]}>
-                                                        <Popup>{z.name}</Popup>
-                                                    </Marker>
-                                                ))
-                                            }
-                                        </MapContainer>
-                                    </div>
-
-                                    {/* Footer Info */}
-                                    <div style={{
-                                        padding: "10px 14px",
-                                        borderTop: `1px solid ${C.border}`,
-                                        fontSize: 11,
-                                        color: C.mid,
-                                        display: "flex",
-                                        justifyContent: "space-between"
-                                    }}>
-                                        <span>Sensors: {allsensors.length}</span>
-                                        <span>Safe Zones: {allsafeZones.length}</span>
-                                        <span>Total: {allsensors.length + allsafeZones.length}</span>
-                                    </div>
-
+                                            </tbody>
+                                        </table>
+                                    )}
                                 </Card>
-
                             </div>
                         )}
 
+                        {/* ══ GATEWAYS TAB ══ */}
+                        {activeTab === "gateways" && (
+                            <div className="fadeUp">
+                                <Card>
+                                    <div style={{ display:"flex", alignItems:"center",
+                                        justifyContent:"space-between", marginBottom:14 }}>
+                                        <div>
+                                            <div style={{ fontSize:14, fontWeight:800 }}>Gateway Registry</div>
+                                            <div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>
+                                                LoRa network gateways
+                                            </div>
+                                        </div>
+                                        <Btn variant="dark" onClick={() => setShowGwModal(true)}
+                                             style={{ fontSize:12, padding:"8px 16px" }}>+ Add Gateway</Btn>
+                                    </div>
+                                    <table>
+                                        <thead>
+                                        <tr>
+                                            {["Name","EUI","Location","Connected Nodes","Status",""].map(h => (
+                                                <th key={h}>{h}</th>
+                                            ))}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {gateways.map(g => (
+                                            <tr key={g.id}>
+                                                <td style={{ fontWeight:700 }}>{g.name}</td>
+                                                <td style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"#666" }}>
+                                                    {g.eui}
+                                                </td>
+                                                <td>{g.location}</td>
+                                                <td>
+                                                    <span style={{ fontWeight:800, color:C.blue,
+                                                        fontFamily:"'DM Mono',monospace" }}>
+                                                        {nodes.filter(n => n.gatewayId === g.id).length}
+                                                    </span>
+                                                </td>
+                                                <td><Badge type={g.status}>{g.status.toUpperCase()}</Badge></td>
+                                                <td>
+                                                    <IconBtn onClick={() => setGateways(prev => prev.filter(x => x.id !== g.id))}>
+                                                        ✕
+                                                    </IconBtn>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </Card>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── RIGHT PANEL ── */}
+                    <div style={{ width:252, display:"flex", flexDirection:"column", gap:12, flexShrink:0 }}>
+
+                        {/* Node List */}
+                        <Card style={{ padding:"16px 18px" }}>
+                            <div style={{ fontSize:11, fontWeight:700, color:"#aaa", textTransform:"uppercase",
+                                letterSpacing:.5, marginBottom:12 }}>Network Nodes</div>
+                            {nodes.length === 0 ? (
+                                <div style={{ padding:"20px 0", textAlign:"center" }}>
+                                    <div style={{ fontSize:24, marginBottom:6 }}>📡</div>
+                                    <div style={{ fontSize:11, color:"#aaa" }}>No nodes registered</div>
+                                </div>
+                            ) : nodes.map(n => (
+                                <div key={n.id} onClick={() => setSelectedId(n.id)}
+                                     className="al-node-card"
+                                     style={{ display:"flex", alignItems:"center", gap:9,
+                                         padding:"9px 10px", borderRadius:10,
+                                         border:`1.5px solid ${selectedId===n.id ? "#1a1a1a" : "#e8e4df"}`,
+                                         marginBottom:7, cursor:"pointer", transition:".15s",
+                                         background: selectedId===n.id ? "#f7f5f2" : "#fff" }}>
+                                    <span style={{ width:8, height:8, borderRadius:"50%", flexShrink:0,
+                                        background: n.status==="active" ? C.green : "#ddd",
+                                        display:"inline-block" }} />
+                                    <div style={{ flex:1, minWidth:0 }}>
+                                        <div style={{ fontSize:12, fontWeight:700, whiteSpace:"nowrap",
+                                            overflow:"hidden", textOverflow:"ellipsis" }}>{n.name}</div>
+                                        <div style={{ fontSize:10, color:"#aaa" }}>{n.gateway}</div>
+                                    </div>
+                                    <div style={{ fontSize:10, color:"#aaa",
+                                        fontFamily:"'DM Mono',monospace", whiteSpace:"nowrap" }}>
+                                        {n.rssi} dBm
+                                    </div>
+                                </div>
+                            ))}
+                        </Card>
+
+                        {/* Live Readings */}
+                        {selectedNode && (
+                            <Card style={{ padding:"16px 18px" }}>
+                                <div style={{ fontSize:11, fontWeight:700, color:"#aaa", textTransform:"uppercase",
+                                    letterSpacing:.5, marginBottom:12 }}>
+                                    Live — <span style={{ color:"#1a1a1a" }}>{selectedNode.name}</span>
+                                </div>
+                                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+                                    {[
+                                        { icon:"💧", label:"Humidity", value:selectedNode.hum,  unit:"%",  color:C.blue },
+                                        { icon:"🌡️", label:"Temp",     value:selectedNode.temp, unit:"°C", color:C.orange },
+                                        { icon:"🌧️", label:"Rainfall", value:selectedNode.rain, unit:"mm", color:C.green },
+                                        { icon:"📡", label:"Distance", value:selectedNode.dist, unit:"cm", color:"#666" },
+                                    ].map(({ icon, label, value, unit, color }) => (
+                                        <div key={label}
+                                             style={{ background:"#f7f5f2", border:"1.5px solid #e8e4df",
+                                                 borderRadius:10, padding:"10px 11px" }}>
+                                            <div style={{ fontSize:15, marginBottom:3 }}>{icon}</div>
+                                            <div style={{ fontSize:9, color:"#aaa", textTransform:"uppercase",
+                                                letterSpacing:.4, fontWeight:700 }}>{label}</div>
+                                            <div style={{ fontSize:17, fontWeight:900, color,
+                                                fontFamily:"'DM Mono',monospace", margin:"2px 0" }}>{value}</div>
+                                            <div style={{ fontSize:9, color:"#aaa" }}>{unit}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {[
+                                    { label:"RSSI", val:`${selectedNode.rssi} dBm`, pct:Math.max(0,Math.min(100,(selectedNode.rssi+120)/1.2)), color:C.green },
+                                    { label:"SNR",  val:`${selectedNode.snr} dB`,   pct:Math.max(0,Math.min(100,(parseFloat(selectedNode.snr)/15)*100)), color:C.blue },
+                                ].map(({ label, val, pct, color }) => (
+                                    <div key={label} style={{ marginBottom:8 }}>
+                                        <div style={{ display:"flex", justifyContent:"space-between",
+                                            fontSize:11, marginBottom:5 }}>
+                                            <span style={{ color:"#aaa", fontWeight:600 }}>{label}</span>
+                                            <span style={{ fontFamily:"'DM Mono',monospace", fontWeight:700, color }}>{val}</span>
+                                        </div>
+                                        <div style={{ height:5, background:"#e8e4df", borderRadius:3, overflow:"hidden" }}>
+                                            <div style={{ width:`${pct}%`, background:color, height:"100%",
+                                                borderRadius:3, transition:".3s" }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </Card>
+                        )}
+
+                        {/* Activity Log */}
+                        <Card style={{ padding:"16px 18px" }}>
+                            <div style={{ fontSize:11, fontWeight:700, color:"#aaa", textTransform:"uppercase",
+                                letterSpacing:.5, marginBottom:10 }}>Recent Activity</div>
+                            <div style={{ fontSize:12, color:"#aaa",
+                                borderBottom:"1px solid #fafafa", paddingBottom:6, marginBottom:6 }}>
+                                System started
+                            </div>
+                            <div style={{ fontSize:12, color:"#ccc" }}>Waiting for registrations…</div>
+                        </Card>
                     </div>
                 </div>
             </div>
 
-            {/* Delete Confirm Dialog */}
-            {confirm && (
-                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }} onClick={() => setConfirm(null)}>
-                    <div style={{ background: "#fff", borderRadius: 16, padding: 28, width: 380, boxShadow: "0 8px 40px rgba(0,0,0,.2)" }} onClick={e => e.stopPropagation()}>
-                        <div style={{ fontSize: 32, marginBottom: 12 }}>🗑</div>
-                        <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Remove Location?</div>
-                        <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6, marginBottom: 20 }}>Are you sure you want to remove <strong>{confirm}</strong>? All associated data will be permanently deleted.</div>
-                        <div style={{ display: "flex", gap: 10 }}>
-                            <Btn variant="outline" style={{ flex: 1 }} onClick={() => setConfirm(null)}>Cancel</Btn>
-                            <Btn variant="red" style={{ flex: 1 }} onClick={() => { setConfirm(null); showToast("Location removed successfully."); }}>🗑 Remove</Btn>
-                        </div>
+            {/* ── GATEWAY MODAL ── */}
+            <Modal show={showGwModal} onClose={() => setShowGwModal(false)} title="Add Gateway"
+                   footer={<>
+                       <Btn variant="outline" onClick={() => setShowGwModal(false)}>Cancel</Btn>
+                       <Btn variant="dark" onClick={addGateway}>Add Gateway</Btn>
+                   </>}>
+                <div style={{ display:"grid", gap:14 }}>
+                    <FormGroup label="Gateway Name *">
+                        <input style={inp} value={gwName} onChange={e=>setGwName(e.target.value)}
+                               placeholder="e.g. Gateway-003" />
+                    </FormGroup>
+                    <FormGroup label="Gateway EUI *">
+                        <input style={{ ...inp, fontFamily:"'DM Mono',monospace", fontSize:12 }}
+                               value={gwEui} onChange={e=>setGwEui(e.target.value)}
+                               placeholder="AA:BB:CC:DD:EE:FF:00:03" />
+                    </FormGroup>
+                    <FormGroup label="Location / District *">
+                        <input style={inp} value={gwLoc} onChange={e=>setGwLoc(e.target.value)}
+                               placeholder="e.g. Galle" />
+                    </FormGroup>
+                    <div style={g2}>
+                        <FormGroup label="Latitude">
+                            <input style={inp} type="number" value={gwLat}
+                                   onChange={e=>setGwLat(e.target.value)} placeholder="6.0535" />
+                        </FormGroup>
+                        <FormGroup label="Longitude">
+                            <input style={inp} type="number" value={gwLng}
+                                   onChange={e=>setGwLng(e.target.value)} placeholder="80.2210" />
+                        </FormGroup>
                     </div>
                 </div>
-            )}
+            </Modal>
 
-            <Toast message={toast} />
+            {/* ── DELETE MODAL ── */}
+            <Modal show={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Node?"
+                   footer={<>
+                       <Btn variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Btn>
+                       <Btn variant="red" onClick={confirmDelete}>Delete Node</Btn>
+                   </>}>
+                <div style={{ textAlign:"center", padding:"8px 0" }}>
+                    <div style={{ width:60, height:60, background:"#fff0ee", borderRadius:16,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        fontSize:28, margin:"0 auto 16px" }}>🗑️</div>
+                    <div style={{ fontSize:14, color:"#1a1a1a", marginBottom:6 }}>
+                        Are you sure you want to delete
+                    </div>
+                    <div style={{ fontSize:16, fontWeight:900, color:C.red,
+                        fontFamily:"'DM Mono',monospace", marginBottom:16 }}>
+                        {deleteTarget?.name}
+                    </div>
+                    <div style={{ fontSize:12, color:"#aaa", lineHeight:1.6 }}>
+                        All readings and alerts for this node will be permanently removed.<br/>
+                        This action cannot be undone.
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ── TOAST ── */}
+            {toastMsg && (
+                <div style={{ position:"fixed", bottom:20, right:20,
+                    background: toastMsg.isError ? C.red : "#1a7a4a",
+                    color:"#fff", borderRadius:12, padding:"13px 20px",
+                    fontSize:13, fontWeight:700,
+                    boxShadow:"0 4px 20px rgba(0,0,0,.15)", zIndex:999,
+                    display:"flex", alignItems:"center", gap:8,
+                    animation:"fadeUp .3s ease" }}>
+                    {toastMsg.isError ? "⚠️" : "✅"} {toastMsg.msg}
+                </div>
+            )}
         </>
     );
 }

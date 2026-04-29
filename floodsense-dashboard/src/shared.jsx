@@ -1,7 +1,7 @@
 // ─── shared.jsx ─────────────────────────────────────────────────────────────
 // Shared theme constants, CSS, and reusable UI components for FloodSense Portal
 // Import these into every page component.
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation  } from "react-router-dom";
 import { useState } from "react";
 import {rolePages} from "./shared/permissions.js";
 import { useSettings } from "./context/SettingsContext";
@@ -392,6 +392,7 @@ const menuItem = {
 // ─── SIDEBAR COMPONENT ──────────────────────────────────────────────────────
 export const Sidebar = ({ page }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [showModal, setShowModal] = useState(false);
     const [status, setStatus] = useState("idle");
 
@@ -423,6 +424,7 @@ export const Sidebar = ({ page }) => {
                 </div>
 
                 {NAV.map(item => {
+                    const isActive = location.pathname === item.path;
                     const id = item.path.split("/").pop();
 
                     return (
@@ -433,14 +435,14 @@ export const Sidebar = ({ page }) => {
                                     padding: "9px 12px",
                                     borderRadius: 10,
                                     fontSize: 13.5,
-                                    fontWeight: page === id ? 700 : 500,
+                                    fontWeight: isActive ? 700 : 500,
                                     cursor: "pointer",
-                                    color: page === id ? "#1a1a1a" : "#666",
+                                    color: isActive ? "#1a1a1a" : "#666",
                                     marginBottom: 1,
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 9,
-                                    background: page === id ? "#eeebe6" : "transparent",
+                                    background: isActive ? "#eeebe6" : "transparent",
                                     transition: "background .15s",
                                 }}
                             >
