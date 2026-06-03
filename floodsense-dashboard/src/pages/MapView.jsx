@@ -3,11 +3,11 @@ import { useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { C, Card, Badge, globalCSS, TabBar } from "../shared.jsx";
+import { Card, Badge, globalCSS, TabBar } from "../shared.jsx";
 
 // Real Map Component (Leaflet)
 const SriLankaMap = ({ mode, layer }) => {
-    const center = [7.8731, 80.7718]; // Sri Lanka center
+    const center = [7.8731, 80.7718];
 
     const districts = [
         { name: "Ellagawa",   pos: [6.730, 80.213], risk: "high",     water: "2.1m" },
@@ -16,17 +16,17 @@ const SriLankaMap = ({ mode, layer }) => {
     ];
 
     const safeLocations = [
-        { name: "Rathnapura School",  pos: [6.68,  80.40] },
-        { name: "Colombo Hospital",   pos: [6.93,  79.86] },
-        { name: "Kandy Centre",       pos: [7.29,  80.63] },
+        { name: "Rathnapura School", pos: [6.68,  80.40] },
+        { name: "Colombo Hospital",  pos: [6.93,  79.86] },
+        { name: "Kandy Centre",      pos: [7.29,  80.63] },
     ];
 
     const getColor = (risk) => ({
-        critical:   "red",
-        high:       "orange",
-        medium:     "yellow",
-        low:        "lightgreen",
-        safe:       "green",
+        critical: "red",
+        high:     "orange",
+        medium:   "yellow",
+        low:      "lightgreen",
+        safe:     "green",
     })[risk];
 
     const tileUrl =
@@ -42,8 +42,6 @@ const SriLankaMap = ({ mode, layer }) => {
     return (
         <MapContainer center={center} zoom={7} style={{ height: "100%", width: "100%" }}>
             <TileLayer url={tileUrl} attribution={attribution} />
-
-            {/* District markers */}
             {districts.map((d, i) => (
                 <Marker key={i} position={d.pos}>
                     <Popup>
@@ -53,40 +51,58 @@ const SriLankaMap = ({ mode, layer }) => {
                     </Popup>
                 </Marker>
             ))}
-
-            {/* Heatmap circles */}
-            {mode === "heatmap" &&
-                districts.map((d, i) => (
-                    <Circle
-                        key={i}
-                        center={d.pos}
-                        radius={20000}
-                        pathOptions={{ color: getColor(d.risk) }}
-                    />
-                ))}
-
-            {/* Safe locations */}
-            {mode === "safe" &&
-                safeLocations.map((s, i) => (
-                    <Marker key={i} position={s.pos}>
-                        <Popup>{s.name}</Popup>
-                    </Marker>
-                ))}
+            {mode === "heatmap" && districts.map((d, i) => (
+                <Circle
+                    key={i}
+                    center={d.pos}
+                    radius={20000}
+                    pathOptions={{ color: getColor(d.risk) }}
+                />
+            ))}
+            {mode === "safe" && safeLocations.map((s, i) => (
+                <Marker key={i} position={s.pos}>
+                    <Popup>{s.name}</Popup>
+                </Marker>
+            ))}
         </MapContainer>
     );
 };
 
-// ─── Main Page ─────────────────────────────────────────────────────────────
-export default function MapView() {
-    const [tab, setTab] = useState("sensor");
-    const [layer, setLayer] = useState("District");
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+const StatCard = ({ label, val, sub, color }) => (
+    <div style={{
+        background: "var(--surface)",
+        borderRadius: 14,
+        padding: "16px 18px",
+        boxShadow: "var(--shadow)",
+        border: "1px solid var(--border)",
+        borderLeft: `4px solid ${color}`,
+    }}>
+        <div style={{
+            fontSize: 10, fontWeight: 700, color: "var(--text-muted)",
+            textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6,
+        }}>
+            {label}
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 900, color, lineHeight: 1 }}>
+            {val}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-mid)", marginTop: 6 }}>
+            {sub}
+        </div>
+    </div>
+);
 
-    // ── Tab definitions — labels clarified so users know exactly what each shows ──
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function MapView() {
+    const [tab, setTab]     = useState("sensor");
+    const [layer, setLayer] = useState("Map");
+
     const tabs = [
-        { id: "sensor",   label: "📡 Sensor Locations" },
-        { id: "affected", label: "🌊 Affected Areas"   },
-        { id: "heatmap",  label: "🔥 Risk Heatmap"     },
-        { id: "safe",     label: "🏠 Safe Locations"   },   // clearly about safety shelters
+        { id: "sensor",   label: "Sensor Locations" },
+        { id: "affected", label: "Affected Areas"   },
+        { id: "heatmap",  label: "Risk Heatmap"     },
+        { id: "safe",     label: "Safe Locations"   },
     ];
 
     const mapMode =
@@ -94,331 +110,165 @@ export default function MapView() {
             tab === "safe"    ? "safe"    :
                 "sensor";
 
-    const sensors = [
-        { name: "Sensor A", loc: "IMEI 123", val: "80%", dot: "red", pulse: true, valColor: "red" },
-        { name: "Sensor B", loc: "IMEI 123", val: "80%", dot: "red", pulse: true, valColor: "red" },
-        { name: "Sensor C", loc: "IMEI 123", val: "80%", dot: "red", pulse: true, valColor: "red" },
-    ];
-
-    const safeList = [
-        { icon: "🏫", name: "Rathnapura School",   cap: "Capacity: 200 people",  status: "active",   label: "AVAILABLE" },
-        { icon: "🏥", name: "Colombo Hospital",    cap: "Capacity: 500 people",  status: "active",   label: "AVAILABLE" },
-        { icon: "🏢", name: "Kandy Centre",        cap: "Capacity: 350 people",  status: "inactive", label: "FULL"      },
-    ];
-
-    const districts = [
-        { name: "Rathnapura", level: "4.8m", badge: "critical", label: "CRITICAL" },
+    const stats = [
+        { label: "Critical Zones",  val: "3",  sub: "High risk areas",     color: "var(--red)"    },
+        { label: "Active Sensors",  val: "5",  sub: "All systems running", color: "var(--primary)" },
+        { label: "Safe Shelters",   val: "12", sub: "Available shelters",  color: "var(--green)"  },
+        { label: "Affected Areas",  val: "6",  sub: "Flood impact zones",  color: "var(--orange)" },
     ];
 
     return (
         <>
             <style>{globalCSS}</style>
 
-            <div style={{ minHeight: "100vh", background: C.bg }}>
+            <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
 
-                {/* ── Page header — clarifies this page is READ-ONLY map visualization ── */}
+                {/* ── Page Header ── */}
                 <div style={{
-                    background: "#fff",
+                    background: "var(--surface)",
                     borderRadius: 16,
-                    margin: "14px 14px 0",
-                    padding: "14px 22px",
+                    margin: "0 0 14px",
+                    padding: "16px 22px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    boxShadow: C.shadow
+                    boxShadow: "var(--shadow)",
+                    border: "1px solid var(--border)",
                 }}>
                     <div>
-                        <div style={{ fontSize: 17, fontWeight: 900, letterSpacing: -.3 }}>
-                            🗺 Map View
+                        <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.3, color: "var(--text)" }}>
+                            Map View
                         </div>
-                        {/* Sub-label explicitly tells user this is view-only; node/safe-location management is elsewhere */}
-                        <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>
                             Visualize sensor positions, flood zones, risk heatmap &amp; safe shelters on the map
                         </div>
                     </div>
 
-                    {/* Inline hint that points user to the right pages for registering things */}
+                    {/* Hint pill */}
                     <div style={{
-                        display: "flex",
-                        gap: 8,
-                        alignItems: "center",
-                        fontSize: 11,
-                        color: "#aaa",
-                        background: "#f7f5f2",
-                        border: "1.5px solid #e8e4df",
-                        borderRadius: 10,
-                        padding: "8px 14px",
+                        display: "flex", gap: 8, alignItems: "center",
+                        fontSize: 11, color: "var(--text-muted)",
+                        background: "var(--surface-alt)",
+                        border: "1.5px solid var(--border)",
+                        borderRadius: 10, padding: "8px 14px",
                     }}>
                         <span>💡</span>
                         <span>
-                            To register nodes → <b style={{ color: "#1a1a1a" }}>IoT Node Manager</b> &nbsp;|&nbsp;
-                            To add shelters → <b style={{ color: "#1a1a1a" }}>Safe Location Manager</b>
+                            To register nodes → <b style={{ color: "var(--text)" }}>IoT Node Manager</b>
+                            &nbsp;|&nbsp;
+                            To add shelters → <b style={{ color: "var(--text)" }}>Safe Location Manager</b>
                         </span>
                     </div>
                 </div>
 
-                <div style={{ display: "flex", margin: "12px 14px 14px" }}>
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-                        <TabBar tabs={tabs} active={tab} onChange={setTab} />
-
-                        <div className="fadeUp" style={{ display: "flex", gap: 12 }}>
-
-                            {/* ── Map ── */}
-                            <Card style={{ flex: 1, padding: 0, overflow: "hidden", minWidth: 0 }}>
-                                <div style={{
-                                    padding: "11px 14px",
-                                    borderBottom: `1px solid ${C.border}`,
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center"
-                                }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700 }}>
-                                        🗺 Sri Lanka Real-Time Map
-                                    </span>
-                                    <div style={{ display: "flex", gap: 6 }}>
-                                        {["Map", "Satellite"].map((l) => (
-                                            <button
-                                                key={l}
-                                                onClick={() => setLayer(l)}
-                                                style={{
-                                                    padding: "5px 11px",
-                                                    borderRadius: 7,
-                                                    border: `1px solid ${layer === l ? C.dark : C.border}`,
-                                                    background: layer === l ? C.dark : "#fff",
-                                                    color: layer === l ? "#fff" : C.mid,
-                                                    cursor: "pointer",
-                                                }}
-                                            >
-                                                {l}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div style={{ height: "60vh", width: "100%" }}>
-                                    <SriLankaMap mode={mapMode} layer={layer} />
-                                </div>
-                            </Card>
-
-                            {/* ── Side Panel ── */}
-                            <div style={{ width: 244, display: "flex", flexDirection: "column", gap: 12 }}>
-
-                                {/* Sensor / Affected / Heatmap panel */}
-                                {(tab === "sensor" || tab === "affected" || tab === "heatmap") && (
-                                    <Card>
-                                        <div style={{
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            textTransform: "uppercase",
-                                            letterSpacing: .5,
-                                            color: "#aaa",
-                                            marginBottom: 10,
-                                        }}>
-                                            {tab === "sensor"   ? "Active Sensors"
-                                                : tab === "heatmap"  ? "Risk Probability (6H)"
-                                                    :                      "Affected Zones"}
-                                        </div>
-
-                                        {tab === "sensor" ? (
-                                            sensors.map((s, i) => (
-                                                <div key={i} style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: 9,
-                                                    padding: "7px 0",
-                                                    borderBottom: i < sensors.length - 1 ? `1px solid #fafafa` : "none",
-                                                }}>
-                                                    <span className={s.pulse ? "pulse" : ""} style={{
-                                                        display: "inline-block",
-                                                        width: 9, height: 9,
-                                                        borderRadius: "50%",
-                                                        background: s.dot,
-                                                        flexShrink: 0,
-                                                    }} />
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ fontSize: 12, fontWeight: 700 }}>{s.name}</div>
-                                                        <div style={{ fontSize: 10, color: "#aaa" }}>{s.loc}</div>
-                                                    </div>
-                                                    <span style={{ fontSize: 12, fontWeight: 800, color: s.valColor }}>
-                                                        {s.val}
-                                                    </span>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            districts.map((d, i) => (
-                                                <div key={i} style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "space-between",
-                                                    padding: "7px 0",
-                                                    borderBottom: i < districts.length - 1 ? `1px solid #fafafa` : "none",
-                                                }}>
-                                                    <div>
-                                                        <div style={{ fontSize: 13, fontWeight: 600 }}>{d.name}</div>
-                                                        <div style={{ fontSize: 11, color: C.mid }}>
-                                                            {tab === "heatmap"
-                                                                ? `Probability: ${[92, 78, 65, 60, 40, 10][i] || 20}%`
-                                                                : `Water: ${d.level}`}
-                                                        </div>
-                                                    </div>
-                                                    <Badge type={d.badge}>{d.label}</Badge>
-                                                </div>
-                                            ))
-                                        )}
-                                    </Card>
-                                )}
-
-                                {/* ── Safe Locations side panel — richer with capacity & status ── */}
-                                {tab === "safe" && (
-                                    <Card>
-                                        <div style={{
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            textTransform: "uppercase",
-                                            letterSpacing: .5,
-                                            color: "#aaa",
-                                            marginBottom: 6,
-                                        }}>
-                                            Safe Shelters on Map
-                                        </div>
-
-                                        {/* Summary row */}
-                                        <div style={{
-                                            display: "flex",
-                                            gap: 6,
-                                            marginBottom: 12,
-                                            padding: "8px 10px",
-                                            background: "#f0fdf4",
-                                            border: "1.5px solid #bbf7d0",
-                                            borderRadius: 10,
-                                        }}>
-                                            <div style={{ flex: 1, textAlign: "center" }}>
-                                                <div style={{ fontSize: 18, fontWeight: 900, color: C.green }}>12</div>
-                                                <div style={{ fontSize: 9, color: "#aaa", fontWeight: 700, textTransform: "uppercase" }}>Total</div>
-                                            </div>
-                                            <div style={{ width: 1, background: "#e8e4df" }} />
-                                            <div style={{ flex: 1, textAlign: "center" }}>
-                                                <div style={{ fontSize: 18, fontWeight: 900, color: C.green }}>9</div>
-                                                <div style={{ fontSize: 9, color: "#aaa", fontWeight: 700, textTransform: "uppercase" }}>Available</div>
-                                            </div>
-                                            <div style={{ width: 1, background: "#e8e4df" }} />
-                                            <div style={{ flex: 1, textAlign: "center" }}>
-                                                <div style={{ fontSize: 18, fontWeight: 900, color: C.red }}>3</div>
-                                                <div style={{ fontSize: 9, color: "#aaa", fontWeight: 700, textTransform: "uppercase" }}>Full</div>
-                                            </div>
-                                        </div>
-
-                                        {safeList.map((z, i) => (
-                                            <div key={i} style={{
-                                                display: "flex",
-                                                gap: 10,
-                                                padding: "8px 0",
-                                                borderBottom: i < safeList.length - 1 ? `1px solid #f0f0f0` : "none",
-                                                alignItems: "flex-start",
-                                            }}>
-                                                <span style={{ fontSize: 18, flexShrink: 0 }}>{z.icon}</span>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: 12, fontWeight: 700 }}>{z.name}</div>
-                                                    <div style={{ fontSize: 10, color: C.mid, marginTop: 2 }}>{z.cap}</div>
-                                                    <Badge type={z.status}>{z.label}</Badge>
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        {/* ── CTA: directs user to the correct page to manage shelters ── */}
-                                        <div style={{
-                                            marginTop: 12,
-                                            padding: "10px 12px",
-                                            background: "#f7f5f2",
-                                            border: "1.5px dashed #d0cdc8",
-                                            borderRadius: 10,
-                                            fontSize: 11,
-                                            color: "#888",
-                                            lineHeight: 1.6,
-                                        }}>
-                                            📍 Showing pinned shelters on the map.<br />
-                                            To <b style={{ color: "#1a1a1a" }}>add or manage shelters</b>, go to<br />
-                                            <span style={{
-                                                fontWeight: 700,
-                                                color: C.green,
-                                                cursor: "pointer",
-                                                textDecoration: "underline",
-                                            }}>
-                                                Safe Location Manager
-                                            </span>
-                                            {" "}in the sidebar.
-                                        </div>
-                                    </Card>
-                                )}
-
-                                {/* District alert card for sensor tab */}
-                                {tab === "sensor" && (
-                                    <Card>
-                                        <div style={{
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            textTransform: "uppercase",
-                                            letterSpacing: .5,
-                                            color: "#aaa",
-                                            marginBottom: 10,
-                                        }}>
-                                            Rathnapura Risk Zones
-                                        </div>
-                                        {districts.map((d, i) => (
-                                            <div key={i} style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "space-between",
-                                                padding: "7px 0",
-                                                borderBottom: i < districts.length - 1 ? `1px solid #fafafa` : "none",
-                                            }}>
-                                                <div>
-                                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{d.name}</div>
-                                                    <div style={{ fontSize: 11, color: C.mid }}>Water: {d.level}</div>
-                                                </div>
-                                                <Badge type={d.badge}>{d.label}</Badge>
-                                            </div>
-                                        ))}
-                                    </Card>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* ── Bottom Stats ── */}
-                        <div
-                            className="fadeUp"
-                            style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}
-                        >
-                            {[
-                                ["Critical Zones",  "3",  "High risk areas",      C.red],
-                                ["Active Sensors",  "5",  "All systems running",  C.dark],
-                                ["Safe Shelters",   "12", "Available shelters",   C.green],
-                                ["Affected Areas",  "6",  "Flood impact zones",   C.orange],
-                            ].map(([label, val, sub, c], i) => (
-                                <div key={i} style={{
-                                    background: C.white,
-                                    borderRadius: 12,
-                                    padding: "14px 16px",
-                                    boxShadow: C.shadow,
-                                    borderLeft: `4px solid ${c}`,
-                                }}>
-                                    <div style={{
-                                        fontSize: 11, fontWeight: 600, color: "#aaa",
-                                        textTransform: "uppercase", letterSpacing: 0.4,
-                                    }}>
-                                        {label}
-                                    </div>
-                                    <div style={{ fontSize: 28, fontWeight: 900, color: c, marginTop: 4 }}>
-                                        {val}
-                                    </div>
-                                    <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
-                                        {sub}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
+                    {/* ── Stats Row ── */}
+                    <div
+                        className="fadeUp"
+                        style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}
+                    >
+                        {stats.map((s, i) => <StatCard key={i} {...s} />)}
                     </div>
+
+                    {/* ── Tab Bar ── */}
+                    <TabBar tabs={tabs} active={tab} onChange={setTab} />
+
+                    {/* ── Map Card ── */}
+                    <div className="fadeUp">
+                        <div style={{
+                            background: "var(--surface)",
+                            borderRadius: 16,
+                            border: "1px solid var(--border)",
+                            boxShadow: "var(--shadow)",
+                            overflow: "hidden",
+                        }}>
+                            {/* Map card header */}
+                            <div style={{
+                                padding: "12px 16px",
+                                borderBottom: "1px solid var(--border)",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                background: "var(--surface)",
+                            }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                                        Sri Lanka Real-Time Map
+                                    </span>
+                                    {/* Live indicator */}
+                                    <div style={{
+                                        display: "flex", alignItems: "center", gap: 5,
+                                        background: "var(--green-bg)",
+                                        border: "1px solid var(--green)",
+                                        borderRadius: 20, padding: "2px 8px",
+                                    }}>
+                                        <div style={{
+                                            width: 6, height: 6, borderRadius: "50%",
+                                            background: "var(--green)",
+                                        }} className="pulse" />
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)" }}>
+                                            LIVE
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Layer toggle */}
+                                <div style={{
+                                    display: "flex", gap: 4,
+                                    background: "var(--surface-alt)",
+                                    border: "1px solid var(--border)",
+                                    borderRadius: 10, padding: 3,
+                                }}>
+                                    {["Map", "Satellite"].map((l) => (
+                                        <button
+                                            key={l}
+                                            onClick={() => setLayer(l)}
+                                            style={{
+                                                padding: "5px 14px", borderRadius: 8,
+                                                border: "none", cursor: "pointer",
+                                                fontSize: 12, fontWeight: 700,
+                                                transition: "all .15s",
+                                                background: layer === l ? "var(--primary)" : "transparent",
+                                                color: layer === l ? "#fff" : "var(--text-muted)",
+                                            }}
+                                        >
+                                            {l}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Map itself */}
+                            <div style={{ height: "62vh", width: "100%" }}>
+                                <SriLankaMap mode={mapMode} layer={layer} />
+                            </div>
+
+                            {/*/!* Map footer — legend *!/*/}
+                            {/*<div style={{*/}
+                            {/*    padding: "10px 16px",*/}
+                            {/*    borderTop: "1px solid var(--border)",*/}
+                            {/*    background: "var(--surface)",*/}
+                            {/*    display: "flex", alignItems: "center", gap: 16,*/}
+                            {/*}}>*/}
+                            {/*    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>*/}
+                            {/*        Risk Level:*/}
+                            {/*    </span>*/}
+                            {/*    {[*/}
+                            {/*        { label: "Critical", color: "var(--red)"    },*/}
+                            {/*        { label: "High",     color: "var(--orange)" },*/}
+                            {/*        { label: "Medium",   color: "var(--yellow)" },*/}
+                            {/*        { label: "Safe",     color: "var(--green)"  },*/}
+                            {/*    ].map(({ label, color }) => (*/}
+                            {/*        <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>*/}
+                            {/*            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />*/}
+                            {/*            <span style={{ fontSize: 11, color: "var(--text-mid)", fontWeight: 600 }}>{label}</span>*/}
+                            {/*        </div>*/}
+                            {/*    ))}*/}
+                            {/*</div>*/}
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </>

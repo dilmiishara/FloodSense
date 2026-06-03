@@ -95,6 +95,13 @@ export const LogoutIcon = ({ size }) => (
     </Icon>
 );
 
+export const AccountIcon = ({ size }) => (
+    <Icon size={size}>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+    </Icon>
+);
+
 // ─── NAV ICON MAP ─────────────────────────────────────────────────────────────
 // Use this in the Sidebar so you only need one import.
 export const NAV_ICONS = {
@@ -106,5 +113,5 @@ export const NAV_ICONS = {
     reports:     ReportsIcon,
     settings:    SettingsIcon,
     Users:       UsersIcon,
-    posts:       PostsIcon,
+    profile:     AccountIcon,
 };
