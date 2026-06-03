@@ -1,11 +1,10 @@
 // ─── shared.jsx ─────────────────────────────────────────────────────────────
-// Shared theme constants, CSS, and reusable UI components for FloodSense Portal
-// Import these into every page component.
-import { useNavigate, useLocation  } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {rolePages} from "./shared/permissions.js";
 import { useSettings } from "./context/SettingsContext";
-import { User, LogOut, Edit, Bell, ChevronDown } from "lucide-react";
+import { LogOut, Edit, Bell } from "lucide-react";
+import { NAV_ICONS, LogoutIcon } from "./shared/icons";
 
 // ─── COLOR CONSTANTS ─────────────────────────────────────────────────────────
 export const C = {
@@ -21,7 +20,8 @@ export const C = {
 export const globalCSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:#f0ede8;font-family:'DM Sans',sans-serif;color:#1a1a1a;min-height:100vh;overflow-x:hidden;}
+  html,body,#root{height:100%;overflow:hidden;}
+  body{background:#f0ede8;font-family:'DM Sans',sans-serif;color:#1a1a1a;}
   ::-webkit-scrollbar{width:5px;height:5px;}
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:#ddd;border-radius:3px;}
@@ -43,9 +43,11 @@ export const globalCSS = `
   .spinner{width:52px;height:52px;border:4px solid #f0f0f0;border-top-color:#1a1a1a;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
   .progbar{background:#f0f0f0;height:4px;border-radius:2px;overflow:hidden;margin-top:14px;}
   .progfill{height:100%;background:#1a1a1a;border-radius:2px;animation:progAnim 1.8s ease forwards;}
+  .nav-item:hover{background:#f0ede8 !important;}
+  .bell-btn:hover{background:#ede9e4 !important;}
 `;
 
-// ─── BADGE COMPONENT ─────────────────────────────────────────────────────────
+// ─── BADGE ───────────────────────────────────────────────────────────────────
 export const Badge = ({ type, children }) => {
     const styles = {
         critical: { background: "#fff0ee", color: "#cc2200" },
@@ -77,7 +79,7 @@ export const Card = ({ children, style = {} }) => (
     }}>{children}</div>
 );
 
-// ─── BUTTON ───────────────────────────────────────────────────────────────────
+// ─── BUTTON ──────────────────────────────────────────────────────────────────
 export const Btn = ({ children, variant = "dark", onClick, style = {}, disabled }) => {
     const variants = {
         dark:    { background: "#1a1a1a", color: "#fff", border: "none" },
@@ -95,8 +97,7 @@ export const Btn = ({ children, variant = "dark", onClick, style = {}, disabled 
     );
 };
 
-
-// ─── FORM GROUP ───────────────────────────────────────────────────────────────
+// ─── FORM GROUP ──────────────────────────────────────────────────────────────
 export const FormGroup = ({ label, hint, children }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         <label style={{ fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: .5 }}>{label}</label>
@@ -105,7 +106,7 @@ export const FormGroup = ({ label, hint, children }) => (
     </div>
 );
 
-// ─── INPUT ────────────────────────────────────────────────────────────────────
+// ─── INPUT ───────────────────────────────────────────────────────────────────
 export const Input = ({ style = {}, ...props }) => (
     <input {...props} style={{
         padding: "10px 13px", borderRadius: 10, border: "1.5px solid #e8e4df",
@@ -114,7 +115,7 @@ export const Input = ({ style = {}, ...props }) => (
     }} />
 );
 
-// ─── SELECT ───────────────────────────────────────────────────────────────────
+// ─── SELECT ──────────────────────────────────────────────────────────────────
 export const Select = ({ children, style = {}, ...props }) => (
     <select {...props} style={{
         padding: "10px 13px", borderRadius: 10, border: "1.5px solid #e8e4df",
@@ -123,7 +124,7 @@ export const Select = ({ children, style = {}, ...props }) => (
     }}>{children}</select>
 );
 
-// ─── TOGGLE SWITCH ────────────────────────────────────────────────────────────
+// ─── TOGGLE SWITCH ───────────────────────────────────────────────────────────
 export const Toggle = ({ on, onToggle }) => (
     <div onClick={onToggle} style={{
         width: 40, height: 22, borderRadius: 11,
@@ -138,7 +139,7 @@ export const Toggle = ({ on, onToggle }) => (
     </div>
 );
 
-// ─── TOGGLE ROW ───────────────────────────────────────────────────────────────
+// ─── TOGGLE ROW ──────────────────────────────────────────────────────────────
 export const ToggleRow = ({ name, desc, on, onToggle }) => (
     <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -152,7 +153,7 @@ export const ToggleRow = ({ name, desc, on, onToggle }) => (
     </div>
 );
 
-// ─── PROBABILITY BAR ──────────────────────────────────────────────────────────
+// ─── PROBABILITY BAR ─────────────────────────────────────────────────────────
 export const ProbBar = ({ pct, color }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <div style={{ width: 80, height: 6, background: "#f0f0f0", borderRadius: 3, overflow: "hidden" }}>
@@ -180,7 +181,7 @@ export const TabBar = ({ tabs, active, onChange }) => (
     </div>
 );
 
-// ─── SRI LANKA SVG MAP ────────────────────────────────────────────────────────
+// ─── SRI LANKA SVG MAP ───────────────────────────────────────────────────────
 export const SriLankaMap = ({ mode = "sensor" }) => {
     const path = "M200,90 L230,95 L260,105 L280,120 L295,140 L305,165 L308,190 L305,215 L300,235 L295,255 L290,275 L285,295 L278,315 L270,335 L260,355 L248,375 L235,393 L220,408 L205,420 L190,428 L175,432 L160,430 L148,422 L138,410 L130,395 L124,378 L120,360 L118,340 L118,320 L120,300 L124,280 L130,260 L138,242 L148,226 L158,212 L162,195 L162,178 L165,162 L172,148 L180,135 L188,122 L195,110 Z";
     if (mode === "heatmap") return (
@@ -240,156 +241,169 @@ export const SriLankaMap = ({ mode = "sensor" }) => {
     );
 };
 
-// ─── HEADER ───────────────────────────────────────────────────────────────────
+// ─── HEADER ──────────────────────────────────────────────────────────────────
 export const Header = () => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  
-  // පද්ධතියේ Settings ලබා ගැනීම (Context එකෙන්)
-  const { systemSettings, toggleEmergencyMode } = useSettings();
+    const [showDropdown, setShowDropdown] = useState(false);
+    const { systemSettings, toggleEmergencyMode } = useSettings();
 
-  // LocalStorage එකෙන් ලොග් වුණු User ගේ විස්තර ලබා ගැනීම
-  const user = JSON.parse(localStorage.getItem("user")) || { 
-    first_name: "User", 
-    last_name: "", 
-    email: "user@example.com" 
-  };
+    const user = JSON.parse(localStorage.getItem("user")) || {
+        first_name: "User", last_name: "", email: "user@example.com"
+    };
 
-  // නමේ මුල් අකුරු ලබා ගැනීම (Initials) - උදා: Madhuka Ranasinghe -> MR
-  const getInitials = () => {
-    const f = user.first_name ? user.first_name[0] : "";
-    const l = user.last_name ? user.last_name[0] : "";
-    return (f + l).toUpperCase() || "U";
-  };
+    const getInitials = () => {
+        const f = user.first_name ? user.first_name[0] : "";
+        const l = user.last_name ? user.last_name[0] : "";
+        return (f + l).toUpperCase() || "U";
+    };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    window.location.href = "/login";
-  };
+    const handleLogout = () => {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+    };
 
-  return (
-    <div style={headerContainer}>
-      
-      {/* LEFT SIDE — System Name (Dynamic from DB) */}
-      <div style={systemInfo}>
-        <div style={logoBox}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" width="20" height="20">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" opacity=".3"/>
-            <path d="M5 15 Q8.5 9 12 13 Q15.5 17 19 11"/>
-          </svg>
-        </div>
-        {systemSettings?.system_name || "FloodSense"}
-      </div>
+    const isEmergency = systemSettings?.emergency_mode;
 
-      {/* RIGHT SIDE — Emergency Mode & Profile */}
-      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-        
-        {/* Emergency Mode & Notifications */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ position: "relative", cursor: "pointer", display: "flex" }}>
-            <Bell size={20} color="#555" />
-            <div style={notificationDot} />
-          </div>
-          <span style={emergencyLabel}>Emergency Mode</span>
-          <Toggle
-            on={systemSettings?.emergency_mode}
-            onToggle={toggleEmergencyMode}
-          />
-        </div>
-
-        {/* PROFILE AVATAR & DROPDOWN */}
-        <div style={{ position: 'relative' }}>
-          <div 
-            onClick={() => setShowDropdown(!showDropdown)}
-            style={profileCircleStyle}
-          >
-            {getInitials()}
-          </div>
-
-          {/* Dropdown Menu */}
-          {showDropdown && (
-            <div className="fadeUp" style={dropdownStyle}>
-              <div style={dropdownUserHeader}>
-                <div style={userName}>{user.first_name} {user.last_name}</div>
-                <div style={userEmail}>{user.email}</div>
-              </div>
-              
-              <button style={menuItem} onClick={() => window.location.href='/app/profile'}>
-                <Edit size={14} /> Edit Profile
-              </button>
-              
-              <button style={{ ...menuItem, color: '#ef4444' }} onClick={handleLogout}>
-                <LogOut size={14} /> Logout
-              </button>
+    return (
+        <div style={{
+            background: "#ffffff",
+            borderBottom: "1px solid #ede9e4",
+            padding: "0 32px",
+            height: 92,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+            position: "relative",
+            zIndex: 1000,
+        }}>
+            {/* LEFT — Logo + Brand + Subtitle */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{
+                    width: 52, height: 52, background: "#1a1a1a",
+                    borderRadius: 14, display: "flex",
+                    alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" width="30" height="30">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" opacity=".3"/>
+                        <path d="M5 15 Q8.5 9 12 13 Q15.5 17 19 11"/>
+                    </svg>
+                </div>
+                <div>
+                    <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: -0.8, color: "#1a1a1a", lineHeight: 1.15 }}>
+                        {systemSettings?.system_name || "FloodSense"}
+                    </div>
+                    <div style={{ fontSize: 12.5, fontWeight: 500, color: "#b0aba4", letterSpacing: 0.1, marginTop: 3 }}>
+                        Flood Monitoring & Prediction Portal
+                    </div>
+                </div>
             </div>
-          )}
+
+            {/* RIGHT — Controls */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+
+                {/* Bell icon button */}
+                <div className="bell-btn" style={{
+                    position: "relative", cursor: "pointer",
+                    width: 50, height: 50, borderRadius: 14,
+                    background: "#f7f5f2", border: "1px solid #ede9e4",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "background .15s",
+                }}>
+                    <Bell size={22} color="#666" />
+                    <div style={{
+                        position: "absolute", top: 10, right: 11,
+                        width: 8, height: 8, background: "#cc2200",
+                        borderRadius: "50%", border: "2px solid #fff",
+                    }} />
+                </div>
+
+                {/* Emergency Mode pill */}
+                <div style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "0 18px 0 14px", height: 50,
+                    background: isEmergency ? "#fff5f4" : "#f7f5f2",
+                    borderRadius: 14,
+                    border: `1.5px solid ${isEmergency ? "#ffc9c2" : "#ede9e4"}`,
+                    transition: "all .25s",
+                }}>
+                    {/* Status dot */}
+                    <div style={{
+                        width: 9, height: 9, borderRadius: "50%",
+                        background: isEmergency ? "#cc2200" : "#c0bbb5",
+                        boxShadow: isEmergency ? "0 0 0 4px rgba(204,34,0,0.18)" : "none",
+                        transition: "all .25s", flexShrink: 0,
+                    }} />
+                    {/* Labels */}
+                    <div style={{ lineHeight: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: isEmergency ? "#cc2200" : "#555" }}>
+                            Emergency Mode
+                        </div>
+                        <div style={{ fontSize: 11, color: isEmergency ? "#d9776a" : "#c0bbb5", marginTop: 3 }}>
+                            {isEmergency ? "Broadcasting to all channels" : "Standby"}
+                        </div>
+                    </div>
+                    <Toggle on={isEmergency} onToggle={toggleEmergencyMode} />
+                </div>
+
+                {/* Vertical divider */}
+                <div style={{ width: 1, height: 36, background: "#e8e4df", margin: "0 2px" }} />
+
+                {/* Avatar + Dropdown */}
+                <div style={{ position: "relative" }}>
+                    <div
+                        onClick={() => setShowDropdown(!showDropdown)}
+                        style={{
+                            width: 50, height: 50, borderRadius: 14,
+                            background: "#1a1a1a", color: "#fff",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 16, fontWeight: 800, cursor: "pointer",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.14)", transition: "opacity .15s",
+                        }}
+                    >
+                        {getInitials()}
+                    </div>
+
+                    {showDropdown && (
+                        <div className="fadeUp" style={{
+                            position: "absolute", top: 58, right: 0, width: 220,
+                            background: "#fff", borderRadius: 16,
+                            boxShadow: "0 12px 32px rgba(0,0,0,0.13)",
+                            zIndex: 1001, padding: "6px",
+                            border: "1px solid #ede9e4",
+                        }}>
+                            <div style={{ padding: "14px 14px 12px", borderBottom: "1px solid #f5f5f5", marginBottom: 4 }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 9, background: "#1a1a1a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, marginBottom: 9 }}>
+                                    {getInitials()}
+                                </div>
+                                <div style={{ fontWeight: 800, fontSize: 14, color: "#1a1a1a" }}>{user.first_name} {user.last_name}</div>
+                                <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{user.email}</div>
+                            </div>
+                            <button style={{
+                                width: "100%", padding: "10px 12px", border: "none", background: "none",
+                                display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+                                cursor: "pointer", textAlign: "left", borderRadius: 10,
+                                fontWeight: 600, color: "#444",
+                            }} onClick={() => { setShowDropdown(false); window.location.href='/app/profile'; }}>
+                                <Edit size={14} /> Edit Profile
+                            </button>
+                            <button style={{
+                                width: "100%", padding: "10px 12px", border: "none", background: "none",
+                                display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+                                cursor: "pointer", textAlign: "left", borderRadius: 10,
+                                fontWeight: 600, color: "#ef4444",
+                            }} onClick={handleLogout}>
+                                <LogOut size={14} /> Logout
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
-// ─── STYLES (Add these inside shared.jsx as well) ──────────────────────────────
-
-const headerContainer = {
-  background: "#ffffff",
-  borderRadius: 16,
-  margin: "14px 14px 0",
-  padding: "10px 22px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  boxShadow: "0 1px 5px rgba(0,0,0,.07)",
-  position: 'relative',
-  zIndex: 1000
-};
-
-const systemInfo = {
-  display: "flex", alignItems: "center", gap: 10,
-  fontSize: 17, fontWeight: 800, letterSpacing: -.3
-};
-
-const logoBox = {
-  width: 34, height: 34, background: "#1a1a1a",
-  borderRadius: 9, display: "flex",
-  alignItems: "center", justifyContent: "center"
-};
-
-const notificationDot = {
-  position: "absolute", top: -2, right: -2,
-  width: 8, height: 8, background: "#cc2200",
-  borderRadius: "50%", border: "2px solid #fff"
-};
-
-const emergencyLabel = { fontSize: 13, fontWeight: 600, color: "#666" };
-
-const profileCircleStyle = {
-  width: 36, height: 36, borderRadius: "50%", background: "#1a1a1a",
-  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-  fontSize: 12, fontWeight: 700, cursor: "pointer", border: "2px solid #fff",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.1)", transition: "0.2s"
-};
-
-const dropdownStyle = {
-  position: "absolute", top: 45, right: 0, width: 200, background: "#fff",
-  borderRadius: 14, boxShadow: "0 10px 30px rgba(0,0,0,0.15)", zIndex: 1001, 
-  padding: '6px', border: "1px solid #eee"
-};
-
-const dropdownUserHeader = {
-  padding: '12px 14px', borderBottom: '1px solid #f5f5f5', marginBottom: '4px', textAlign: 'left'
-};
-
-const userName = { fontWeight: 800, fontSize: 14, color: "#1a1a1a" };
-const userEmail = { fontSize: 11, color: '#888', marginTop: 2 };
-
-const menuItem = {
-  width: '100%', padding: '10px 12px', border: 'none', background: 'none',
-  display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer',
-  textAlign: 'left', borderRadius: 10, transition: '0.2s', fontWeight: 600, color: "#444"
-};
-
-// ─── SIDEBAR COMPONENT ──────────────────────────────────────────────────────
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 export const Sidebar = ({ page }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -408,70 +422,116 @@ export const Sidebar = ({ page }) => {
         }, 1800);
     };
 
+    // Group nav items
+    const mainNav = NAV.filter(i => !["settings", "posts"].includes(i.path.split("/").pop()));
+    const bottomNav = NAV.filter(i => ["settings", "posts"].includes(i.path.split("/").pop()));
+
+    const NavItem = ({ item }) => {
+        const id = item.path.split("/").pop();
+        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+        const IconComponent = NAV_ICONS[id] || null;
+        return (
+            <div
+                className={isActive ? "" : "nav-item"}
+                onClick={() => navigate(item.path)}
+                style={{
+                    padding: "9px 12px",
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: isActive ? 700 : 500,
+                    cursor: "pointer",
+                    color: isActive ? "#1a1a1a" : "#888",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: isActive ? "#f0ede8" : "transparent",
+                    borderLeft: isActive ? "2.5px solid #1a1a1a" : "2.5px solid transparent",
+                    transition: "all .15s",
+                    letterSpacing: -0.1,
+                }}
+            >
+                <span style={{
+                    opacity: isActive ? 1 : 0.45,
+                    width: 16, height: 16,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                    color: isActive ? "#1a1a1a" : "#888",
+                }}>
+                    {IconComponent ? <IconComponent size={16} /> : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="4"/>
+                        </svg>
+                    )}
+                </span>
+                {item.name}
+            </div>
+        );
+    };
+
     return (
         <>
             <div style={{
-                width: 196, minWidth: 196, marginRight: 14, background: "#ffffff",
-                borderRadius: 16, padding: "20px 12px",
-                boxShadow: "0 1px 5px rgba(0,0,0,.07)",
-                display: "flex", flexDirection: "column", minHeight: 600,
+                width: 210,
+                minWidth: 210,
+                background: "#ffffff",
+                borderRight: "1px solid #ede9e4",
+                display: "flex",
+                flexDirection: "column",
+                padding: "20px 10px 14px",
+                overflowY: "auto",
+                flexShrink: 0,
             }}>
+                {/* Section label */}
                 <div style={{
-                    fontSize: 17, fontWeight: 800,
-                    padding: "0 8px", marginBottom: 6
+                    fontSize: 9.5, fontWeight: 700, textTransform: "uppercase",
+                    letterSpacing: 1.2, color: "#ccc", padding: "0 12px", marginBottom: 6,
                 }}>
-                    FloodSense
+                    Main Menu
                 </div>
 
-                {NAV.map(item => {
-                    const isActive = location.pathname === item.path;
-                    const id = item.path.split("/").pop();
+                {/* Main nav */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    {mainNav.map(item => <NavItem key={item.path} item={item} />)}
+                </div>
 
-                    return (
-                        <div key={item.path}>
-                            <div
-                                onClick={() => navigate(item.path)}
-                                style={{
-                                    padding: "9px 12px",
-                                    borderRadius: 10,
-                                    fontSize: 13.5,
-                                    fontWeight: isActive ? 700 : 500,
-                                    cursor: "pointer",
-                                    color: isActive ? "#1a1a1a" : "#666",
-                                    marginBottom: 1,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 9,
-                                    background: isActive ? "#eeebe6" : "transparent",
-                                    transition: "background .15s",
-                                }}
-                            >
-                                {item.name}
-                            </div>
+                {/* Bottom nav section */}
+                {bottomNav.length > 0 && (
+                    <>
+                        <div style={{ height: 1, background: "#f0ede8", margin: "14px 4px 10px" }} />
+                        <div style={{
+                            fontSize: 9.5, fontWeight: 700, textTransform: "uppercase",
+                            letterSpacing: 1.2, color: "#ccc", padding: "0 12px", marginBottom: 6,
+                        }}>
+                            Manage
                         </div>
-                    );
-                })}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                            {bottomNav.map(item => <NavItem key={item.path} item={item} />)}
+                        </div>
+                    </>
+                )}
 
-                <div style={{
-                    height: 1,
-                    background: "#e8e4df",
-                    margin: "8px 0"
-                }} />
+                {/* Spacer */}
+                <div style={{ flex: 1 }} />
+
+                {/* Divider */}
+                <div style={{ height: 1, background: "#f0ede8", margin: "10px 4px" }} />
 
                 {/* Logout */}
                 <div
+                    className="nav-item"
                     onClick={() => setShowModal(true)}
                     style={{
-                        padding: "9px 12px",
-                        borderRadius: 10,
-                        fontSize: 13.5,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        color: "#cc2200",
-                        marginTop: "auto"
+                        padding: "9px 12px", borderRadius: 10, fontSize: 13,
+                        fontWeight: 600, cursor: "pointer", color: "#cc2200",
+                        display: "flex", alignItems: "center", gap: 10,
+                        transition: "background .15s",
+                        borderLeft: "2.5px solid transparent",
                     }}
                 >
-                    ⎋ Logout
+                    <span style={{ width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: 0.7, color: "#cc2200" }}>
+                        <LogoutIcon size={16} />
+                    </span>
+                    Logout
                 </div>
             </div>
 
@@ -484,34 +544,15 @@ export const Sidebar = ({ page }) => {
                                 <div style={modalStyles.iconBadge}>⎋</div>
                                 <h2 style={modalStyles.title}>Sign Out?</h2>
                                 <p style={modalStyles.subtitle}>End your administrative session and lock the portal.</p>
-
-                                {/* Session Context Box (Very Professional) */}
                                 <div style={modalStyles.sessionBox}>
-                                    <div style={modalStyles.sessionRow}>
-                                        <span>User Role</span>
-                                        <strong style={{color: '#1a1a1a'}}>System Admin</strong>
-                                    </div>
-                                    <div style={modalStyles.sessionRow}>
-                                        <span>Live Alerts</span>
-                                        <strong style={{color: '#cc2200'}}>3 Active</strong>
-                                    </div>
-                                    <div style={modalStyles.sessionRow}>
-                                        <span>Last Sync</span>
-                                        <strong style={{color: '#666'}}>Just now</strong>
-                                    </div>
+                                    <div style={modalStyles.sessionRow}><span>User Role</span><strong style={{color: '#1a1a1a'}}>System Admin</strong></div>
+                                    <div style={modalStyles.sessionRow}><span>Live Alerts</span><strong style={{color: '#cc2200'}}>3 Active</strong></div>
+                                    <div style={modalStyles.sessionRow}><span>Last Sync</span><strong style={{color: '#666'}}>Just now</strong></div>
                                 </div>
-
-                                <p style={modalStyles.warningText}>
-                                    Note: Automatic flood monitoring will continue in the background after you log out.
-                                </p>
-
+                                <p style={modalStyles.warningText}>Automatic flood monitoring will continue in the background after you log out.</p>
                                 <div style={modalStyles.btnGroup}>
-                                    <button onClick={() => setShowModal(false)} style={modalStyles.cancelBtn}>
-                                        Stay
-                                    </button>
-                                    <button onClick={handleConfirmLogout} style={modalStyles.confirmBtn}>
-                                        Sign Out
-                                    </button>
+                                    <button onClick={() => setShowModal(false)} style={modalStyles.cancelBtn}>Stay</button>
+                                    <button onClick={handleConfirmLogout} style={modalStyles.confirmBtn}>Sign Out</button>
                                 </div>
                             </>
                         ) : (
@@ -527,7 +568,6 @@ export const Sidebar = ({ page }) => {
                     </div>
                 </div>
             )}
-
         </>
     );
 };
@@ -550,46 +590,31 @@ const modalStyles = {
     },
     title: { fontSize: '24px', fontWeight: '900', color: '#1a1a1a', marginBottom: '8px' },
     subtitle: { fontSize: '15px', color: '#666', marginBottom: '24px' },
-    sessionBox: {
-        background: '#f7f5f2', borderRadius: '16px', padding: '16px',
-        marginBottom: '20px', border: '1px solid #e8e4df'
-    },
-    sessionRow: {
-        display: 'flex', justifyContent: 'space-between', fontSize: '12px',
-        fontWeight: '600', color: '#aaa', padding: '4px 0', textTransform: 'uppercase'
-    },
+    sessionBox: { background: '#f7f5f2', borderRadius: '16px', padding: '16px', marginBottom: '20px', border: '1px solid #e8e4df' },
+    sessionRow: { display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '600', color: '#aaa', padding: '4px 0', textTransform: 'uppercase' },
     warningText: { fontSize: '12px', color: '#aaa', fontStyle: 'italic', marginBottom: '32px' },
     btnGroup: { display: 'flex', gap: '12px' },
-    cancelBtn: {
-        flex: 1, padding: '16px', borderRadius: '14px', border: '1.5px solid #e8e4df',
-        background: '#fff', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s'
-    },
-    confirmBtn: {
-        flex: 1, padding: '16px', borderRadius: '14px', border: 'none',
-        background: '#1a1a1a', color: '#fff', fontWeight: '700', cursor: 'pointer',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-    }
+    cancelBtn: { flex: 1, padding: '16px', borderRadius: '14px', border: '1.5px solid #e8e4df', background: '#fff', fontWeight: '700', cursor: 'pointer' },
+    confirmBtn: { flex: 1, padding: '16px', borderRadius: '14px', border: 'none', background: '#1a1a1a', color: '#fff', fontWeight: '700', cursor: 'pointer' }
 };
 
-// ─── PAGE SHELL ───────────────────────────────────────────────────────────────
-export const PageShell = ({ page, setPage, children }) => {
-    return (
-        <>
-            <style>{globalCSS}</style>
-            <div style={{ minHeight: "100vh", background: "#f0ede8" }}>
-                <Header />   {/* ← no props needed, Header uses context directly */}
-                <div style={{ display: "flex", margin: "12px 14px 14px", gap: 0 }}>
-                    <Sidebar page={page} setPage={setPage} />
-                    <div style={{ flex: 1, minWidth: 0, maxHeight: "calc(100vh - 110px)", overflowY: "auto", paddingRight: 2 }}>
-                        {children}
-                    </div>
+// ─── PAGE SHELL ──────────────────────────────────────────────────────────────
+export const PageShell = ({ page, setPage, children }) => (
+    <>
+        <style>{globalCSS}</style>
+        <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#f0ede8", overflow: "hidden" }}>
+            <Header />
+            <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+                <Sidebar page={page} setPage={setPage} />
+                <div style={{ flex: 1, overflowY: "auto", padding: "18px", minWidth: 0 }}>
+                    {children}
                 </div>
             </div>
-        </>
-    );
-};
+        </div>
+    </>
+);
 
-// ─── TOAST HOOK ───────────────────────────────────────────────────────────────
+// ─── TOAST ───────────────────────────────────────────────────────────────────
 export const Toast = ({ message }) =>
     message ? (
         <div style={{
@@ -600,15 +625,3 @@ export const Toast = ({ message }) =>
             display: "flex", alignItems: "center", gap: 8,
         }}>{message}</div>
     ) : null;
-
-// ─── SIDEBAR NAVIGATION ──────────────────────────────────────────────────────
-// const NAV = [
-//     { id: "dashboard",   icon: "⊞", label: "Dashboard",    section: "Main" },
-//     { id: "mapview",     icon: "🗺", label: "Map View" },
-//     { id: "alerts",      icon: "🔔", label: "Alerts" },
-//     { id: "prediction",  icon: "🔮", label: "Prediction" },
-//     { id: "addlocation", icon: "📍", label: "Add Location", section: "Manage" },
-//     { id: "reports",     icon: "📊", label: "Reports" },
-//     { id: "settings",    icon: "⚙",  label: "Settings" },
-//     { id: "posts",       icon: "📝", label: "Posts", section: "Manage" },
-// ];
