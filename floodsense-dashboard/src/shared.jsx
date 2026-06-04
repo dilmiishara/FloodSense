@@ -4,7 +4,8 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { rolePages } from "./shared/permissions.js";
 import { useSettings } from "./context/SettingsContext";
 import { LogOut, Edit, Bell, Sun, Moon, Contrast } from "lucide-react";
-import { NAV_ICONS, LogoutIcon } from "./shared/icons";
+import { NAV_ICONS, LogoutIcon, getNavIcon } from "./shared/icons";
+
 
 // ─── THEME CONTEXT ────────────────────────────────────────────────────────────
 export const ThemeContext = createContext({ theme: "light", setTheme: () => {} });
@@ -623,7 +624,7 @@ export const Sidebar = ({ page }) => {
     const NavItem = ({ item }) => {
         const id = item.path.split("/").pop();
         const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
-        const IconComponent = NAV_ICONS[id] || null;
+        const IconComponent = getNavIcon(id);
         return (
             <div
                 className={isActive ? "" : "nav-item"}
