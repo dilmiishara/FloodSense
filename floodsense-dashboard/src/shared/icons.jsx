@@ -102,6 +102,42 @@ export const AccountIcon = ({ size }) => (
     </Icon>
 );
 
+// ─── SENSOR ICONS ─────────────────────────────────────────────────────────────
+
+export const HumidityIcon = ({ size }) => (
+    <Icon size={size}>
+        <path d="M12 2C6 8 4 13 4 16a8 8 0 0 0 16 0c0-3-2-8-8-14z" />
+    </Icon>
+);
+
+export const TemperatureIcon = ({ size }) => (
+    <Icon size={size}>
+        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+    </Icon>
+);
+
+export const RainfallIcon = ({ size }) => (
+    <Icon size={size}>
+        <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25" />
+        <line x1="8"  y1="16" x2="8.01"  y2="16" />
+        <line x1="8"  y1="20" x2="8.01"  y2="20" />
+        <line x1="12" y1="18" x2="12.01" y2="18" />
+        <line x1="12" y1="22" x2="12.01" y2="22" />
+        <line x1="16" y1="16" x2="16.01" y2="16" />
+        <line x1="16" y1="20" x2="16.01" y2="20" />
+    </Icon>
+);
+
+export const UltrasonicIcon = ({ size }) => (
+    <Icon size={size}>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M6.34 6.34a8 8 0 0 0 0 11.32" />
+        <path d="M17.66 6.34a8 8 0 0 1 0 11.32" />
+        <path d="M3.51 3.51a13 13 0 0 0 0 16.98" />
+        <path d="M20.49 3.51a13 13 0 0 1 0 16.98" />
+    </Icon>
+);
+
 // ─── NAV ICON MAP ─────────────────────────────────────────────────────────────
 // Use this in the Sidebar so you only need one import.
 export const NAV_ICONS = {
