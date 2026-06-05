@@ -190,7 +190,7 @@ export const NAV_ICONS = {
     addlocation: AddLocationIcon,
     reports:     ReportsIcon,
     settings:    SettingsIcon,
-    Users:       UsersIcon,
+    users:       UsersIcon,
     profile:     AccountIcon,
 };
 
@@ -206,3 +206,8 @@ export const ShelterTypeIcon = ({ type = "", size = 16, color = "#16a34a" }) => 
     if (t.includes("sports"))    return <SportsShelterIcon    {...props} />;
     return <SafeShieldIcon {...props} />;
 };
+
+export const getNavIcon = (id) =>
+    NAV_ICONS[id] ||
+    NAV_ICONS[id?.toLowerCase()] ||
+    null;
