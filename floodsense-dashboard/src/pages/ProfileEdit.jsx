@@ -81,8 +81,7 @@ export default function ProfileEdit() {
               {/* Info rows */}
               <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)", textAlign: "left" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
-                  <Clock size={14} color="var(--text-muted)" />
-                  <span>Joined: {loggedUser.created_at ? new Date(loggedUser.created_at).toLocaleDateString() : "N/A"}</span>
+                  
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--green)", marginBottom: 12 }}>
                   <ShieldCheck size={14} color="var(--green)" />
