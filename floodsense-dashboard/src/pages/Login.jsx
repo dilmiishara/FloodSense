@@ -85,7 +85,6 @@ function Login() {
           <div style={styles.loginCard}>
             <div style={{ marginBottom: '30px' }}>
               <h2 style={styles.formTitle}>System Login</h2>
-              <p style={styles.formSubtitle}>Enter your official credentials to access the portal.</p>
             </div>
 
             {error && (
@@ -97,7 +96,7 @@ function Login() {
 
             <form onSubmit={handleLogin}>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Official Email</label>
+                <label style={styles.label}>Username</label>
                 <div style={styles.inputWrapper}>
                   <Mail style={styles.icon} size={20} />
                   <input
@@ -135,7 +134,7 @@ function Login() {
               </div>
 
               <button type="submit" disabled={isLoading} style={styles.submitBtn}>
-                {isLoading ? "Authenticating..." : "Access Dashboard"}
+                {isLoading ? "Authenticating..." : "Login"}
               </button>
             </form>
 

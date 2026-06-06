@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1224" />
+      <stop offset="100%" stop-color="#151c35" />
+    </linearGradient>
+    
+    <!-- Primary Blue Gradient (FloodSense Branding) -->
+    <linearGradient id="primaryGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1242b0" />
+      <stop offset="50%" stop-color="#1a52cc" />
+      <stop offset="100%" stop-color="#0e9de8" />
+    </linearGradient>
+
+    <!-- Accent Cyan Gradient -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e9de8" />
+      <stop offset="100%" stop-color="#3ec8fa" />
+    </linearGradient>
+  </defs>
+
+  <!-- Smooth Rounded App Icon Base -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Outer IoT/Radar Tracking Rings -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#accentGrad)" stroke-width="6" stroke-dasharray="16 24" opacity="0.25" />
+  <circle cx="256" cy="256" r="140" fill="none" stroke="url(#primaryGrad)" stroke-width="4" stroke-dasharray="8 12" opacity="0.4" />
+
+  <!-- The "Sense" Radar Concentric Nodes -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="4 20" opacity="0.15" />
+
+  <!-- Geometric Water Wave / Signal Shield Base -->
+  <path d="M160,220 C200,180 220,160 256,160 C292,160 312,180 352,220 C392,260 392,300 352,340 C312,380 292,392 256,392 C220,392 200,380 160,340 C120,300 120,260 160,220 Z" 
+        fill="url(#primaryGrad)" 
+        style="mix-blend-mode: screen;" />
+
+  <!-- Crisp Internal Digital Dynamic Wave Crest -->
+  <path d="M180,260 Q215,220 256,260 T332,260" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" />
+  <path d="M205,300 Q230,275 256,300 T307,300" fill="none" stroke="url(#accentGrad)" stroke-width="12" stroke-linecap="round" />
+  
+  <!-- Central Analytics / Target Core Sensor Dot -->
+  <circle cx="256" cy="195" r="14" fill="#ffffff" />
+  <circle cx="256" cy="195" r="28" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.5" />
+</svg>
