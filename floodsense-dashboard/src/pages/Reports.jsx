@@ -30,7 +30,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, reportName }) => {
 export default function Reports() {
   const toast = useToast();
 
-  const [tab, setTab] = useState("archive");
+  const [tab, setTab] = useState("generate");
   const [format, setFormat] = useState("PDF");
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,16 +69,22 @@ export default function Reports() {
     }
     setLoading(true);
     try {
+      
       await generateReportAPI({
-        report_type: formData.reportType, area_id: formData.areaId || null,
-        from_date: formData.fromDate, to_date: formData.toDate, export_format: format
+        report_type: formData.reportType, 
+        area_id: formData.areaId || null,
+        from_date: formData.fromDate, 
+        to_date: formData.toDate, 
+        export_format: format.toUpperCase() 
       });
       toast.success("Report Generated", "Your report has been created and saved to the archive.");
       setTab("archive");
     } catch (err) {
+      console.error(err);
       toast.error("Generation Failed", "Could not generate the report. Please try again.");
     } finally { setLoading(false); }
   };
+
 
   const handleDownload = (filePath, fileName) => {
     toast.info("Downloading", `Starting download for: ${fileName}`);
