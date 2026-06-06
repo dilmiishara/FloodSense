@@ -7,9 +7,11 @@ import { CheckCircle, AlertTriangle, ShieldAlert, Activity } from "lucide-react"
 import { fetchActiveAlerts, fetchAlertHistory, resolveAlertAPI } from "../api/services/alertService";
 import { fetchAreas } from "../api/services/userService";
 import ThresholdTable from "../components/ThresholdTable";
+import { useToast } from "../context/ToastContext";
 import NotificationRecipients from "../components/NotificationRecipients";
 
 export default function Alerts() {
+    const toast = useToast();
     const [tab, setTab] = useState("active");
     const [activeAlerts, setActiveAlerts] = useState([]);
     const [historyAlerts, setHistoryAlerts] = useState([]);
@@ -64,14 +66,29 @@ export default function Alerts() {
         }
     };
 
-    const confirmResolve = async () => {
+   const confirmResolve = async () => {
         setIsProcessing(true);
+        const locationName = selectedAlert?.area?.name || selectedAlert?.location || "Incident";
         try {
             await resolveAlertAPI(selectedAlert.id);
             setShowResolveModal(false);
+            
+            
+            toast.success(
+                "Incident Resolved", 
+                `The active alert for ${locationName} has been successfully closed and archived.`,
+                4000
+            );
+
             loadData();
         } catch (err) {
             console.error("Failed to resolve alert", err);
+            
+            
+            toast.error(
+                "Action Failed", 
+                `Could not resolve the incident for ${locationName}. Please try again.`
+            );
         } finally {
             setIsProcessing(false);
             setSelectedAlert(null);

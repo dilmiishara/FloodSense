@@ -16,6 +16,7 @@ import Posts from "./pages/Posts.jsx";
 import Users from "./pages/ManageUsers.jsx"
 import { SettingsProvider } from './context/SettingsContext';
 import ProfileEdit from "./pages/ProfileEdit";
+import { ToastProvider } from "./context/ToastContext";
 
 // Auth
 import Login from "./pages/Login";

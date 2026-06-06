@@ -439,28 +439,7 @@ export default function Prediction() {
                         </div>
                       </Card>
 
-                      {/* Recommended actions — keeps dark bg intentionally for visual contrast */}
-                      <div style={{ width:400, background:"var(--text)", borderRadius:14, padding:18, color:"var(--surface)", boxShadow:"var(--shadow)", display:"flex", flexDirection:"column" }}>
-                        <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:0.5, color:"var(--text-muted)", marginBottom:14 }}>
-                          ⚡ Recommended Actions
-                        </div>
-                        {[
-                          ["Activate Emergency Alert", "Issue public warnings for Ratnapura & Kalutara."],
-                          ["Open Safe Zones",          "Activate 4 shelters in southern province."       ],
-                          ["Road Closures",            "Pre-emptively close A8 & B403 routes."           ],
-                          ["Deploy Field Teams",       "Inspect Kalu Ganga banks — sensor A2 surge."     ],
-                        ].map(([head, body], i) => (
-                            <div key={i} style={{ display:"flex", gap:10, marginBottom:12 }}>
-                              <div>
-                                <div style={{ fontSize:12, fontWeight:700, color:"var(--surface)" }}>{head}</div>
-                                <div style={{ fontSize:10, color:"var(--text-muted)", marginTop:3, lineHeight:1.5 }}>{body}</div>
-                              </div>
-                            </div>
-                        ))}
-                        <button style={{ marginTop:"auto", width:"100%", padding:10, background:"var(--red)", color:"#fff", border:"none", borderRadius:10, fontSize:12, fontWeight:700, cursor:"pointer" }}>
-                          Broadcast Alert
-                        </button>
-                      </div>
+                      
                     </div>
                   </>
               )}
