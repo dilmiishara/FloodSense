@@ -54,7 +54,8 @@ function Login() {
 
     } catch (err) {
       console.error("Login error:", err);
-      setError("Unauthorized access. Access restricted to Disaster Management personnel.");
+      
+      setError(err.response?.data?.message || "Unauthorized access. Access restricted to Disaster Management personnel.");
     } finally {
       setIsLoading(false);
     }
