@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, Input, Btn, FormGroup, globalCSS } from "../shared.jsx";
 import { useToast } from "../context/ToastContext";
-import { Clock, ShieldCheck, User, Mail, Phone, Lock } from "lucide-react";
+import { ShieldCheck, User, Mail, Phone, Lock } from "lucide-react";
 import axios from "axios";
 
 export default function ProfileEdit() {
@@ -13,10 +13,22 @@ export default function ProfileEdit() {
     last_name:  loggedUser?.last_name  || "",
     email:      loggedUser?.email      || "",
     telephone:  loggedUser?.telephone  || "",
-    password:   "",
+    current_password: "", 
+    password:   "",       
+    password_confirmation: "", 
   });
 
   const [loading, setLoading] = useState(false);
+
+  
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      current_password: "",
+      password: "",
+      password_confirmation: ""
+    }));
+  }, []);
 
   const getInitials = () => {
     const f = formData.first_name ? formData.first_name[0] : "";
@@ -31,7 +43,10 @@ export default function ProfileEdit() {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       localStorage.setItem("user", JSON.stringify(response.data.user));
-      toast.success("Profile Updated", "Your account details have been saved successfully.");
+      toast.success("Profile Updated", "Your account details and security settings have been saved successfully.");
+      
+      
+      setFormData(prev => ({ ...prev, current_password: "", password: "", password_confirmation: "" }));
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       toast.error("Update Failed", err.response?.data?.message || "Could not update profile. Please try again.");
@@ -78,11 +93,7 @@ export default function ProfileEdit() {
               </h2>
               <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{formData.email}</p>
 
-              {/* Info rows */}
               <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)", textAlign: "left" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
-                  
-                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--green)", marginBottom: 12 }}>
                   <ShieldCheck size={14} color="var(--green)" />
                   <span style={{ fontWeight: 600 }}>Account Verified</span>
@@ -156,16 +167,49 @@ export default function ProfileEdit() {
                 <Lock size={18} color="var(--red)" /> Security Update
               </div>
 
-              <div style={{ marginBottom: 28 }}>
+              {/* Current Password Field */}
+              <div style={{ marginBottom: 18 }}>
+                <FormGroup label="Current Password">
+                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                    <Lock size={15} color="var(--text-muted)" style={{ position: "absolute", left: 14, pointerEvents: "none" }} />
+                    <Input
+                        type="password"
+                        placeholder="Type your current password manually"
+                        autoComplete="new-password" 
+                        style={{ paddingLeft: 40 }}
+                        value={formData.current_password}
+                        onChange={e => setFormData({ ...formData, current_password: e.target.value })}
+                    />
+                  </div>
+                </FormGroup>
+              </div>
+
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 28 }}>
                 <FormGroup label="New Password (Optional)">
                   <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                     <Lock size={15} color="var(--text-muted)" style={{ position: "absolute", left: 14, pointerEvents: "none" }} />
                     <Input
                         type="password"
-                        placeholder="Leave blank to keep current"
+                        placeholder="Minimum 6 characters"
+                        autoComplete="new-password" 
                         style={{ paddingLeft: 40 }}
                         value={formData.password}
                         onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    />
+                  </div>
+                </FormGroup>
+                
+                <FormGroup label="Confirm New Password">
+                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                    <Lock size={15} color="var(--text-muted)" style={{ position: "absolute", left: 14, pointerEvents: "none" }} />
+                    <Input
+                        type="password"
+                        placeholder="Repeat your new password"
+                        autoComplete="new-password" 
+                        style={{ paddingLeft: 40 }}
+                        value={formData.password_confirmation}
+                        onChange={e => setFormData({ ...formData, password_confirmation: e.target.value })}
                     />
                   </div>
                 </FormGroup>
