@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck, Activity } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, AlertCircle, Activity, X, KeyRound, ShieldCheck } from "lucide-react";
 import api from "../api/axios";
 
 function Login() {
@@ -10,6 +10,17 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  // 🔒 FORGET PASSWORD MODAL STATES
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [step, setStep] = useState(1); 
+  const [resetEmail, setResetEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [modalSuccess, setModalSuccess] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,8 +33,6 @@ function Login() {
       // Save token
       localStorage.setItem("token", res.data.token);
 
-      // Determine role string based on backend role value
-      // Assuming role: 1 = admin, 2 = maintenance/officer
       let roleString = "";
       let redirectPath = "";
 
@@ -35,14 +44,12 @@ function Login() {
         redirectPath = "/app/dashboard";
       }
 
-      // Save role and user data
       localStorage.setItem("role", roleString);
       localStorage.setItem("user", JSON.stringify({
         ...res.data.user,
-        role: roleString // Store the string version
+        role: roleString 
       }));
 
-      // Navigate based on role
       navigate(redirectPath, { replace: true });
 
     } catch (err) {
@@ -50,6 +57,69 @@ function Login() {
       setError("Unauthorized access. Access restricted to Disaster Management personnel.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+ 
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) return setModalError("Please enter your registered email address.");
+    
+    setResetLoading(true);
+    setModalError("");
+    setModalSuccess("");
+
+    try {
+      await api.post("/forgot-password", { email: resetEmail });
+      setModalSuccess("Verification key successfully dispatched to your email address!");
+      setTimeout(() => {
+        setStep(2); // 
+        setModalSuccess("");
+      }, 1500);
+    } catch (err) {
+      setModalError(err.response?.data?.message || "Registered email structure not found.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  
+  const handleVerifyAndReset = async (e) => {
+    e.preventDefault();
+    if (!otpCode || !newPassword || !confirmPassword) {
+      return setModalError("Please fulfill all security input sections.");
+    }
+    if (newPassword !== confirmPassword) {
+      return setModalError("New password confirmation does not match.");
+    }
+
+    setResetLoading(true);
+    setModalError("");
+    setModalSuccess("");
+
+    try {
+      await api.post("/reset-password", {
+        email: resetEmail,
+        otp: otpCode,
+        password: newPassword,
+        password_confirmation: confirmPassword
+      });
+
+      setModalSuccess("Security password re-configured successfully! Closing...");
+      setTimeout(() => {
+        
+        setShowResetModal(false);
+        setStep(1);
+        setResetEmail("");
+        setOtpCode("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setModalSuccess("");
+      }, 2000);
+    } catch (err) {
+      setModalError(err.response?.data?.message || "Invalid or expired token code.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -112,7 +182,13 @@ function Login() {
               <div style={styles.inputGroup}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <label style={styles.label}>Password</label>
-                  <span style={styles.forgotPass}>Request Reset</span>
+                  
+                  <span 
+                    onClick={() => { setShowResetModal(true); setStep(1); setModalError(""); setModalSuccess(""); }} 
+                    style={styles.forgotPass}
+                  >
+                    Request Reset
+                  </span>
                 </div>
                 <div style={styles.inputWrapper}>
                   <Lock style={styles.icon} size={20} />
@@ -143,177 +219,182 @@ function Login() {
             </p>
           </div>
         </div>
+
+        {/* ── PREMIUM INTERACTIVE RECOVERY MODAL ── */}
+        {showResetModal && (
+          <div style={styles.modalBackdrop}>
+            <div style={styles.modalCard}>
+              
+              {/* Close Button */}
+              <button 
+                onClick={() => setShowResetModal(false)} 
+                style={styles.modalCloseBtn}
+                disabled={resetLoading}
+              >
+                <X size={16} />
+              </button>
+
+              {/* Modal Errors Display Panel */}
+              {modalError && (
+                <div style={{ ...styles.errorBox, marginBottom: '16px', padding: '10px 14px' }}>
+                  <AlertCircle size={16} />
+                  <span style={{ fontSize: '0.85rem' }}>{modalError}</span>
+                </div>
+              )}
+
+              {/* Modal Success Display Panel */}
+              {modalSuccess && (
+                <div style={styles.successBox}>
+                  <ShieldCheck size={16} />
+                  <span style={{ fontSize: '0.85rem' }}>{modalSuccess}</span>
+                </div>
+              )}
+
+              {/* ── STEP 1: REQUEST OTP LOOKUP ── */}
+              {step === 1 ? (
+                <form onSubmit={handleSendOtp}>
+                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <div style={styles.modalIconBadgeReset}><Lock size={22} color="#ff4d4d" /></div>
+                    <h3 style={styles.modalTitleText}>Recover Password</h3>
+                    <p style={styles.modalSubTitleText}>Enter your registered gateway email to dispatch a security validation key.</p>
+                  </div>
+
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Registered Email Address</label>
+                    <div style={styles.inputWrapper}>
+                      <Mail style={styles.icon} size={18} />
+                      <input
+                        type="email"
+                        placeholder="admin@floodsense.gov.lk"
+                        style={styles.input}
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        required
+                        disabled={resetLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button type="button" onClick={() => setShowResetModal(false)} style={styles.modalSecondaryBtn} disabled={resetLoading}>Cancel</button>
+                    <button type="submit" style={styles.modalPrimaryBtnReset} disabled={resetLoading}>
+                      {resetLoading ? "Processing..." : "Send Reset Key"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* ── STEP 2: VERIFY OTP AND CHANGE PASSWORD ── */
+                <form onSubmit={handleVerifyAndReset}>
+                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <div style={styles.modalIconBadgeSuccess}><ShieldCheck size={22} color="#2ecc71" /></div>
+                    <h3 style={styles.modalTitleText}>Verify Identity</h3>
+                    <p style={styles.modalSubTitleText}>A 6-digit key token has been sent to <br/><span style={{fontWeight: '700', color: '#1A1C1E'}}>{resetEmail}</span></p>
+                  </div>
+
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>6-Digit Verification Token</label>
+                    <div style={styles.inputWrapper}>
+                      <KeyRound style={styles.icon} size={18} />
+                      <input
+                        type="text"
+                        placeholder="XXXXXX"
+                        maxLength="6"
+                        style={styles.input}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        required
+                        disabled={resetLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>New Security Password</label>
+                    <div style={styles.inputWrapper}>
+                      <Lock style={styles.icon} size={18} />
+                      <input
+                        type="password"
+                        placeholder="Minimum 6 characters"
+                        style={styles.input}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        disabled={resetLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Confirm Security Password</label>
+                    <div style={styles.inputWrapper}>
+                      <Lock style={styles.icon} size={18} />
+                      <input
+                        type="password"
+                        placeholder="Repeat master security key"
+                        style={styles.input}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        disabled={resetLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button type="button" onClick={() => setStep(1)} style={styles.modalSecondaryBtn} disabled={resetLoading}>Back</button>
+                    <button type="submit" style={styles.modalPrimaryBtnSave} disabled={resetLoading}>
+                      {resetLoading ? "Configuring..." : "Update Password"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+            </div>
+          </div>
+        )}
       </div>
   );
 }
 
+// ── 🔥 UPDATED OBJECT DESIGN STYLES ──
 const styles = {
-  container: {
-    display: 'flex',
-    minHeight: '100vh',
-    fontFamily: "'Inter', sans-serif",
-    backgroundColor: '#fff',
-  },
-  visualSide: {
-    flex: 1.2,
-    position: 'relative',
-    backgroundImage: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072")',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    padding: '40px',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.5) 100%)',
-  },
-  brandingContent: {
-    position: 'relative',
-    zIndex: 2,
-    maxWidth: '500px',
-  },
-  logoBadge: {
-    width: '64px',
-    height: '64px',
-    backgroundColor: '#ff4d4d',
-    borderRadius: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '24px',
-    boxShadow: '0 10px 20px rgba(255, 77, 77, 0.3)',
-  },
-  heroTitle: {
-    fontSize: '3.5rem',
-    fontWeight: '800',
-    marginBottom: '16px',
-    letterSpacing: '-1px',
-  },
-  heroSubtitle: {
-    fontSize: '1.1rem',
-    lineHeight: '1.6',
-    opacity: 0.9,
-    marginBottom: '40px',
-  },
-  statsContainer: {
-    display: 'flex',
-    gap: '30px',
-  },
-  statBox: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  statValue: {
-    fontSize: '1.5rem',
-    fontWeight: 'bold',
-  },
-  statLabel: {
-    fontSize: '0.8rem',
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
-    opacity: 0.7,
-  },
-  formSide: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8F7F4',
-    padding: '40px',
-  },
-  loginCard: {
-    width: '100%',
-    maxWidth: '420px',
-  },
-  formTitle: {
-    fontSize: '2rem',
-    fontWeight: '700',
-    color: '#1A1C1E',
-    marginBottom: '8px',
-  },
-  formSubtitle: {
-    color: '#666',
-    fontSize: '0.95rem',
-  },
-  errorBox: {
-    backgroundColor: '#fff1f1',
-    borderLeft: '4px solid #ff4d4d',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    color: '#c0392b',
-    fontSize: '0.9rem',
-    marginBottom: '24px',
-  },
-  inputGroup: {
-    marginBottom: '20px',
-  },
-  label: {
-    display: 'block',
-    fontSize: '0.85rem',
-    fontWeight: '600',
-    color: '#444',
-    marginBottom: '8px',
-  },
-  inputWrapper: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  icon: {
-    position: 'absolute',
-    left: '12px',
-    color: '#94a3b8',
-  },
-  input: {
-    width: '100%',
-    padding: '14px 14px 14px 44px',
-    borderRadius: '12px',
-    border: '1px solid #e2e8f0',
-    fontSize: '1rem',
-    outline: 'none',
-    transition: 'border-color 0.2s',
-  },
-  eyeBtn: {
-    position: 'absolute',
-    right: '12px',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#94a3b8',
-  },
-  forgotPass: {
-    fontSize: '0.8rem',
-    color: '#ff4d4d',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  submitBtn: {
-    width: '100%',
-    padding: '16px',
-    borderRadius: '12px',
-    backgroundColor: '#1A1C1E',
-    color: 'white',
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    border: 'none',
-    cursor: 'pointer',
-    marginTop: '10px',
-    boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
-    transition: 'all 0.2s',
-  },
-  footerText: {
-    textAlign: 'center',
-    marginTop: '40px',
-    fontSize: '0.75rem',
-    color: '#aaa',
-  }
+  container: { display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", backgroundColor: '#fff' },
+  visualSide: { flex: 1.2, position: 'relative', backgroundImage: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072")', backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', padding: '40px' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.5) 100%)' },
+  brandingContent: { position: 'relative', zIndex: 2, maxWidth: '500px' },
+  logoBadge: { width: '64px', height: '64px', backgroundColor: '#ff4d4d', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', boxShadow: '0 10px 20px rgba(255, 77, 77, 0.3)' },
+  heroTitle: { fontSize: '3.5rem', fontWeight: '800', marginBottom: '16px', letterSpacing: '-1px' },
+  heroSubtitle: { fontSize: '1.1rem', lineHeight: '1.6', opacity: 0.9, marginBottom: '40px' },
+  statsContainer: { display: 'flex', gap: '30px' },
+  statBox: { display: 'flex', flexDirection: 'column' },
+  statValue: { fontSize: '1.5rem', fontWeight: 'bold' },
+  statLabel: { fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.7 },
+  formSide: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F7F4', padding: '40px' },
+  loginCard: { width: '100%', maxWidth: '420px' },
+  formTitle: { fontSize: '2rem', fontWeight: '700', color: '#1A1C1E', marginBottom: '8px' },
+  errorBox: { backgroundColor: '#fff1f1', borderLeft: '4px solid #ff4d4d', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', color: '#c0392b', fontSize: '0.9rem', marginBottom: '24px' },
+  successBox: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #2ecc71', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', color: '#27ae60', fontSize: '0.9rem', marginBottom: '24px' },
+  inputGroup: { marginBottom: '20px' },
+  label: { display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#444', marginBottom: '8px', textAlign: 'left' },
+  inputWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
+  icon: { position: 'absolute', left: '12px', color: '#94a3b8' },
+  input: { width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem', outline: 'none', backgroundColor: '#fff' },
+  eyeBtn: { position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' },
+  forgotPass: { fontSize: '0.8rem', color: '#ff4d4d', fontWeight: '600', cursor: 'pointer' },
+  submitBtn: { width: '100%', padding: '16px', borderRadius: '12px', backgroundColor: '#1A1C1E', color: 'white', fontSize: '1.1rem', fontWeight: '700', border: 'none', cursor: 'pointer', marginTop: '10px', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' },
+  footerText: { textAlign: 'center', marginTop: '40px', fontSize: '0.75rem', color: '#aaa' },
+  
+  // ── 🔥 NEW MODAL SYSTEM STYLE SCHEMA ──
+  modalBackdrop: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.3)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
+  modalCard: { background: '#ffffff', width: '90%', maxWidth: '400px', padding: '36px', borderRadius: '24px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)', border: '1px solid #e2e8f0' },
+  modalCloseBtn: { position: 'absolute', top: '18px', right: '18px', border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' },
+  modalIconBadgeReset: { width: '54px', height: '54px', background: '#fff1f1', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' },
+  modalIconBadgeSuccess: { width: '54px', height: '54px', background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' },
+  modalTitleText: { fontWeight: '800', margin: 0, fontSize: '1.25rem', color: '#1A1C1E', letterSpacing: '-0.3px' },
+  modalSubTitleText: { color: '#64748b', fontSize: '0.85rem', marginTop: '6px', lineHeight: '1.4' },
+  modalSecondaryBtn: { flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', backgroundColor: '#fff', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', color: '#475569' },
+  modalPrimaryBtnReset: { flex: 1.5, padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#ff4d4d', color: '#fff', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 77, 77, 0.2)' },
+  modalPrimaryBtnSave: { flex: 1.5, padding: '12px', borderRadius: '10px', border: 'none', backgroundColor: '#1A1C1E', color: '#fff', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer' }
 };
 
 export default Login;
