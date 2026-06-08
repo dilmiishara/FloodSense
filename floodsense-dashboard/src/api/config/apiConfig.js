@@ -24,3 +24,5 @@ export const WEATHER_API = {
 
 // SafeLocations endpoint
 export const SAFE_LOCATIONS_API = "/safelocations";
+
+export const DASHBOARD_MASTER_API = "/dashboard/master-telemetry";
