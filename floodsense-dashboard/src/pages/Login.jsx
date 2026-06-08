@@ -11,7 +11,7 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // 🔒 FORGET PASSWORD MODAL STATES
+  //  FORGET PASSWORD MODAL STATES
   const [showResetModal, setShowResetModal] = useState(false);
   const [step, setStep] = useState(1); 
   const [resetEmail, setResetEmail] = useState("");
@@ -22,6 +22,10 @@ function Login() {
   const [modalError, setModalError] = useState("");
   const [modalSuccess, setModalSuccess] = useState("");
 
+  //  INPUT FOCUS STATES 
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -29,8 +33,6 @@ function Login() {
 
     try {
       const res = await api.post("/login", { email, password });
-
-      // Save token
       localStorage.setItem("token", res.data.token);
 
       let roleString = "";
@@ -54,14 +56,12 @@ function Login() {
 
     } catch (err) {
       console.error("Login error:", err);
-      
       setError(err.response?.data?.message || "Unauthorized access. Access restricted to Disaster Management personnel.");
     } finally {
       setIsLoading(false);
     }
   };
 
- 
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (!resetEmail) return setModalError("Please enter your registered email address.");
@@ -74,7 +74,7 @@ function Login() {
       await api.post("/forgot-password", { email: resetEmail });
       setModalSuccess("Verification key successfully dispatched to your email address!");
       setTimeout(() => {
-        setStep(2); // 
+        setStep(2); 
         setModalSuccess("");
       }, 1500);
     } catch (err) {
@@ -84,7 +84,6 @@ function Login() {
     }
   };
 
-  
   const handleVerifyAndReset = async (e) => {
     e.preventDefault();
     if (!otpCode || !newPassword || !confirmPassword) {
@@ -108,7 +107,6 @@ function Login() {
 
       setModalSuccess("Security password re-configured successfully! Closing...");
       setTimeout(() => {
-        
         setShowResetModal(false);
         setStep(1);
         setResetEmail("");
@@ -126,7 +124,6 @@ function Login() {
 
   return (
       <div style={styles.container}>
-        {/* Left Side: Visual/Branding Section */}
         <div style={styles.visualSide}>
           <div style={styles.overlay}></div>
           <div style={styles.brandingContent}>
@@ -151,29 +148,38 @@ function Login() {
           </div>
         </div>
 
-        {/* Right Side: Login Form */}
+        
         <div style={styles.formSide}>
-          <div style={styles.loginCard}>
-            <div style={{ marginBottom: '30px' }}>
+          <div style={styles.loginFormCard}>
+            
+            <div style={{ marginBottom: '28px', textAlign: 'center' }}>
               <h2 style={styles.formTitle}>System Login</h2>
+              <p style={styles.formSubtitle}>Provide administrative credentials to log in.</p>
             </div>
 
             {error && (
                 <div style={styles.errorBox}>
-                  <AlertCircle size={18} />
-                  <span>{error}</span>
+                  <AlertCircle size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
+                  <span style={{ lineHeight: "1.4" }}>{error}</span>
                 </div>
             )}
 
             <form onSubmit={handleLogin}>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Username</label>
-                <div style={styles.inputWrapper}>
-                  <Mail style={styles.icon} size={20} />
+                
+                <div style={{
+                  ...styles.inputWrapper,
+                  borderColor: emailFocused ? "#ff4d4d" : "#e2e8f0",
+                  boxShadow: emailFocused ? "0 0 0 4px rgba(255, 77, 77, 0.1)" : "none"
+                }}>
+                  <Mail style={{ ...styles.icon, color: emailFocused ? "#ff4d4d" : "#94a3b8" }} size={18} />
                   <input
                       type="email"
                       placeholder="admin@floodsense.gov.lk"
                       style={styles.input}
+                      onFocus={() => setEmailFocused(true)}
+                      onBlur={() => setEmailFocused(false)}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                   />
@@ -181,9 +187,8 @@ function Login() {
               </div>
 
               <div style={styles.inputGroup}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <label style={styles.label}>Password</label>
-                  
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ ...styles.label, marginBottom: 0 }}>Password</label>
                   <span 
                     onClick={() => { setShowResetModal(true); setStep(1); setModalError(""); setModalSuccess(""); }} 
                     style={styles.forgotPass}
@@ -191,12 +196,18 @@ function Login() {
                     Request Reset
                   </span>
                 </div>
-                <div style={styles.inputWrapper}>
-                  <Lock style={styles.icon} size={20} />
+                <div style={{
+                  ...styles.inputWrapper,
+                  borderColor: passwordFocused ? "#ff4d4d" : "#e2e8f0",
+                  boxShadow: passwordFocused ? "0 0 0 4px rgba(255, 77, 77, 0.1)" : "none"
+                }}>
+                  <Lock style={{ ...styles.icon, color: passwordFocused ? "#ff4d4d" : "#94a3b8" }} size={18} />
                   <input
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       style={styles.input}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                   />
@@ -205,13 +216,13 @@ function Login() {
                       onClick={() => setShowPassword(!showPassword)}
                       style={styles.eyeBtn}
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
 
               <button type="submit" disabled={isLoading} style={styles.submitBtn}>
-                {isLoading ? "Authenticating..." : "Login"}
+                {isLoading ? "Authenticating Gateway..." : "Login"}
               </button>
             </form>
 
@@ -226,35 +237,28 @@ function Login() {
           <div style={styles.modalBackdrop}>
             <div style={styles.modalCard}>
               
-              {/* Close Button */}
-              <button 
-                onClick={() => setShowResetModal(false)} 
-                style={styles.modalCloseBtn}
-                disabled={resetLoading}
-              >
+              <button onClick={() => setShowResetModal(false)} style={styles.modalCloseBtn} disabled={resetLoading}>
                 <X size={16} />
               </button>
 
-              {/* Modal Errors Display Panel */}
               {modalError && (
-                <div style={{ ...styles.errorBox, marginBottom: '16px', padding: '10px 14px' }}>
-                  <AlertCircle size={16} />
+                <div style={{ ...styles.errorBox, marginBottom: '16px', padding: '12px 16px' }}>
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: '0.85rem' }}>{modalError}</span>
                 </div>
               )}
 
-              {/* Modal Success Display Panel */}
               {modalSuccess && (
                 <div style={styles.successBox}>
-                  <ShieldCheck size={16} />
+                  <ShieldCheck size={16} style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: '0.85rem' }}>{modalSuccess}</span>
                 </div>
               )}
 
-              {/* ── STEP 1: REQUEST OTP LOOKUP ── */}
+              {/* REQUEST OTP LOOKUP */}
               {step === 1 ? (
                 <form onSubmit={handleSendOtp}>
-                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                     <div style={styles.modalIconBadgeReset}><Lock size={22} color="#ff4d4d" /></div>
                     <h3 style={styles.modalTitleText}>Recover Password</h3>
                     <p style={styles.modalSubTitleText}>Enter your registered gateway email to dispatch a security validation key.</p>
@@ -262,7 +266,7 @@ function Login() {
 
                   <div style={styles.inputGroup}>
                     <label style={styles.label}>Registered Email Address</label>
-                    <div style={styles.inputWrapper}>
+                    <div style={{ ...styles.inputWrapper, backgroundColor: '#fff', borderColor: '#e2e8f0', boxShadow: 'none' }}>
                       <Mail style={styles.icon} size={18} />
                       <input
                         type="email"
@@ -284,7 +288,7 @@ function Login() {
                   </div>
                 </form>
               ) : (
-                /* ── STEP 2: VERIFY OTP AND CHANGE PASSWORD ── */
+                /* VERIFY OTP AND CHANGE PASSWORD */
                 <form onSubmit={handleVerifyAndReset}>
                   <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                     <div style={styles.modalIconBadgeSuccess}><ShieldCheck size={22} color="#2ecc71" /></div>
@@ -294,7 +298,7 @@ function Login() {
 
                   <div style={styles.inputGroup}>
                     <label style={styles.label}>6-Digit Verification Token</label>
-                    <div style={styles.inputWrapper}>
+                    <div style={{ ...styles.inputWrapper, backgroundColor: '#fff', borderColor: '#e2e8f0', boxShadow: 'none' }}>
                       <KeyRound style={styles.icon} size={18} />
                       <input
                         type="text"
@@ -311,7 +315,7 @@ function Login() {
 
                   <div style={styles.inputGroup}>
                     <label style={styles.label}>New Security Password</label>
-                    <div style={styles.inputWrapper}>
+                    <div style={{ ...styles.inputWrapper, backgroundColor: '#fff', borderColor: '#e2e8f0', boxShadow: 'none' }}>
                       <Lock style={styles.icon} size={18} />
                       <input
                         type="password"
@@ -327,7 +331,7 @@ function Login() {
 
                   <div style={styles.inputGroup}>
                     <label style={styles.label}>Confirm Security Password</label>
-                    <div style={styles.inputWrapper}>
+                    <div style={{ ...styles.inputWrapper, backgroundColor: '#fff', borderColor: '#e2e8f0', boxShadow: 'none' }}>
                       <Lock style={styles.icon} size={18} />
                       <input
                         type="password"
@@ -357,9 +361,10 @@ function Login() {
   );
 }
 
-// ── 🔥 UPDATED OBJECT DESIGN STYLES ──
+// ── STYLES SCHEMA ──
 const styles = {
   container: { display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif", backgroundColor: '#fff' },
+  
   visualSide: { flex: 1.2, position: 'relative', backgroundImage: 'url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072")', backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', padding: '40px' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.5) 100%)' },
   brandingContent: { position: 'relative', zIndex: 2, maxWidth: '500px' },
@@ -370,22 +375,60 @@ const styles = {
   statBox: { display: 'flex', flexDirection: 'column' },
   statValue: { fontSize: '1.5rem', fontWeight: 'bold' },
   statLabel: { fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.7 },
+  
   formSide: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F7F4', padding: '40px' },
-  loginCard: { width: '100%', maxWidth: '420px' },
-  formTitle: { fontSize: '2rem', fontWeight: '700', color: '#1A1C1E', marginBottom: '8px' },
-  errorBox: { backgroundColor: '#fff1f1', borderLeft: '4px solid #ff4d4d', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', color: '#c0392b', fontSize: '0.9rem', marginBottom: '24px' },
-  successBox: { backgroundColor: '#f0fdf4', borderLeft: '4px solid #2ecc71', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', color: '#27ae60', fontSize: '0.9rem', marginBottom: '24px' },
+  loginFormCard: { 
+    width: '100%', 
+    maxWidth: '430px', 
+    backgroundColor: '#ffffff', 
+    padding: '40px', 
+    borderRadius: '24px', 
+    boxShadow: '0 10px 30px -10px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.02)',
+    border: '1px solid #e2e8f0'
+  },
+  formTitle: { fontSize: '1.9rem', fontWeight: '800', color: '#1A1C1E', marginBottom: '4px', letterSpacing: '-0.5px' },
+  formSubtitle: { color: '#64748b', fontSize: '0.88rem', fontWeight: '400' },
+  
+  // Sleek Custom Lockout Alert Banner 
+  errorBox: { 
+    backgroundColor: '#fff5f5', 
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#fee2e2',
+    padding: '12px 14px', 
+    borderRadius: '12px', 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '10px', 
+    color: '#e11d48', 
+    fontSize: '0.88rem', 
+    marginBottom: '24px',
+    fontWeight: '500'
+  },
+  successBox: { backgroundColor: '#f0fdf4', borderWidth: '1px', borderStyle: 'solid', borderColor: '#bbf7d0', padding: '12px 14px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', color: '#16a34a', fontSize: '0.88rem', marginBottom: '24px', fontWeight: '500' },
+  
+  // Inputs Core Design
   inputGroup: { marginBottom: '20px' },
   label: { display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#444', marginBottom: '8px', textAlign: 'left' },
-  inputWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
-  icon: { position: 'absolute', left: '12px', color: '#94a3b8' },
-  input: { width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem', outline: 'none', backgroundColor: '#fff' },
-  eyeBtn: { position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' },
-  forgotPass: { fontSize: '0.8rem', color: '#ff4d4d', fontWeight: '600', cursor: 'pointer' },
+  inputWrapper: { 
+    position: 'relative', 
+    display: 'flex', 
+    alignItems: 'center',
+    width: '100%',
+    backgroundColor: '#f8fafc',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderRadius: '12px',
+    transition: 'all 0.2s ease-in-out'
+  },
+  icon: { position: 'absolute', left: '14px', color: '#94a3b8', transition: 'color 0.2s' },
+  input: { width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', border: 'none', fontSize: '0.95rem', outline: 'none', backgroundColor: 'transparent', color: '#1A1C1E' },
+  eyeBtn: { position: 'absolute', right: '14px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' },
+  forgotPass: { fontSize: '0.8rem', color: '#ff4d4d', fontWeight: '600', cursor: 'pointer', transition: 'color 0.2s' },
   submitBtn: { width: '100%', padding: '16px', borderRadius: '12px', backgroundColor: '#1A1C1E', color: 'white', fontSize: '1.1rem', fontWeight: '700', border: 'none', cursor: 'pointer', marginTop: '10px', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' },
   footerText: { textAlign: 'center', marginTop: '40px', fontSize: '0.75rem', color: '#aaa' },
   
-  // ── 🔥 NEW MODAL SYSTEM STYLE SCHEMA ──
+  // Modal Layer Styles
   modalBackdrop: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.3)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
   modalCard: { background: '#ffffff', width: '90%', maxWidth: '400px', padding: '36px', borderRadius: '24px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)', border: '1px solid #e2e8f0' },
   modalCloseBtn: { position: 'absolute', top: '18px', right: '18px', border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' },
