@@ -32,6 +32,25 @@ export default function ThresholdTable() {
         }
     };
 
+    const LoadingView = ({ colSpan }) => (
+    <tr>
+        <td colSpan={colSpan} style={{ padding: "80px 40px", textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                    width: 32, height: 32,
+                    border: "4px solid var(--border)",
+                    borderTop: "4px solid var(--primary)",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite"
+                }}></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", letterSpacing: '0.8px' }}>
+                    LOADING THRESHOLD CONFIGURATIONS...
+                </div>
+            </div>
+        </td>
+    </tr>
+);
+
     const handleEditClick = (item) => {
         setEditItem({ ...item }); // Deep copy properties
         setIsDrawerOpen(true);
@@ -78,11 +97,7 @@ export default function ThresholdTable() {
         t.area?.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) return (
-        <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontWeight: 600 }}>
-            Loading Metrics Dashboard...
-        </div>
-    );
+
 
     return (
         <div style={{ position: 'relative', overflow: 'hidden' }}>
@@ -101,74 +116,74 @@ export default function ThresholdTable() {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>TYPE:</label>
                     <Select value={selectedParam} onChange={(e) => setSelectedParam(e.target.value)} style={{ width: '100%', height: '38px' }}>
-                        <option value="Water Level">💧 Water Level</option>
-                        <option value="Rainfall">🌧️ Rainfall Rate</option>
+                        <option value="Water Level">Water Level</option>
+                        <option value="Rainfall">Rainfall Rate</option>
                     </Select>
                 </div>
             </div>
 
-            {/* TABLE */}
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                    <tr style={{ textAlign: 'left', background: "var(--surface-alt)", borderBottom: `1.5px solid var(--border)` }}>
-                        <th style={thStyle}>Area & Location</th>
-                        <th style={thStyle}>Warning ({selectedParam === "Water Level" ? "m" : "mm"})</th>
-                        <th style={thStyle}>Critical ({selectedParam === "Water Level" ? "m" : "mm"})</th>
-                        <th style={thStyle}>Status</th>
-                        <th style={thStyle}>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredData.length > 0 ? (
-                        filteredData.map((t) => (
-                            <tr key={t.id} className="fadeUp" style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
-                                <td style={{ padding: '14px 12px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        {selectedParam === "Water Level" ? <Droplets size={16} color="#3498db"/> : <CloudRain size={16} color="#9b59b6"/>}
-                                        <div>
-                                            <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>{t.area?.name}</div>
-                                            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{selectedParam} Matrix</div>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <td style={{ padding: '14px 12px', fontFamily: "DM Mono", fontSize: '13px', fontWeight: 600 }}>
-                                    {selectedParam === "Water Level" ? (t.water_warning_level ?? 0) : (t.rain_warning_level ?? 0)}
-                                    <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>{selectedParam === "Water Level" ? "m" : "mm"}</span>
-                                </td>
-
-                                <td style={{ padding: '14px 12px', fontFamily: "DM Mono", color: "var(--red)", fontWeight: 700, fontSize: '13px' }}>
-                                    {selectedParam === "Water Level" ? (t.water_critical_level ?? 0) : (t.rain_critical_level ?? 0)}
-                                    <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>{selectedParam === "Water Level" ? "m" : "mm"}</span>
-                                </td>
-
-                                <td style={{ padding: '14px 12px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <div style={{ height: 6, background: "var(--border)", borderRadius: 3, width: 50, overflow: 'hidden' }}>
-                                            <div style={{ width: '100%', height: "100%", background: "var(--green)" }} />
-                                        </div>
-                                        <span style={{ fontSize: 9, fontWeight: 900, color: "var(--green)" }}>LIVE</span>
-                                    </div>
-                                </td>
-
-                                <td style={{ padding: '14px 12px' }}>
-                                    <button 
-                                        onClick={() => handleEditClick(t)} 
-                                        style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid var(--border)`, background: "var(--surface)", color: "var(--text-mid)", fontSize: 11, fontWeight: 800, cursor: "pointer", transition: 'all 0.2s' }}
-                                        onMouseEnter={(e) => { e.target.style.background = 'var(--surface-alt)'; e.target.style.borderColor = 'var(--text-muted)'; }}
-                                        onMouseLeave={(e) => { e.target.style.background = 'var(--surface)'; e.target.style.borderColor = 'var(--border)'; }}
-                                    >
-                                        Edit Config
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>No areas matches search.</td></tr>
-                    )}
-                </tbody>
-            </table>
-
+           {/* TABLE */}
+<table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <thead>
+        <tr style={{ textAlign: 'left', background: "var(--surface-alt)", borderBottom: `1.5px solid var(--border)` }}>
+            <th style={thStyle}>Area & Location</th>
+            <th style={thStyle}>Warning ({selectedParam === "Water Level" ? "m" : "mm"})</th>
+            <th style={thStyle}>Critical ({selectedParam === "Water Level" ? "m" : "mm"})</th>
+            <th style={thStyle}>Status</th>
+            <th style={thStyle}>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {loading ? (
+            <LoadingView colSpan={5} />
+        ) : filteredData.length > 0 ? (
+            filteredData.map((t) => (
+                <tr key={t.id} className="fadeUp" style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
+                    {/* ... ඔයාගේ ටේබල් රෝස් ටික එහෙමමයි ... */}
+                    <td style={{ padding: '14px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {selectedParam === "Water Level" ? <Droplets size={16} color="#3498db"/> : <CloudRain size={16} color="#9b59b6"/>}
+                            <div>
+                                <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>{t.area?.name}</div>
+                                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{selectedParam} Matrix</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style={{ padding: '14px 12px', fontFamily: "DM Mono", fontSize: '13px', fontWeight: 600 }}>
+                        {selectedParam === "Water Level" ? (t.water_warning_level ?? 0) : (t.rain_warning_level ?? 0)}
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>{selectedParam === "Water Level" ? "m" : "mm"}</span>
+                    </td>
+                    <td style={{ padding: '14px 12px', fontFamily: "DM Mono", color: "var(--red)", fontWeight: 700, fontSize: '13px' }}>
+                        {selectedParam === "Water Level" ? (t.water_critical_level ?? 0) : (t.rain_critical_level ?? 0)}
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 2 }}>{selectedParam === "Water Level" ? "m" : "mm"}</span>
+                    </td>
+                    <td style={{ padding: '14px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ height: 6, background: "var(--border)", borderRadius: 3, width: 50, overflow: 'hidden' }}>
+                                <div style={{ width: '100%', height: "100%", background: "var(--green)" }} />
+                            </div>
+                            <span style={{ fontSize: 9, fontWeight: 900, color: "var(--green)" }}>LIVE</span>
+                        </div>
+                    </td>
+                    <td style={{ padding: '14px 12px' }}>
+                        <button 
+                            onClick={() => handleEditClick(t)} 
+                            style={{ padding: "6px 14px", borderRadius: 8, border: `1.5px solid var(--border)`, background: "var(--surface)", color: "var(--text-mid)", fontSize: 11, fontWeight: 800, cursor: "pointer", transition: 'all 0.2s' }}
+                        >
+                            Edit Config
+                        </button>
+                    </td>
+                </tr>
+            ))
+        ) : (
+            <tr>
+                <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                    No areas match your search.
+                </td>
+            </tr>
+        )}
+    </tbody>
+</table>
             {/* ── 🔥 MODERN SIDE-DRAWER PANEL ── */}
             {/* Backdrop Overlay */}
             {isDrawerOpen && (
