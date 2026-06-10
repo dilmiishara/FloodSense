@@ -377,14 +377,14 @@ useEffect(() => {
                 </div>
               </div>
               <div style={{ display:"flex", gap:6 }}>
-                {["Next 6H","24H","48H","7 Days"].map((t) => (
+                {/* {["Next 6H","24H","48H","7 Days"].map((t) => (
                   <button key={t} onClick={() => setTime(t)} style={{
                     padding:"7px 14px", borderRadius:20, fontSize:12, fontWeight:700,
                     cursor:"pointer", border:`1.5px solid ${C.border}`,
                     background: timeRange === t ? C.dark : "#fff",
                     color:      timeRange === t ? "#fff" : C.mid,
                   }}>{t}</button>
-                ))}
+                ))} */}
               </div>
             </div>
 
@@ -404,14 +404,14 @@ useEffect(() => {
                       </div>
                     </div>
                     <div style={{ display:"flex", gap:6 }}>
-                      {["24H","48H","7D"].map((r) => (
+                      {/* {["24H","48H","7D"].map((r) => (
                         <button key={r} style={{
                           padding:"5px 14px", borderRadius:20, fontSize:11, fontWeight:700,
                           cursor:"pointer", border:`1.5px solid ${C.border}`,
                           background: r === "48H" ? C.dark : "#fff",
                           color:      r === "48H" ? "#fff" : C.mid,
                         }}>{r}</button>
-                      ))}
+                      ))} */}
                     </div>
                   </div>
 
@@ -532,7 +532,7 @@ useEffect(() => {
 
                 {/* Live card + Recommended Actions */}
                 <div className="fadeUp" style={{ display:"flex", gap:12, alignItems:"stretch" }}>
-                  <Card style={{ flex:1, padding:"16px 18px", display:"flex", flexDirection:"column" }}>
+                  {/* <Card style={{ flex:1, padding:"16px 18px", display:"flex", flexDirection:"column" }}>
                     <div style={{ display:"flex", alignItems:"flex-start",
                       justifyContent:"space-between", marginBottom:10 }}>
                       <div>
@@ -569,7 +569,7 @@ useEffect(() => {
                         </div>
                       ))}
                     </div>
-                  </Card>
+                  </Card> */}
 
                   <div style={{ width:400, background:C.dark, borderRadius:14, padding:18,
                     color:"#fff", boxShadow:C.shadow, display:"flex", flexDirection:"column" }}>

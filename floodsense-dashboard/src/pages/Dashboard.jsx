@@ -227,7 +227,7 @@ export default function Dashboard() {
 
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 20, overflowY: "auto", maxHeight: "calc(100vh - 100px)", paddingRight: 4 }}>
 
-            Alert Banner
+          
             <div className="fadeUp" style={{ 
               background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)", 
               color: "#fff", borderRadius: 12, padding: "14px 20px", 
