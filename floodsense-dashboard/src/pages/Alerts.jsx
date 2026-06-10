@@ -10,6 +10,7 @@ import ThresholdTable from "../components/ThresholdTable";
 import { useToast } from "../context/ToastContext";
 import NotificationRecipients from "../components/NotificationRecipients";
 
+
 export default function Alerts() {
     const toast = useToast();
     const [tab, setTab] = useState("active");
@@ -26,6 +27,8 @@ export default function Alerts() {
     const [selectedAlert, setSelectedAlert] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    const [dataFetched, setDataFetched] = useState({ active: false, history: false });
+
     const tabs = [
         { id: "active",     label: "Active Alerts"           },
         { id: "history",    label: "Alert History"            },
@@ -33,29 +36,30 @@ export default function Alerts() {
         { id: "recipients", label: "Notification Recipients"  },
     ];
 
-    useEffect(() => {
-        const initialLoad = async () => {
-            await Promise.all([loadData(), loadDivisions()]);
-            setLoading(false);
-        };
-        initialLoad();
-        const interval = setInterval(() => { loadData(); }, 30000);
-        return () => clearInterval(interval);
-    }, [tab]);
+   useEffect(() => {
+    if (!dataFetched[tab]) {
+        loadData();
+    }
+}, [tab]);
 
     const loadData = async () => {
-        try {
-            if (tab === "active") {
-                const res = await fetchActiveAlerts();
-                setActiveAlerts(res.data.data || res.data || []);
-            } else if (tab === "history") {
-                const res = await fetchAlertHistory();
-                setHistoryAlerts(res.data.data || res.data || []);
-            }
-        } catch (err) {
-            console.error("Failed to fetch alerts:", err);
+    setLoading(true); 
+    try {
+        if (tab === "active") {
+            const res = await fetchActiveAlerts();
+            setActiveAlerts(res.data.data || res.data || []);
+            setDataFetched(prev => ({ ...prev, active: true }));
+        } else if (tab === "history") {
+            const res = await fetchAlertHistory();
+            setHistoryAlerts(res.data.data || res.data || []);
+            setDataFetched(prev => ({ ...prev, history: true }));
         }
-    };
+    } catch (err) {
+        console.error("Failed to fetch alerts:", err);
+    } finally {
+        setLoading(false); 
+    }
+};
 
     const loadDivisions = async () => {
         try {
@@ -106,6 +110,25 @@ export default function Alerts() {
         return matchesSearch && matchesSeverity && matchesDivision;
     });
 
+    const LoadingView = ({ colSpan }) => (
+    <tr>
+        <td colSpan={colSpan} style={{ padding: "80px 40px", textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                    width: 32, height: 32,
+                    border: "4px solid var(--border)",
+                    borderTop: "4px solid var(--primary)",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite"
+                }}></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", letterSpacing: '0.8px' }}>
+                    SYNCHRONIZING INCIDENT DATA...
+                </div>
+            </div>
+        </td>
+    </tr>
+);
+
     const getSeverityConfig = (sev) => {
         const s = sev?.toLowerCase();
         if (s === 'critical') return { color: "var(--red)",    badge: 'critical', pulse: true, icon: <ShieldAlert size={16}/> };
@@ -130,7 +153,7 @@ export default function Alerts() {
                                     Real-time flood risk monitoring &amp; management
                                 </p>
                             </div>
-                            <Btn variant="red" style={{ borderRadius: 10, padding: '10px 20px' }}>Broadcast Alert</Btn>
+                            
                         </div>
 
                         {/* ── Stat Cards ── */}
@@ -199,10 +222,14 @@ export default function Alerts() {
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {filteredAlerts.length === 0 ? (
+                                    {loading ? (
+        
+                                        <LoadingView colSpan={6} />
+                                    ) : filteredAlerts.length === 0 ? (
+                                        
                                         <tr>
-                                            <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: "var(--text-muted)" }}>
-                                                No active alerts.
+                                            <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: "var(--text-muted)", fontStyle: 'italic' }}>
+                                                No active incidents found.
                                             </td>
                                         </tr>
                                     ) : filteredAlerts.map((a, i) => {
@@ -251,64 +278,65 @@ export default function Alerts() {
                         )}
 
                         {/* ══ HISTORY TAB ══ */}
-                        {tab === "history" && (
-                            <Card style={{ padding: 0, overflow: "hidden", minHeight: '200px' }}>
-                                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", gap: 10 }}>
-                                    <Input
-                                        placeholder="Search history…"
-                                        style={{ flex: 1 }}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                    />
-                                    <Select style={{ width: 160 }}><option>Last 24 Hours</option></Select>
-                                </div>
-
-                                {loading && historyAlerts.length === 0 ? (
-                                    <div style={{ padding: 40, textAlign: 'center', color: "var(--text-muted)" }}>
-                                        Loading history records...
+                            {tab === "history" && (
+                                <Card style={{ padding: 0, overflow: "hidden", minHeight: '200px' }}>
+                                    <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", gap: 10 }}>
+                                        <Input
+                                            placeholder="Search history…"
+                                            style={{ flex: 1 }}
+                                            onChange={e => setSearchTerm(e.target.value)}
+                                        />
+                                        <Select style={{ width: 160 }}><option>Last 24 Hours</option></Select>
                                     </div>
-                                ) : (
+
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
-                                        <tr style={{ background: "var(--surface-alt)", textAlign: 'left' }}>
-                                            <th style={{ padding: '14px', width: 40 }}></th>
-                                            <th style={thCell}>ALERT</th>
-                                            <th style={thCell}>LOCATION</th>
-                                            <th style={thCell}>STATUS</th>
-                                            <th style={thCell}>RESOLVED AT</th>
-                                        </tr>
+                                            <tr style={{ background: "var(--surface-alt)", textAlign: 'left' }}>
+                                                <th style={{ padding: '14px', width: 40 }}></th>
+                                                <th style={thCell}>ALERT</th>
+                                                <th style={thCell}>LOCATION</th>
+                                                <th style={thCell}>STATUS</th>
+                                                <th style={thCell}>RESOLVED AT</th>
+                                            </tr>
                                         </thead>
                                         <tbody>
-                                        {historyAlerts.length > 0 ? historyAlerts.map((a, i) => (
-                                            <tr key={i} className="fadeUp" style={{ borderBottom: "1px solid var(--border)" }}>
-                                                <td style={{ padding: '14px' }}>
-                                                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
-                                                </td>
-                                                <td style={{ padding: '14px' }}>
-                                                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{a.type}</div>
-                                                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{a.message}</div>
-                                                </td>
-                                                <td style={{ padding: '14px' }}>
-                                                    <Badge type="outline" style={{ fontWeight: 700 }}>{a.area?.name || a.location || "N/A"}</Badge>
-                                                </td>
-                                                <td style={{ padding: '14px' }}>
-                                                    <Badge type="active">RESOLVED</Badge>
-                                                </td>
-                                                <td style={{ padding: '14px', fontSize: 11, color: "var(--text-muted)", fontFamily: 'monospace' }}>
-                                                    {new Date(a.updated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                                                </td>
-                                            </tr>
-                                        )) : (
-                                            <tr>
-                                                <td colSpan="5" style={{ padding: 40, textAlign: 'center', color: "var(--text-muted)" }}>
-                                                    No history records found.
-                                                </td>
-                                            </tr>
-                                        )}
+                                            {loading ? (
+                                                
+                                                <LoadingView colSpan={5} />
+                                            ) : historyAlerts.length > 0 ? (
+                                                
+                                                historyAlerts.map((a, i) => (
+                                                    <tr key={i} className="fadeUp" style={{ borderBottom: "1px solid var(--border)" }}>
+                                                        <td style={{ padding: '14px' }}>
+                                                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
+                                                        </td>
+                                                        <td style={{ padding: '14px' }}>
+                                                            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{a.type}</div>
+                                                            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{a.message}</div>
+                                                        </td>
+                                                        <td style={{ padding: '14px' }}>
+                                                            <Badge type="outline" style={{ fontWeight: 700 }}>{a.area?.name || a.location || "N/A"}</Badge>
+                                                        </td>
+                                                        <td style={{ padding: '14px' }}>
+                                                            <Badge type="active">RESOLVED</Badge>
+                                                        </td>
+                                                        <td style={{ padding: '14px', fontSize: 11, color: "var(--text-muted)", fontFamily: 'monospace' }}>
+                                                            {new Date(a.updated_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                
+                                                <tr>
+                                                    <td colSpan="5" style={{ padding: 40, textAlign: 'center', color: "var(--text-muted)" }}>
+                                                        No history records found.
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
-                                )}
-                            </Card>
-                        )}
+                                </Card>
+                            )}
 
                         {/* ══ THRESHOLDS TAB ══ */}
                         {tab === "thresholds" && (
