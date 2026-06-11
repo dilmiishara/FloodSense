@@ -113,10 +113,10 @@ export default function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* 🔥 FIX 1: කවුරුහරි නිකන්ම මුල් පිටුවට ආවොත් ඔටෝමැටිකලි ලොගින් පිටුවට හරවා යැවීම */}
+                
                 <Route path="/" element={<Navigate to="/login" replace />} />
 
-                {/* 🔥 FIX 2: ලොගින් පාර හරියටම "/login" ලෙස වෙනස් කරන ලදී. දැන් ලොග් අවුට් එක සුපිරියටම වැඩ කරයි */}
+                
                 <Route path="/login" element={<Login />} />
                 
                 <Route
