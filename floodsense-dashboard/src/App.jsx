@@ -11,10 +11,12 @@ import Alerts from "./pages/Alerts.jsx";
 import Reports from "./pages/Reports.jsx";
 import Prediction from "./pages/Prediction.jsx";
 import Settings from "./pages/Settings.jsx";
-import AddLocation from "./pages/AddLocation.jsx";
+import AddLocation from "./pages/AddLocation";
 import Posts from "./pages/Posts.jsx";
 import Users from "./pages/ManageUsers.jsx"
 import { SettingsProvider } from './context/SettingsContext';
+import ProfileEdit from "./pages/ProfileEdit";
+import { ToastProvider } from "./context/ToastContext";
 
 // Auth
 import Login from "./pages/Login";
@@ -87,6 +89,12 @@ function MainApp() {
                     </ProtectedRoute>
                 } />
 
+                <Route path="profile" element={
+                    <ProtectedRoute>
+                        <ProfileEdit />
+                    </ProtectedRoute>
+                } />
+
                 <Route path="posts" element={
                     <ProtectedRoute>
                         <Posts posts={posts} loading={loading} />
@@ -105,24 +113,23 @@ export default function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Login */}
-                <Route path="/" element={<Login />} />
+                {/* 🔥 FIX 1: කවුරුහරි නිකන්ම මුල් පිටුවට ආවොත් ඔටෝමැටිකලි ලොගින් පිටුවට හරවා යැවීම */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
 
-                {/* Protected App */}
+                {/* 🔥 FIX 2: ලොගින් පාර හරියටම "/login" ලෙස වෙනස් කරන ලදී. දැන් ලොග් අවුට් එක සුපිරියටම වැඩ කරයි */}
+                <Route path="/login" element={<Login />} />
+                
                 <Route
                     path="/app/*"
                     element={
                         <ProtectedRoute>
                               <SettingsProvider>
-                                 <MainApp />
-                            </SettingsProvider>
+                                   <MainApp />
+                              </SettingsProvider>
                         </ProtectedRoute>
                     }
                 />
             </Routes>
         </BrowserRouter>
     );
-
-
-    
 }

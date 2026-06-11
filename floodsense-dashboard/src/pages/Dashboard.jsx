@@ -1,583 +1,517 @@
-// ─── Dashboard.jsx ───────────────────────────────────────────────────────────
-import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useState, useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { C, Card, Badge, Toggle, globalCSS, Header, Sidebar, Toast } from "../shared.jsx";
+import L from "leaflet";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { Card, globalCSS } from "../shared.jsx";
 import { useSettings } from "../context/SettingsContext";
+import { ShieldAlert, AlertTriangle, Thermometer, Droplets, Wind, Waves } from "lucide-react";
 
-// Fix for default marker icons in Leaflet + React
-import L from 'leaflet';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+// ── API Services & Hooks Imports ─────────────────────────────────────────────
+import { fetchMasterDashboardData } from "../api/services/alertService";
+import { useStationData } from "../hooks/useStationData";
+
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 let DefaultIcon = L.icon({ iconUrl: markerIcon, shadowUrl: markerShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// --- Custom Professional Styles ---
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCK IoT DEVICE DATA — your standalone physical IoT device
+// Not linked to any station or location.
+// Replace with your real API / WebSocket hook when backend is ready.
+// Shape: { deviceId, waterLevel, rainfall, humidity, temperature, updatedAt, signalStrength }
+// ─────────────────────────────────────────────────────────────────────────────
+const MOCK_IOT_DEVICE = {
+  deviceId:       "IOT-DEVICE-001",
+  waterLevel:     2.45,   // meters
+  rainfall:       18.7,   // mm/h
+  humidity:       85,     // %
+  temperature:    26.3,   // °C
+  updatedAt:      "09:42 AM",
+  signalStrength: 94,     // %
+};
+
+const STATION_COORDS = {
+  "Rathnapura": [6.6827, 80.3992],
+  "Ellagawa":   [6.7583, 80.2014],
+  "Putupaula":  [6.6111, 80.0528],
+};
+
+const STATION_THRESHOLDS = {
+  "Rathnapura": 5.20,
+  "Ellagawa":   10.00,
+  "Putupaula":  3.00,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 const proStyles = `
   @keyframes scan {
     0% { transform: translateY(-100%); opacity: 0; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.4; }
     100% { transform: translateY(100%); opacity: 0; }
   }
-  @keyframes pulse-red {
-    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(204, 34, 0, 0.5); }
+    70%  { box-shadow: 0 0 0 10px rgba(204, 34, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(204, 34, 0, 0); }
   }
-  @keyframes waveMove {
-    0% { transform: translateX(0) translateZ(0) scaleY(1) }
-    50% { transform: translateX(-25%) translateZ(0) scaleY(0.8) }
-    100% { transform: translateX(-50%) translateZ(0) scaleY(1) }
+  @keyframes emergency-radar {
+    0%   { background: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+    70%  { background: #b91c1c; box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    100% { background: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
   }
-  @keyframes lineDraw {
-    from { stroke-dashoffset: 300; }
-    to { stroke-dashoffset: 0; }
+  @keyframes iot-tick {
+    0%  { opacity: 1; }
+    50% { opacity: 0.35; }
+    100%{ opacity: 1; }
   }
-
-  /* --- STAT CARD STYLES --- */
-  .stat-card {
-    position: relative;
-    padding: 24px !important;
-    background: #ffffff !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(226, 232, 240, 0.8) !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01) !important;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  .shimmer-block {
+    background: linear-gradient(90deg, #f8fafc 25%, #f1f5f9 50%, #f8fafc 75%);
+    background-size: 200% 100%;
+    animation: shimmerAnim 2.5s infinite ease-in-out;
   }
-  .stat-card:hover {
-    transform: translateY(-4px);
-    border-color: #3b82f6 !important;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05) !important;
+  @keyframes shimmerAnim {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
   }
-  .stat-label {
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    color: #94a3b8;
-    margin-bottom: 8px;
+  @keyframes slideInFromRight {
+    0%   { transform: translateX(120%); opacity: 0; }
+    100% { transform: translateX(0);    opacity: 1; }
   }
-  .stat-value {
-    font-size: 42px;
-    font-weight: 900;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -1px;
+  .premium-toast {
+    position: fixed; top: 24px; right: 24px;
+    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+    color: #fff; padding: 16px 20px; border-radius: 14px;
+    border-left: 5px solid var(--red);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,.4), 0 10px 10px -5px rgba(0,0,0,.2), 0 0 0 1px rgba(225,29,72,.2);
+    z-index: 9999; width: 380px;
+    animation: slideInFromRight 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+    font-family: 'Inter', sans-serif;
   }
-  .stat-footer {
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .stat-bg-icon {
-    position: absolute;
-    right: -10px;
-    bottom: -10px;
-    font-size: 80px;
-    opacity: 0.04;
-    pointer-events: none;
-    transform: rotate(-15deg);
-  }
-
-  /* --- ROW ITEM STYLES --- */
+  .stat-card { position: relative; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(26,82,204,.12) !important; }
+  .stat-label  { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1.1px; color:var(--text-muted); margin-bottom:8px; }
+  .stat-value  { font-size:40px; font-weight:900; line-height:1; letter-spacing:-1.5px; }
+  .stat-footer { font-size:12px; font-weight:700; margin-top:10px; display:flex; align-items:center; gap:6px; }
+  .stat-bg-icon { position:absolute; right:-8px; bottom:-8px; font-size:72px; opacity:.05; pointer-events:none; transform:rotate(-15deg); }
   .row-item {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px;
-    border-radius: 12px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    margin-bottom: 4px;
-    border: 1px solid transparent;
+    display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:11px;
+    cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .18s ease;
   }
-  .row-item:hover {
-    background: #f8fafc;
-    border-color: #e2e8f0;
-    transform: translateX(4px);
-  }
-  .icon-box {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-    background: #f1f5f9;
-  }
-
-  .gauge-circle {
-    transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* --- TREND CHART ANIMATION --- */
-  .trend-line {
-    stroke-dasharray: 300;
-    stroke-dashoffset: 300;
-    animation: lineDraw 2s ease-out forwards;
-    animation-delay: 0.5s;
-  }
-  .trend-area {
-    opacity: 0;
-    transition: opacity 1s ease-in;
-    transition-delay: 1.5s;
-  }
-  .trend-point {
-    transition: r 0.3s ease;
-    cursor: pointer;
-  }
-  .trend-point:hover {
-    r: 4;
-  }
-
-  .pro-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(0,0,0,0.05) !important;
-  }
+  .row-item:hover { background:var(--surface-alt); border-color:var(--border); transform:translateX(3px); }
+  .icon-box { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
   .map-scanner {
-    position: absolute; top: 0; left: 0; width: 100%; height: 50px;
-    background: linear-gradient(to bottom, transparent, rgba(26, 82, 204, 0.1), transparent);
-    animation: scan 3s infinite linear;
-    pointer-events: none; z-index: 1000;
+    position:absolute; top:0; left:0; width:100%; height:50px;
+    background:linear-gradient(to bottom, transparent, rgba(26,82,204,.06), transparent);
+    animation:scan 3s infinite linear; pointer-events:none; z-index:1000;
   }
-  .live-dot {
-    width: 8px; height: 8px; background: #ef4444; border-radius: 50%;
-    display: inline-block; margin-right: 8px;
-    animation: pulse-red 2s infinite;
-  }
-  .wave-box {
-    position: relative; width: 110px; height: 110px; border-radius: 50%;
-    background: #e0f2fe; border: 4px solid #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    overflow: hidden; display: flex; align-items: center; justify-content: center;
-  }
-  .wave-fill {
-    position: absolute; bottom: 0; left: 0; width: 200%; height: 100%;
-    transition: top 2s cubic-bezier(0.4, 0, 0.2, 1);
-    animation: waveMove 4s linear infinite; transform-origin: center bottom;
-  }
-  .wave-fill-bg {
-    opacity: 0.4; animation: waveMove 6s linear infinite reverse;
-  }
+  .live-dot { width:8px; height:8px; background:var(--red); border-radius:50%; display:inline-block; margin-right:8px; animation:pulse-ring 2s infinite; }
+  .iot-live-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; display:inline-block; animation:iot-tick 2s infinite ease-in-out; }
+  .radar-emergency-node { animation: emergency-radar 1s infinite ease-in-out !important; }
 `;
 
+// ── Sidebar: Sensor Nodes + IoT Device in one 260px card ─────────────────────
+function LeftSidebar({ sensors, iotDevice }) {
+  const iotMetrics = [
+    { label: "Water Level", value: iotDevice.waterLevel.toFixed(2), unit: "m",    icon: <Waves      size={13} color="#1a52cc" />, iconBg: "rgba(26,82,204,.10)",  color: "#1a52cc", bar: Math.min(100,(iotDevice.waterLevel/10)*100),     barColor: iotDevice.waterLevel > 7 ? "#ef4444" : iotDevice.waterLevel > 4 ? "#f97316" : "#1a52cc" },
+    { label: "Rainfall",    value: iotDevice.rainfall,              unit: "mm/h", icon: <Droplets   size={13} color="#3b82f6" />, iconBg: "rgba(59,130,246,.10)",  color: "#3b82f6", bar: Math.min(100,(iotDevice.rainfall/50)*100),         barColor: "#3b82f6" },
+    { label: "Humidity",    value: iotDevice.humidity,              unit: "%",    icon: <Wind       size={13} color="#6366f1" />, iconBg: "rgba(99,102,241,.10)",  color: "#6366f1", bar: iotDevice.humidity,                                  barColor: iotDevice.humidity > 90 ? "#ef4444" : "#6366f1" },
+    { label: "Temp",        value: iotDevice.temperature,           unit: "°C",   icon: <Thermometer size={13} color="#f59e0b" />, iconBg: "rgba(245,158,11,.10)", color: "#f59e0b", bar: Math.min(100,((iotDevice.temperature-15)/25)*100),  barColor: iotDevice.temperature > 35 ? "#ef4444" : "#f59e0b" },
+  ];
+
+  return (
+    <Card style={{ width: 260, flexShrink: 0, padding: "18px 16px", backgroundColor: "#fff", border: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: 0 }}>
+
+      {/* ── Section A: Station Sensor Nodes ── */}
+      <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-muted)", marginBottom: 12, display: "flex", justifyContent: "space-between", textTransform: "uppercase", letterSpacing: ".6px" }}>
+        Active Sensor Nodes
+        <span style={{ background: "var(--primary-bg)", color: "var(--primary)", padding: "2px 8px", borderRadius: 8, fontWeight: 800, fontSize: 10 }}>{sensors.length}</span>
+      </div>
+
+      {sensors.map((s, i) => (
+        <div key={i} style={{
+          background: s.status === "critical" ? "var(--red-bg)" : "var(--surface-alt)",
+          borderRadius: 11, padding: "11px 13px", marginBottom: 7,
+          border: `1px solid ${s.status === "critical" ? "rgba(225,29,72,.15)" : "#f1f5f9"}`,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, display: "flex", justifyContent: "space-between", color: "#0f172a" }}>
+            <span>
+              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: s.color, marginRight: 7, verticalAlign: "middle" }} />
+              {s.name}
+            </span>
+            <span style={{ fontWeight: 800, color: s.color }}>{s.actualLevel.toFixed(2)}m</span>
+          </div>
+          <div style={{ height: 4, background: "#f1f5f9", borderRadius: 3, marginTop: 9, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${s.pct}%`, background: s.color, transition: "width 1.5s ease" }} />
+          </div>
+          <div style={{ fontSize: 8, color: "var(--text-muted)", marginTop: 4, textAlign: "right", fontWeight: 700, fontFamily: "monospace" }}>
+            TS: {s.time}
+          </div>
+        </div>
+      ))}
+
+      {/* ── Divider ── */}
+      <div style={{ borderTop: "1px solid #f1f5f9", margin: "10px 0" }} />
+
+      {/* ── Section B: Standalone IoT Device ── */}
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 7, background: "linear-gradient(135deg,#1a52cc,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Waves size={12} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: ".5px" }}>IoT Device</div>
+            <div style={{ fontSize: 8.5, color: "#94a3b8", fontWeight: 700, fontFamily: "monospace" }}>{iotDevice.deviceId}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span className="iot-live-dot" />
+          <span style={{ fontSize: 9, fontWeight: 800, color: "#22c55e" }}>{iotDevice.signalStrength}%</span>
+        </div>
+      </div>
+
+      {/* 2×2 metric grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+        {iotMetrics.map((m, i) => (
+          <div key={i} style={{ background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 10, padding: "10px 11px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 7 }}>
+              <div style={{ width: 22, height: 22, borderRadius: 6, background: m.iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {m.icon}
+              </div>
+              <span style={{ fontSize: 8.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: ".4px" }}>{m.label}</span>
+            </div>
+            <div style={{ fontSize: 19, fontWeight: 900, color: m.color, letterSpacing: "-.8px", lineHeight: 1 }}>
+              {m.value}<span style={{ fontSize: 9.5, fontWeight: 700, color: "#94a3b8", marginLeft: 2 }}>{m.unit}</span>
+            </div>
+            <div style={{ height: 3, background: "#e2e8f0", borderRadius: 2, overflow: "hidden", marginTop: 8 }}>
+              <div style={{ height: "100%", width: `${m.bar}%`, background: m.barColor, borderRadius: 2, transition: "width 1.5s ease" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Last updated */}
+      <div style={{ marginTop: 10, textAlign: "right", fontSize: 8.5, color: "#94a3b8", fontWeight: 700, fontFamily: "monospace" }}>
+        UPDATED: {iotDevice.updatedAt}
+      </div>
+
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [isLoaded, setIsLoaded] = useState(false);
-   const { systemSettings } = useSettings();
-  const isEmergency    = systemSettings.emergency_mode;
-  const isMaintenance  = systemSettings.maintenance_mode;
+  const [isLoaded, setIsLoaded]         = useState(false);
+  const { systemSettings }              = useSettings();
+  const isEmergency                     = systemSettings.emergency_mode;
+  const isMaintenance                   = systemSettings.maintenance_mode;
+
+  const [criticalCount, setCriticalCount]   = useState(0);
+  const [liveAlerts,    setLiveAlerts]      = useState([]);
+  const [totalShelters, setTotalShelters]   = useState(0);
+  const [activeShelters,setActiveShelters]  = useState(0);
+  const [liveShelters,  setLiveShelters]    = useState([]);
+
+  // IoT device state — swap MOCK_IOT_DEVICE for your real hook when ready
+  const [iotDevice, setIotDevice] = useState(MOCK_IOT_DEVICE);
+
+  const [activeToast,    setActiveToast]    = useState(null);
+  const [currentToastIdx,setCurrentToastIdx]= useState(0);
+  const processedAlertIds = useRef(new Set());
+  const rawStationData    = useStationData();
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 150);
-    return () => clearTimeout(timer);
+    const loadData = async () => {
+      try {
+        const res  = await fetchMasterDashboardData();
+        const data = res.data;
+        setCriticalCount(data.critical_count    || 0);
+        setLiveAlerts(  data.recent_alerts      || []);
+        setTotalShelters(data.total_shelters    || 0);
+        setActiveShelters(data.active_shelters  || 0);
+        setLiveShelters(  data.recent_shelters  || []);
+        const criticals = (data.recent_alerts || []).filter(a => a.severity?.toLowerCase() === 'critical');
+        const newAlerts = criticals.filter(a => !processedAlertIds.current.has(a.id));
+        if (newAlerts.length > 0) {
+          newAlerts.forEach(a => processedAlertIds.current.add(a.id));
+          setActiveToast(newAlerts);
+          setCurrentToastIdx(0);
+          try { new Audio("/alert.mp3").play(); } catch(e) {}
+        }
+      } catch(err) { console.error(err); } finally { setIsLoaded(true); }
+    };
+    loadData();
+    const iv = setInterval(loadData, 30000);
+    return () => clearInterval(iv);
   }, []);
 
+  useEffect(() => {
+    if (!isLoaded || liveAlerts.length === 0) return;
+    const criticals = liveAlerts.filter(a => a.severity?.toLowerCase() === 'critical');
+    const seenIds   = JSON.parse(sessionStorage.getItem('seenAlertIds') || '[]');
+    const newAlerts = criticals.filter(a => !seenIds.includes(a.id));
+    if (newAlerts.length > 0) {
+      sessionStorage.setItem('seenAlertIds', JSON.stringify([...seenIds, ...newAlerts.map(a => a.id)]));
+      setActiveToast(newAlerts);
+      setCurrentToastIdx(0);
+      try { new Audio("/alert.mp3").play(); } catch(e) {}
+    }
+  }, [liveAlerts, isLoaded]);
+
+  useEffect(() => {
+    if (!activeToast || activeToast.length === 0) return;
+    const hideTimer = setTimeout(() => setActiveToast(null), 10000);
+    let carouselIv  = null;
+    if (activeToast.length > 1) {
+      carouselIv = setInterval(() => setCurrentToastIdx(p => (p + 1) % activeToast.length), 2500);
+    }
+    return () => { clearTimeout(hideTimer); if (carouselIv) clearInterval(carouselIv); };
+  }, [activeToast]);
+
+  const sensors = rawStationData.map(s => {
+    const threshold   = STATION_THRESHOLDS[s.name] || 5.00;
+    const computedPct = Math.min(100, Math.round((s.level / threshold) * 100));
+    let uiColor = "var(--green)";
+    if (s.status === "critical") uiColor = "var(--red)";
+    else if (s.status === "warning") uiColor = "var(--orange)";
+    return { name: s.name, pct: computedPct, actualLevel: s.level, color: uiColor, coords: STATION_COORDS[s.name] || [6.55,80.60], status: s.status, time: s.time };
+  });
+
   const stats = [
-    { label: "Active Sensors",     value: "05", sub: "All Systems Nominal", subColor: C.green,  icon: "" },
-    { label: "Critical Alerts",    value: "03", sub: "High Risk Priority",  subColor: C.red,    valColor: C.red,    icon: "" },
-    { label: "Affected Areas",     value: "06", sub: "Trend Increasing",    subColor: C.orange, valColor: C.orange, icon: "" },
-    { label: "Safe Locations",     value: "12", sub: "8/12 Operational",    subColor: C.green,  valColor: C.green,  icon: "" },
+    { label: "Active Sensors",  value: sensors.length < 10 ? `0${sensors.length}` : sensors.length, sub: "Kalu Ganga Basin Live",             subColor: "var(--green)",   icon: "📡" },
+    { label: "Critical Alerts", value: criticalCount < 10  ? `0${criticalCount}`  : criticalCount,  sub: "High Risk Priority",                subColor: "var(--red)",     valColor: "var(--red)",     icon: "🚨" },
+    { label: "Affected Areas",  value: "06",                                                          sub: "Trend Increasing",                 subColor: "var(--orange)",  valColor: "var(--orange)",  icon: "🗺️" },
+    { label: "Safe Locations",  value: totalShelters < 10  ? `0${totalShelters}`  : totalShelters,  sub: `${activeShelters}/${totalShelters} Operational`, subColor: "var(--primary)", valColor: "var(--primary)", icon: "🛡️" },
   ];
 
-  const recentAlerts = [
-    { icon: "", bg: "rgba(239, 68, 68, 0.1)",  color: "#ef4444", title: "Flood Threshold Exceeded",  desc: "Ratnapura: Water level 4.8m (92%)",      time: "14:32", level: "CRITICAL" },
-    { icon: "", bg: "rgba(239, 68, 68, 0.1)",  color: "#ef4444", title: "Critical Rise Rate",        desc: "Nivithigala: Predicted critical in 2.5hrs", time: "14:18", level: "CRITICAL" },
-    { icon: "", bg: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", title: "Heavy Rainfall Warning",    desc: "Embilipitiya: 142mm expected / 6h",           time: "13:55", level: "WARNING" },
-    { icon: "", bg: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", title: "Sensor Signal Weak",        desc: "Kolonna: Check local connectivity",    time: "13:20", level: "INFO" },
+  const chartData = [
+    { time: "-6h", rainfall: 45 }, { time: "-5h", rainfall: 52 },
+    { time: "-4h", rainfall: 48 }, { time: "-3h", rainfall: 85 },
+    { time: "-2h", rainfall: 118},{ time: "-1h", rainfall: 130},
+    { time: "NOW", rainfall: 142},
   ];
 
-  const sensors = [
-    { name: "Ratnapura",    pct: 87, color: C.red,    pulse: true, coords: [6.68, 80.40] },
-    { name: "Balangoda",    pct: 74, color: C.orange, pulse: true, coords: [6.58, 80.00] },
-    { name: "Kahawatta",    pct: 55, color: C.orange, coords: [6.93, 79.85] },
-    { name: "Embilipitiya", pct: 38, color: C.yellow, coords: [7.29, 80.63] },
-    { name: "Kolonna",      pct: 12, color: C.green,  coords: [9.66, 80.02] },
-  ];
+  const getSeverityHelper = sev => {
+    if (sev?.toLowerCase() === 'critical') return { bg: "rgba(225,29,72,.08)", color: "#e11d48", icon: <ShieldAlert size={18} color="#e11d48" /> };
+    return { bg: "rgba(245,158,11,.08)", color: "#d97706", icon: <AlertTriangle size={18} color="#d97706" /> };
+  };
 
-  const safeZones = [
-    { icon: "", name: "Ratnapura Central School", cap: "240 cap", status: "Active", color: C.green },
-    { icon: "", name: "Kolonna District Ground",  cap: "500 cap", status: "Active", color: C.green },
-    { icon: "", name: "Kahawatta National Hospital", cap: "120 cap", status: "Full",   color: C.red },
-    { icon: "", name: "Ayagama Community Hall", cap: "180 cap", status: "Active", color: C.green },
-  ];
+  const BannerBase = ({ gradient, glowColor, label, message, badge }) => (
+    <div className="fadeUp" style={{ background: gradient, color: "#fff", borderRadius: 13, padding: "14px 20px", display: "flex", alignItems: "center", gap: 14, boxShadow: `0 8px 24px -4px ${glowColor}` }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 800, opacity: .85, textTransform: "uppercase", letterSpacing: .6, marginBottom: 3 }}>{label}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{message}</div>
+      </div>
+      <div style={{ fontSize: 10, fontWeight: 800, padding: "4px 11px", borderRadius: 7, background: "rgba(255,255,255,.2)", border: "1px solid rgba(255,255,255,.3)", whiteSpace: "nowrap" }}>{badge}</div>
+    </div>
+  );
 
-  const gauges = [
-    { label: "CPU LOAD", pct: 75, color: C.green, size: 85 },
-    { label: "RAM USAGE", pct: 38, color: "#3b82f6", size: 65 },
-  ];
+  if (!isLoaded || rawStationData[0]?.loading) {
+    return (
+      <>
+        <style>{proStyles}</style>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "4px 0" }}>
+          <div className="shimmer-block" style={{ height: 60, width: "100%", borderRadius: 13 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+            {[1,2,3,4].map(i => <div key={i} className="shimmer-block" style={{ height: 110, borderRadius: 16 }} />)}
+          </div>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div className="shimmer-block" style={{ width: 260, height: 420, flexShrink: 0, borderRadius: 16 }} />
+            <div className="shimmer-block" style={{ flex: 1, height: 420, borderRadius: 16 }} />
+          </div>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div className="shimmer-block" style={{ flex: 1.4, height: 230, borderRadius: 16 }} />
+            <div className="shimmer-block" style={{ flex: 1,   height: 230, borderRadius: 16 }} />
+            <div className="shimmer-block" style={{ flex: 1,   height: 230, borderRadius: 16 }} />
+          </div>
+        </div>
+      </>
+    );
+  }
 
-  const healthRows = [
-    { key: "Uptime",     val: "99.8%",   color: C.green },
-    { key: "Latency",    val: "24ms",    color: C.green },
-    { key: "Server",     val: "Cloud-01", color: C.dark },
-  ];
+  const currentToast            = activeToast ? activeToast[currentToastIdx] : null;
+  const hasActiveCriticalAlerts = liveAlerts.some(a => a.severity?.toLowerCase() === 'critical');
 
   return (
     <>
       <style>{globalCSS}</style>
       <style>{proStyles}</style>
-      <div style={{ minHeight: "100vh", background: "#f0ede8", color: "#1e293b" }}>
 
-        <div style={{ display: "flex", margin: "16px 20px" }}>
-
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 20, overflowY: "auto", maxHeight: "calc(100vh - 100px)", paddingRight: 4 }}>
-
-          
-            <div className="fadeUp" style={{ 
-              background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)", 
-              color: "#fff", borderRadius: 12, padding: "14px 20px", 
-              display: "flex", alignItems: "center", gap: 12, 
-              boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.3)" 
-            }}>
-              <span style={{ fontSize: 20 }}></span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, textTransform: 'uppercase' }}>System Alert</div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>Ratnapura Sector: Water levels exceeding 90% threshold. Monitoring active.</div>
+      {/* ── LIVE TOAST ── */}
+      {activeToast && currentToast && (
+        <div className="premium-toast">
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{ fontSize: 18, marginTop: -1 }}></div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "var(--red)", textTransform: "uppercase", letterSpacing: ".8px" }}>SYSTEM EMERGENCY NOTICE</span>
+                {activeToast.length > 1 && (
+                  <span style={{ background: "rgba(225,29,72,.2)", color: "var(--red)", fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 6, marginLeft: "auto" }}>
+                    {currentToastIdx + 1}/{activeToast.length} ALERTS
+                  </span>
+                )}
               </div>
-              <Badge style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)" }}>3 ACTIVE INCIDENTS</Badge>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 2, letterSpacing: "-.2px" }}>{currentToast.type || "CRITICAL FLOOD ALERT"}</div>
+              <div style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 500, lineHeight: 1.4 }}>
+                <strong style={{ color: "#fff" }}>[{currentToast.area?.name || currentToast.location || 'Sector'}]</strong> {currentToast.message}
+              </div>
             </div>
+            <button onClick={() => setActiveToast(null)} style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", fontSize: 13, fontWeight: 700, padding: "0 2px" }}>✕</button>
+          </div>
+        </div>
+      )}
 
-            {/* ── EMERGENCY BANNER — shows when emergency mode is ON ── */}
-{isEmergency && (
-  <div className="fadeUp" style={{
-    background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
-    color: "#fff", borderRadius: 12, padding: "14px 20px",
-    display: "flex", alignItems: "center", gap: 12,
-    boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.3)",
-    animation: "pulse-red 2s infinite",
-  }}>
-   
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, textTransform: "uppercase" }}>
-        ⚠ Emergency Mode Active
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 600 }}>
-        All thresholds overridden. Broadcasting to all channels. Immediate action required.
-      </div>
-    </div>
-    <span style={{
-      fontSize: 10, fontWeight: 800, padding: "4px 10px",
-      borderRadius: 6, background: "rgba(255,255,255,0.2)",
-      border: "1px solid rgba(255,255,255,0.3)",
-    }}>
-      EMERGENCY
-    </span>
-  </div>
-)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-{/* ── MAINTENANCE BANNER — shows when maintenance mode is ON ── */}
-{/* maintanace mode on */}
-{isMaintenance && (
-  <div className="fadeUp" style={{
-    background: "linear-gradient(90deg, #f59e0b 0%, #b45309 100%)",
-    color: "#fff", borderRadius: 12, padding: "14px 20px",
-    display: "flex", alignItems: "center", gap: 12,
-    boxShadow: "0 10px 15px -3px rgba(245, 158, 11, 0.3)",
-  }}>
-   
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, textTransform: "uppercase" }}>
-      ⚠ Maintenance Mode Active
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 600 }}>
-        All alerts suppressed during scheduled maintenance. Monitoring continues in background.
-      </div>
-    </div>
-    <span style={{
-      fontSize: 10, fontWeight: 800, padding: "4px 10px",
-      borderRadius: 6, background: "rgba(255,255,255,0.2)",
-      border: "1px solid rgba(255,255,255,0.3)",
-    }}>
-      MAINTENANCE
-    </span>
-  </div>
-)}
-
-{/* ── DEFAULT BANNER — shows when both are OFF ── */}
-{/* {!isEmergency && !isMaintenance && (
-  <div className="fadeUp" style={{
-    background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
-    color: "#fff", borderRadius: 12, padding: "14px 20px",
-    display: "flex", alignItems: "center", gap: 12,
-    boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.3)",
-  }}>
-    <span style={{ fontSize: 20 }}>⚠️</span>
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9, textTransform: "uppercase" }}>
-        System Alert
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 600 }}>
-        Ratnapura Sector: Water levels exceeding 90% threshold. Monitoring active.
-      </div>
-    </div>
-    <span style={{
-      fontSize: 10, fontWeight: 800, padding: "4px 10px",
-      borderRadius: 6, background: "rgba(255,255,255,0.2)",
-      border: "1px solid rgba(255,255,255,0.3)",
-    }}>
-      3 ACTIVE INCIDENTS
-    </span>
-  </div>
-)} */}
-
-
-            {/* STAT CARDS ROW */}
-            <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20 }}>
-              {stats.map((s, i) => (
-                <Card key={i} className="stat-card">
-                  <div className="stat-bg-icon">{s.icon}</div>
-                  <div className="stat-label">{s.label}</div>
-                  <div className="stat-value" style={{ color: s.valColor || "#0f172a" }}>
-                    {s.value}
-                  </div>
-                  <div className="stat-footer" style={{ color: s.subColor }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.subColor, display: 'inline-block' }} />
-                    {s.sub}
-                  </div>
-                </Card>
-              ))}
+        {/* ── EMERGENCY BAR ── */}
+        {hasActiveCriticalAlerts && (
+          <div className="fadeUp" style={{ background: "rgba(225,29,72,.06)", border: "1px solid rgba(225,29,72,.2)", borderRadius: 12, padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="radar-emergency-node" style={{ width: 10, height: 10, borderRadius: "50%", display: "inline-block" }} />
+              <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--red)", textTransform: "uppercase", letterSpacing: ".6px" }}>Active Disaster Mitigation Protocol Engaged</span>
             </div>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "var(--red)", background: "rgba(225,29,72,.15)", padding: "2px 8px", borderRadius: 6 }}>
+              {liveAlerts.filter(a => a.severity?.toLowerCase() === 'critical').length} CRITICAL THREATS LIVE
+            </span>
+          </div>
+        )}
 
-            {/* Interactive Workspace Row */}
-            <div className="fadeUp" style={{ display: "flex", gap: 20 }}>
-              {/* Sensor List */}
-              <Card className="pro-card" style={{ width: 240, flexShrink: 0, padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-                  SENSOR NODES <span style={{ color: C.mid }}>{sensors.length}</span>
-                </div>
+        {/* ── MODE BANNERS ── */}
+        {isEmergency && <BannerBase gradient="linear-gradient(90deg,#b91c1c,#7f1d1d)" glowColor="rgba(185,28,28,.20)" label="⚠ Emergency Mode Active" message="All thresholds overridden. Broadcasting to all channels. Immediate action required." badge="EMERGENCY" />}
+        {isMaintenance && <BannerBase gradient="linear-gradient(90deg,var(--orange),#92400e)" glowColor="rgba(224,120,0,.15)" label="⚠ Maintenance Mode Active" message="All alerts suppressed during scheduled maintenance." badge="MAINTENANCE" />}
+
+        {/* ── STAT CARDS ── */}
+        <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+          {stats.map((s, i) => (
+            <Card key={i} className="stat-card" style={{ padding: "22px 22px 18px", backgroundColor: "#fff", border: "1px solid #f1f5f9" }}>
+              <div className="stat-bg-icon">{s.icon}</div>
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-value" style={{ color: s.valColor || "var(--text)" }}>{s.value}</div>
+              <div className="stat-footer" style={{ color: s.subColor }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.subColor, display: "inline-block", flexShrink: 0 }} />
+                {s.sub}
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* ── MAP ROW — left sidebar now holds BOTH sensor nodes + IoT device ── */}
+        <div className="fadeUp" style={{ display: "flex", gap: 16 }}>
+
+          {/* Combined left sidebar */}
+          <LeftSidebar sensors={sensors} iotDevice={iotDevice} />
+
+          {/* Map */}
+          <Card style={{ flex: 1, padding: 0, overflow: "hidden", position: "relative", backgroundColor: "#fff", border: "1px solid #f1f5f9", borderRadius: 16 }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff" }}>
+              <div style={{ fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", color: "#0f172a", letterSpacing: ".5px" }}>
+                <span className="live-dot" /> LIVE GEO-OPERATIONS DATA WINDOW
+              </div>
+            </div>
+            <div style={{ height: "calc(100% - 49px)", minHeight: 380, position: "relative" }}>
+              <div className="map-scanner" />
+              <MapContainer center={[6.65, 80.25]} zoom={10} style={{ height: "100%", width: "100%" }} zoomControl={false}>
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
                 {sensors.map((s, i) => (
-                  <div key={i} style={{ 
-                    background: i < 2 ? "rgba(239, 68, 68, 0.03)" : "#fff", 
-                    borderRadius: 10, padding: "12px", marginBottom: 8, 
-                    border: `1px solid ${i < 2 ? "rgba(239, 68, 68, 0.1)" : "#f1f5f9"}` 
-                  }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span><span className={s.pulse ? "pulse" : ""} style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: s.color, marginRight: 8 }} />{s.name}</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.pct}%</span>
-                    </div>
-                    <div style={{ height: 4, background: "#f1f5f9", borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
-                       <div style={{ height: '100%', width: isLoaded ? `${s.pct}%` : '0%', background: s.color, transition: 'width 1.5s ease' }} />
-                    </div>
-                  </div>
-                ))}
-              </Card>
-
-              {/* Water Depth Wave Gauges */}
-              <div style={{ display: 'flex', gap: 20 }}>
-                <Card className="pro-card" style={{ width: 185, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, #fff 0%, #fff5f5 100%)', border: '1px solid rgba(230, 57, 70, 0.2) !important' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 14, letterSpacing: '0.5px' }}>DEPTH: SECTOR A2</div>
-                  <div className="wave-box">
-                    <div className="wave-fill" style={{ top: isLoaded ? `${100 - sensors[0].pct}%` : '100%', background: 'linear-gradient(180deg, #e63946 0%, #9d0208 100%)' }} />
-                    <div className="wave-fill wave-fill-bg" style={{ top: isLoaded ? `${100 - sensors[0].pct}%` : '100%' }} />
-                    <div style={{ zIndex: 10, textAlign: 'center' }}>
-                      <div style={{ fontSize: 26, fontWeight: 900, color: '#fff' }}>{sensors[0].pct}%</div>
-                      <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: '1px', color: '#fff' }}>CRITICAL</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span className="pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: '#e63946' }} />
-                    <span style={{ fontSize: 11, fontWeight: 800 }}>{sensors[0].name}</span>
-                  </div>
-                </Card>
-
-                <Card className="pro-card" style={{ width: 185, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, #fff 0%, #fffcf5 100%)', border: '1px solid rgba(251, 133, 0, 0.2) !important' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 14, letterSpacing: '0.5px' }}>DEPTH: SECTOR B1</div>
-                  <div className="wave-box">
-                    <div className="wave-fill" style={{ top: isLoaded ? `${100 - sensors[1].pct}%` : '100%', background: 'linear-gradient(180deg, #fb8500 0%, #ffb703 100%)' }} />
-                    <div className="wave-fill wave-fill-bg" style={{ top: isLoaded ? `${100 - sensors[1].pct}%` : '100%' }} />
-                    <div style={{ zIndex: 10, textAlign: 'center' }}>
-                      <div style={{ fontSize: 26, fontWeight: 900, color: '#fff' }}>{sensors[1].pct}%</div>
-                      <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: '1px', color: '#fff' }}>WARNING</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fb8500' }} />
-                    <span style={{ fontSize: 11, fontWeight: 800 }}>{sensors[1].name}</span>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Map View */}
-              <Card className="pro-card" style={{ flex: 1, padding: 0, overflow: "hidden", position: 'relative' }}>
-                <div style={{ padding: "14px 20px", borderBottom: `1px solid #f1f5f9`, display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center' }}>
-                    <span className="live-dot" /> LIVE OPERATIONS MAP
-                  </div>
-                </div>
-                <div style={{ height: 340, position: 'relative' }}>
-                  <div className="map-scanner" />
-                  <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: "100%", width: "100%" }} zoomControl={false}>
-                    <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-                    {sensors.map((s, i) => (
-                      <Marker key={i} position={s.coords}>
-                        <Popup>
-                          <div style={{ padding: 4 }}>
-                            <strong>{s.name}</strong><br/>
-                            Level: {s.pct}%
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ))}
-                  </MapContainer>
-                </div>
-              </Card>
-
-              {/* Diagnostics */}
-              <Card className="pro-card" style={{ width: 180, flexShrink: 0, padding: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", marginBottom: 20, textAlign: 'center' }}>DIAGNOSTICS</div>
-                {gauges.map((g, i) => {
-                  const currentPct = isLoaded ? g.pct : 0;
-                  const dashValue = currentPct * 2.64;
-                  return (
-                    <div key={i} style={{ marginBottom: 20, display: "flex", flexDirection: 'column', alignItems: "center", position: "relative" }}>
-                      <div style={{ position: 'relative' }}>
-                        <svg width={g.size} height={g.size} viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="42" fill="none" stroke="#f1f5f9" strokeWidth="8"/>
-                          <circle className="gauge-circle" cx="50" cy="50" r="42" fill="none" stroke={g.color} strokeWidth="8"
-                            strokeDasharray={`${dashValue} 264`} strokeDashoffset="0"
-                            strokeLinecap="round" transform="rotate(-90 50 50)" />
-                        </svg>
-                        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-                          <div style={{ fontSize: i === 0 ? 18 : 14, fontWeight: 800 }}>{currentPct}%</div>
-                        </div>
+                  <Marker key={i} position={s.coords}>
+                    <Popup>
+                      <div style={{ padding: 4, fontSize: 12, fontFamily: "Inter, sans-serif" }}>
+                        <strong style={{ color: "#0f172a" }}>{s.name} Telemetry Station</strong><br />
+                        <span style={{ color: s.color, fontWeight: 700 }}>Live Water Level: {s.actualLevel.toFixed(2)}m</span><br />
+                        <span style={{ fontSize: 10, color: "#64748b" }}>Status: {s.status.toUpperCase()}</span>
                       </div>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', marginTop: 8 }}>{g.label}</div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+          </Card>
+
+        </div>
+
+        {/* ── FOOTER ROW ── */}
+        <div className="fadeUp" style={{ display: "flex", gap: 16 }}>
+
+          {/* Live Alerts */}
+          <Card style={{ flex: 1.4, padding: "20px 22px", backgroundColor: "#fff", border: "1px solid #f1f5f9", borderRadius: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: ".6px" }}>Live Operational Alerts Stream</div>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: "3px 10px", borderRadius: 8, background: "var(--green-bg)", color: "var(--green)" }}>LIVE FEED</span>
+            </div>
+            {liveAlerts.length === 0
+              ? <div style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>No real-time database alerts triggered.</div>
+              : liveAlerts.map((a, i) => {
+                  const uiCfg = getSeverityHelper(a.severity);
+                  return (
+                    <div key={i} className="row-item" style={{ backgroundColor: "#fff", border: "1px solid #f1f5f9" }}>
+                      <div className="icon-box" style={{ background: uiCfg.bg }}>{uiCfg.icon}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{a.type}</span>
+                          <span style={{ fontSize: 8.5, fontWeight: 800, padding: "2px 7px", borderRadius: 6, background: uiCfg.bg, color: uiCfg.color }}>{a.severity.toUpperCase()}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--primary)", background: "var(--primary-bg)", padding: "1px 6px", borderRadius: 5 }}>{a.area?.name || a.location || "Sector"}</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{a.message}</div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0, paddingLeft: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", fontFamily: "monospace" }}>{new Date(a.detected_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                        <div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1, fontWeight: 600 }}>TRACKED</div>
+                      </div>
                     </div>
                   );
-                })}
-                <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 12px", marginTop: 10 }}>
-                  {healthRows.map((r, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 11 }}>
-                      <span style={{ color: "#64748b" }}>{r.key}</span>
-                      <span style={{ fontWeight: 700, color: r.color }}>{r.val}</span>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                })
+            }
+          </Card>
+
+          {/* Precipitation Chart */}
+          <Card style={{ flex: 1, padding: "22px 24px", backgroundColor: "#fff", border: "1px solid #f1f5f9", borderRadius: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: "#0f172a", textTransform: "uppercase", letterSpacing: ".6px" }}>Precipitation Trend</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", background: "var(--green-bg)", padding: "4px 10px", borderRadius: 8 }}>+12% vs last 6h</div>
             </div>
+            <div style={{ width: "100%", height: 135, fontSize: 10, fontWeight: 600 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="premiumRainGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#1a52cc" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#1a52cc" stopOpacity={0.01} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="time" stroke="#94a3b8" tickLine={false} axisLine={false} dy={8} style={{ fontWeight: 700 }} />
+                  <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} domain={[0,160]} tickFormatter={v => `${v}mm`} />
+                  <Tooltip contentStyle={{ background: "#0f172a", borderRadius: 10, color: "#fff", border: "none", fontSize: 11, fontWeight: 700 }} />
+                  <Area type="monotone" dataKey="rainfall" stroke="#1a52cc" strokeWidth={3} fillOpacity={1} fill="url(#premiumRainGrad)" dot={{ stroke: "#1a52cc", strokeWidth: 2, fill: "#fff", r: 3 }} activeDot={{ r: 5, strokeWidth: 0, fill: "#ff4d4d" }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
 
-            {/* Bottom Row */}
-            <div className="fadeUp" style={{ display: "flex", gap: 20 }}>
-              
-              {/* INCIDENT LOG */}
-              <Card className="pro-card" style={{ flex: 1.5, padding: "20px 24px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", letterSpacing: "0.5px" }}>INCIDENT LOG</div>
-                  <Badge style={{ background: "#f1f5f9", color: "#64748b", fontWeight: 700, fontSize: 10 }}>LIVE FEED</Badge>
-                </div>
-                
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {recentAlerts.map((a, i) => (
-                    <div key={i} className="row-item">
-                      <div className="icon-box" style={{ background: a.bg, color: a.color }}>
-                        {a.icon}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{a.title}</span>
-                          <span style={{ 
-                            fontSize: 9, 
-                            fontWeight: 800, 
-                            padding: "2px 6px", 
-                            borderRadius: "4px", 
-                            background: i < 2 ? "rgba(239, 68, 68, 0.1)" : "rgba(226, 232, 240, 0.5)", 
-                            color: i < 2 ? "#ef4444" : "#64748b" 
-                          }}>
-                            {a.level}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 3, fontWeight: 500 }}>{a.desc}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>{a.time}</div>
-                        <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, marginTop: 2 }}>PM</div>
+          {/* Shelter Readiness */}
+          <Card style={{ flex: 1, padding: "20px 22px", backgroundColor: "#fff", border: "1px solid #f1f5f9", borderRadius: 16 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: "#0f172a", marginBottom: 16, textTransform: "uppercase", letterSpacing: ".5px" }}>Shelter Readiness</div>
+            {liveShelters.length === 0
+              ? <div style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>No evacuation shelters registered in system.</div>
+              : liveShelters.map((z, i) => (
+                  <div key={i} className="row-item" style={{ backgroundColor: "#fff", border: "1px solid #f1f5f9" }}>
+                    <div style={{ fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--primary-bg)", color: "var(--primary)", width: 32, height: 32, borderRadius: 8, fontWeight: 700 }}>🛡️</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 12.5, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{z.location_name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                        <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600 }}>{z.max_capacity} Max Cap</span>
+                        <span style={{ color: "var(--border-mid)" }}>•</span>
+                        <span style={{ color: "var(--green)", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".4px" }}>{z.location_type}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* MODERN PRECIPITATION TREND */}
-              <Card className="pro-card" style={{ flex: 1, padding: "20px 24px", position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", letterSpacing: "0.5px" }}>PRECIPITATION TREND</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.green }}>+12% vs last 6h</div>
-                </div>
-                
-                <div style={{ height: 120, position: 'relative', marginTop: 10 }}>
-                  <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                    <defs>
-                      <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-
-                    {/* Gradient Fill under the line */}
-                    <path 
-                      className="trend-area"
-                      d="M0,50 L20,45 L40,48 L60,30 L80,15 L100,5 L100,60 L0,60 Z" 
-                      fill="url(#chartGradient)" 
-                      style={{ opacity: isLoaded ? 1 : 0 }}
-                    />
-
-                    {/* Animated Line */}
-                    <path 
-                      className="trend-line"
-                      d="M0,50 L20,45 L40,48 L60,30 L80,15 L100,5" 
-                      fill="none" 
-                      stroke="#3b82f6" 
-                      strokeWidth="2.5" 
-                      strokeLinecap="round"
-                    />
-
-                    {/* Data Points */}
-                    {[[0,50],[20,45],[40,48],[60,30],[80,15],[100,5]].map((pt, i) => (
-                      <circle 
-                        key={i} 
-                        cx={pt[0]} cy={pt[1]} r="2" 
-                        fill="#fff" stroke="#3b82f6" strokeWidth="1.5"
-                        className="trend-point"
-                        style={{ opacity: isLoaded ? 1 : 0, transition: 'opacity 0.5s', transitionDelay: `${0.2 * i}s` }}
-                      />
-                    ))}
-                  </svg>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
-                    {["-6h", "-4h", "-2h", "NOW"].map(t => (
-                      <span key={t} style={{ fontSize: 9, color: "#94a3b8", fontWeight: 800 }}>{t}</span>
-                    ))}
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 7px var(--green)", flexShrink: 0 }} />
                   </div>
-                </div>
-              </Card>
+                ))
+            }
+          </Card>
 
-              {/* SHELTER AVAILABILITY */}
-              <Card className="pro-card" style={{ flex: 1, padding: "20px 24px" }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b", marginBottom: 20, letterSpacing: "0.5px" }}>SHELTER AVAILABILITY</div>
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {safeZones.map((z, i) => (
-                    <div key={i} className="row-item" style={{ padding: "10px 12px" }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: "#1e293b" }}>{z.name}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                          <span style={{ color: "#64748b", fontSize: 11, fontWeight: 600 }}>{z.cap}</span>
-                          <span style={{ color: "#cbd5e1" }}>•</span>
-                          <span style={{ color: z.color, fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>{z.status}</span>
-                        </div>
-                      </div>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: z.color, boxShadow: `0 0 8px ${z.color}` }} />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-
-          </div>
         </div>
       </div>
     </>
