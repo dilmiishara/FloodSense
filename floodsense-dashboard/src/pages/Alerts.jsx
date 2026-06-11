@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import {
     Card, Badge, Btn, Input, Select, globalCSS, TabBar,
 } from "../shared.jsx";
-import { CheckCircle, AlertTriangle, ShieldAlert, Activity } from "lucide-react";
+import { CheckCircle, AlertTriangle, ShieldAlert, Activity,Brain } from "lucide-react";
 
 import { fetchActiveAlerts, fetchAlertHistory, resolveAlertAPI } from "../api/services/alertService";
 import { fetchAreas } from "../api/services/userService";
 import ThresholdTable from "../components/ThresholdTable";
 import { useToast } from "../context/ToastContext";
 import NotificationRecipients from "../components/NotificationRecipients";
+import PredictionTable from "../components/PredictionTable";
+
 
 
 export default function Alerts() {
@@ -18,6 +20,7 @@ export default function Alerts() {
     const [historyAlerts, setHistoryAlerts] = useState([]);
     const [areas, setAreas] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [predictedAlerts, setPredictedAlerts] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [selSeverity, setSelSeverity] = useState("All Severity");
@@ -28,10 +31,12 @@ export default function Alerts() {
     const [isProcessing, setIsProcessing] = useState(false);
 
     const [dataFetched, setDataFetched] = useState({ active: false, history: false });
+    const [predictions, setPredictions] = useState([]);
 
     const tabs = [
         { id: "active",     label: "Active Alerts"           },
         { id: "history",    label: "Alert History"            },
+        { id: "predictions", label: "Predictive Alerts"},
         { id: "thresholds", label: "Alert Thresholds"         },
         { id: "recipients", label: "Notification Recipients"  },
     ];
@@ -54,6 +59,13 @@ export default function Alerts() {
             setHistoryAlerts(res.data.data || res.data || []);
             setDataFetched(prev => ({ ...prev, history: true }));
         }
+         // fetchPredictionAlerts
+        else if (tab === "predictions") {
+        setPredictions([
+            { id: 1, type: "Flood Risk", location: "Kandy", probability: "85%", timeframe: "Next 6 hours" }
+        ]); 
+        setDataFetched(prev => ({ ...prev, predictions: true }));
+    }
     } catch (err) {
         console.error("Failed to fetch alerts:", err);
     } finally {
@@ -159,9 +171,27 @@ export default function Alerts() {
                         {/* ── Stat Cards ── */}
                         <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                             {[
-                                { label: "Critical Alerts", val: activeAlerts.filter(a => a.severity.toLowerCase() === 'critical').length, sub: "Immediate threats", color: "var(--red)",    icon: <ShieldAlert/>    },
-                                { label: "High Priority",   val: activeAlerts.filter(a => a.severity.toLowerCase() === 'high').length,     sub: "Urgent attention", color: "var(--orange)",  icon: <AlertTriangle/>  },
-                                { label: "Monitoring",      val: activeAlerts.filter(a => a.severity.toLowerCase() === 'medium').length,   sub: "Routine checks",   color: "var(--yellow)",  icon: <Activity/>       },
+                                { 
+                                    label: "Critical Alerts", 
+                                    val: activeAlerts.filter(a => a.severity.toLowerCase() === 'critical').length, 
+                                    sub: "Immediate threats", 
+                                    color: "var(--red)", 
+                                    icon: <ShieldAlert/> 
+                                },
+                                { 
+                                    label: "High Priority", 
+                                    val: activeAlerts.filter(a => a.severity.toLowerCase() === 'high').length, 
+                                    sub: "Urgent attention", 
+                                    color: "var(--orange)", 
+                                    icon: <AlertTriangle/> 
+                                },
+                                { 
+                                    label: "Predicted Risks", 
+                                    val: predictedAlerts.length, 
+                                    sub: "AI-forecasted events", 
+                                    color: "var(--purple)",
+                                    icon: <Brain/> 
+                                },
                             ].map((stat, i) => (
                                 <div key={i} style={{
                                     background: "var(--surface)", borderRadius: 14, padding: 20,
@@ -337,6 +367,15 @@ export default function Alerts() {
                                     </table>
                                 </Card>
                             )}
+
+
+                        {/* ══ PREDICTION TAB ══ */}
+                        {tab === "predictions" && (
+                            <Card style={{ padding: 0, overflow: "hidden" }}>
+                                <PredictionTable data={predictions} />
+                            </Card>
+                        )}
+
 
                         {/* ══ THRESHOLDS TAB ══ */}
                         {tab === "thresholds" && (
