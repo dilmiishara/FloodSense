@@ -26,3 +26,6 @@ export const WEATHER_API = {
 export const SAFE_LOCATIONS_API = "/safelocations";
 
 export const DASHBOARD_MASTER_API = "/dashboard/master-telemetry";
+
+// Predictions endpoint
+export const PREDICTIONS_LATEST_API = `${API_BASE_URL}/predictions/latest`;
