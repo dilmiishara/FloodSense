@@ -1,6 +1,7 @@
 import axiosInstance from "../axios";
 import { ALERTS_ACTIVE_API, ALERTS_HISTORY_API, THRESHOLDS_API, AREAS_API } from "../config/apiConfig";
 import { DASHBOARD_MASTER_API } from "../config/apiConfig";
+import { PREDICTIONS_ALERTS_API } from "../config/apiConfig";
 // GET Active Alerts 
 export const fetchActiveAlerts = () => {
     return axiosInstance.get(ALERTS_ACTIVE_API);
@@ -31,4 +32,9 @@ export const resolveAlertAPI = (id) => {
 // Master Core Dashboard Telemetry Fetcher Service
 export const fetchMasterDashboardData = () => {
     return axiosInstance.get(DASHBOARD_MASTER_API);
+};
+
+// GET Prediction-based alerts (Alert / Minor / Major only)
+export const fetchPredictionAlerts = () => {
+    return axiosInstance.get(PREDICTIONS_ALERTS_API);
 };

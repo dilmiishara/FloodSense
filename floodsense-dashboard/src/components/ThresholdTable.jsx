@@ -12,7 +12,7 @@ export default function ThresholdTable() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedParam, setSelectedParam] = useState("Water Level");
     
-    // 🔥 Side-Drawer එක පාලනය කරන States
+    
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [editItem, setEditItem] = useState(null);
 
@@ -52,7 +52,7 @@ export default function ThresholdTable() {
 );
 
     const handleEditClick = (item) => {
-        setEditItem({ ...item }); // Deep copy properties
+        setEditItem({ ...item }); 
         setIsDrawerOpen(true);
     };
 
@@ -139,7 +139,7 @@ export default function ThresholdTable() {
         ) : filteredData.length > 0 ? (
             filteredData.map((t) => (
                 <tr key={t.id} className="fadeUp" style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
-                    {/* ... ඔයාගේ ටේබල් රෝස් ටික එහෙමමයි ... */}
+                    
                     <td style={{ padding: '14px 12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             {selectedParam === "Water Level" ? <Droplets size={16} color="#3498db"/> : <CloudRain size={16} color="#9b59b6"/>}
@@ -184,7 +184,7 @@ export default function ThresholdTable() {
         )}
     </tbody>
 </table>
-            {/* ── 🔥 MODERN SIDE-DRAWER PANEL ── */}
+            
             {/* Backdrop Overlay */}
             {isDrawerOpen && (
                 <div 
@@ -251,7 +251,7 @@ export default function ThresholdTable() {
 
                         <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '4px 0' }} />
 
-                        {/* 🌧️ SECTION: RAINFALL SETTINGS */}
+                        {/* SECTION: RAINFALL SETTINGS */}
                         <div>
                             <h4 style={{ margin: '0 0 12px 0', fontSize: 12, fontWeight: 800, color: '#9b59b6', textTransform: 'uppercase', letterSpacing: 0.3, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <CloudRain size={14} /> Precipitation Metrics
@@ -280,7 +280,7 @@ export default function ThresholdTable() {
 
                         <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '4px 0' }} />
 
-                        {/* 📈 SECTION: ADVANCED ANALYSIS */}
+                        {/* SECTION: ADVANCED ANALYSIS */}
                         <div>
                             <label style={labelStyle}>Flash-Rise Gradient Limit (m/hr)</label>
                             <Input 

@@ -6,14 +6,21 @@ export const USERS_API = `${API_BASE_URL}/users`;
 export const AREAS_API = `${API_BASE_URL}/areas`;
 export const ROLES_API = `${API_BASE_URL}/roles`;
 
-
-// ─── ALERT SYSTEM ENDPOINTS ──────────────────────────────────────────────
+// ─── ALERT SYSTEM ENDPOINTS ─────────────────────────────────────────────────
 export const ALERTS_ACTIVE_API = `${API_BASE_URL}/alerts/active`;
 export const ALERTS_HISTORY_API = `${API_BASE_URL}/alerts/history`;
 export const THRESHOLDS_API = `${API_BASE_URL}/alert-thresholds`;
 
+// ─── PREDICTION ENDPOINTS ────────────────────────────────────────────────────
+export const PREDICTIONS_ALERTS_API = `${API_BASE_URL}/predictions/alerts`;
 
-// ── Only this one API is used for station data ──
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+export const DASHBOARD_MASTER_API = `${API_BASE_URL}/dashboard/master-telemetry`;
+
+// ─── SAFE LOCATIONS ──────────────────────────────────────────────────────────
+export const SAFE_LOCATIONS_API = `${API_BASE_URL}/safelocations`;
+
+// ── External station data ────────────────────────────────────────────────────
 export const STATIONS_LATEST_API = "https://www.srilankafloodmonitor.site/api/levels/latest";
 
 export const WEATHER_API = {
@@ -21,8 +28,3 @@ export const WEATHER_API = {
   BASE_URL: "https://api.weatherapi.com/v1",
   RATNAPURA_COORDS: "6.6828,80.3992",
 };
-
-// SafeLocations endpoint
-export const SAFE_LOCATIONS_API = "/safelocations";
-
-export const DASHBOARD_MASTER_API = "/dashboard/master-telemetry";
