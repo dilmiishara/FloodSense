@@ -36,6 +36,7 @@ export default function Reports() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [loadingInitial, setLoadingInitial] = useState(true);
 
   const BASE_URL = "http://127.0.0.1:8000";
   const [areas, setAreas] = useState([]);
@@ -46,21 +47,28 @@ export default function Reports() {
 
   const tabs = [{ id: "generate", label: "Generate Report" }, { id: "archive", label: "Report Archive" }];
 
-  useEffect(() => { loadInitialData(); }, [tab]);
+  useEffect(() => {
+  loadInitialData();
+}, []);
 
   const loadInitialData = async () => {
-    try {
-      const areaRes = await fetchAreas();
-      setAreas(areaRes.data.data || areaRes.data);
-      if (tab === "archive") {
-        const archiveRes = await fetchReportArchive();
-        setArchiveReports(archiveRes.data);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Load Failed", "Could not load report data. Please refresh.");
+    setLoadingInitial(true);
+  try {
+    
+    const [areaRes, archiveRes] = await Promise.all([
+      fetchAreas(),
+      fetchReportArchive()
+    ]);
+    
+    setAreas(areaRes.data.data || areaRes.data);
+    setArchiveReports(archiveRes.data);
+  } catch (err) {
+    console.error(err);
+    toast.error("Load Failed", "Could not load data. Please refresh.");
+  }finally {
+      setLoadingInitial(false); 
     }
-  };
+};
 
   const handleGenerate = async () => {
     if (!formData.fromDate || !formData.toDate) {
@@ -129,9 +137,20 @@ export default function Reports() {
             {/* TOP STAT CARDS */}
             <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
               <Card style={statCard("var(--primary)")}>
-                <div><div style={statLabel}>TOTAL ARCHIVES</div><div style={statVal}>{archiveReports.length}</div></div>
-                <FileText opacity={0.2} size={32} color="var(--primary)" />
-              </Card>
+  <div>
+    <div style={statLabel}>TOTAL ARCHIVES</div>
+    <div style={{ 
+      ...statVal, 
+      fontSize: loadingInitial ? "16px" : "28px", 
+      color: loadingInitial ? "var(--text-muted)" : "var(--text)",
+      marginTop: loadingInitial ? "12px" : "6px",
+      transition: "all 0.3s ease" 
+    }}>
+      {loadingInitial ? "Loading..." : archiveReports.length}
+    </div>
+  </div>
+  <FileText opacity={0.2} size={32} color="var(--primary)" />
+</Card>
               <Card style={statCard("var(--green)")}>
                 <div><div style={statLabel}>SERVER STATUS</div><div style={{ ...statVal, color: "var(--green)", fontSize: 18 }}>SYNCED</div></div>
                 <CheckCircle opacity={0.2} color="var(--green)" size={32} />

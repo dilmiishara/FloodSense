@@ -65,6 +65,29 @@ const ManageUsers = () => {
         } catch (err) { console.error("Roles error", err); }
     };
 
+    // --- LOADING ROW — same pattern as ThresholdTable ---
+    const LoadingView = ({ colSpan }) => (
+        <tr>
+            <td colSpan={colSpan} style={{ padding: "80px 40px", textAlign: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                        width: 32, height: 32,
+                        border: "4px solid var(--border)",
+                        borderTop: "4px solid var(--primary)",
+                        borderRadius: "50%",
+                        animation: "spin 1s linear infinite"
+                    }} />
+                    <div style={{
+                        fontSize: 13, fontWeight: 700,
+                        color: "var(--text-muted)", letterSpacing: '0.8px'
+                    }}>
+                        LOADING USER DIRECTORY...
+                    </div>
+                </div>
+            </td>
+        </tr>
+    );
+
     // --- HANDLERS ---
     const openAdd = () => {
         setSelectedUser(null);
@@ -211,88 +234,84 @@ const ManageUsers = () => {
             <Card style={{ padding: 0, overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
-                    <tr style={{ background: "var(--surface-alt)" }}>
-                        <th>User Details</th>
-                        <th>Access Role</th>
-                        <th>Assigned Area</th>
-                        <th>Contact</th>
-                        <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
+                        <tr style={{ background: "var(--surface-alt)", borderBottom: "1.5px solid var(--border)" }}>
+                            <th style={thStyle}>User Details</th>
+                            <th style={thStyle}>Access Role</th>
+                            <th style={thStyle}>Assigned Area</th>
+                            <th style={thStyle}>Contact</th>
+                            <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    {loading ? (
-                        <tr>
-                            <td colSpan={5} style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
-                                Loading...
-                            </td>
-                        </tr>
-                    ) : filteredUsers.length === 0 ? (
-                        <tr>
-                            <td colSpan={5} style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
-                                No users found.
-                            </td>
-                        </tr>
-                    ) : filteredUsers.map(user => (
-                        <tr key={user.id}>
-                            <td>
-                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                    <div style={{
-                                        width: 36, height: 36, borderRadius: 10,
-                                        background: "var(--primary)",
-                                        color: "#fff", display: "flex", alignItems: "center",
-                                        justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0,
-                                    }}>
-                                        {user.first_name && user.last_name
-                                            ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
-                                            : user.first_name ? user.first_name[0].toUpperCase() : "U"}
-                                    </div>
-                                    <div>
-                                        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)", textTransform: "capitalize" }}>
-                                            {user.first_name || ""} {user.last_name || ""}
+                        {loading ? (
+                            <LoadingView colSpan={5} />
+                        ) : filteredUsers.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} style={{ textAlign: "center", padding: 40, color: "var(--text-muted)", fontSize: 13 }}>
+                                    No users found.
+                                </td>
+                            </tr>
+                        ) : filteredUsers.map(user => (
+                            <tr key={user.id} style={{ borderBottom: "1px solid var(--border)", transition: "background 0.2s" }}>
+                                <td style={{ padding: "14px 12px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: 10,
+                                            background: "var(--primary)",
+                                            color: "#fff", display: "flex", alignItems: "center",
+                                            justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0,
+                                        }}>
+                                            {user.first_name && user.last_name
+                                                ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+                                                : user.first_name ? user.first_name[0].toUpperCase() : "U"}
                                         </div>
-                                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{user.email}</div>
+                                        <div>
+                                            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)", textTransform: "capitalize" }}>
+                                                {user.first_name || ""} {user.last_name || ""}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{user.email}</div>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <Badge type={user.role_data?.name === 'admin' ? 'admin' : 'officer'}>
-                                    {user.role_data?.name ? user.role_data.name.toUpperCase() : 'N/A'}
-                                </Badge>
-                            </td>
-                            <td>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-mid)" }}>
-                                    <MapPin size={14} color="var(--text-muted)" />
-                                    {user.area?.name || "Unassigned"}
-                                </div>
-                            </td>
-                            <td>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-mid)" }}>
-                                    <Phone size={14} color="var(--text-muted)" />
-                                    {user.telephone}
-                                </div>
-                            </td>
-                            <td style={{ textAlign: "right" }}>
-                                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                                    <button
-                                        onClick={() => openEdit(user)} title="Edit"
-                                        style={{
-                                            border: "none", background: "var(--primary-bg)", color: "var(--primary)",
-                                            padding: 8, borderRadius: 8, cursor: "pointer", display: "flex",
-                                            alignItems: "center", justifyContent: "center", transition: "all .15s",
-                                        }}
-                                    ><Edit2 size={15} /></button>
-                                    <button
-                                        onClick={() => { setSelectedUser(user); setShowDelete(true); }} title="Delete"
-                                        style={{
-                                            border: "none", background: "var(--red-bg)", color: "var(--red)",
-                                            padding: 8, borderRadius: 8, cursor: "pointer", display: "flex",
-                                            alignItems: "center", justifyContent: "center", transition: "all .15s",
-                                        }}
-                                    ><Trash2 size={15} /></button>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
+                                </td>
+                                <td style={{ padding: "14px 12px" }}>
+                                    <Badge type={user.role_data?.name === 'admin' ? 'admin' : 'officer'}>
+                                        {user.role_data?.name ? user.role_data.name.toUpperCase() : 'N/A'}
+                                    </Badge>
+                                </td>
+                                <td style={{ padding: "14px 12px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-mid)" }}>
+                                        <MapPin size={14} color="var(--text-muted)" />
+                                        {user.area?.name || "Unassigned"}
+                                    </div>
+                                </td>
+                                <td style={{ padding: "14px 12px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-mid)" }}>
+                                        <Phone size={14} color="var(--text-muted)" />
+                                        {user.telephone}
+                                    </div>
+                                </td>
+                                <td style={{ padding: "14px 12px", textAlign: "right" }}>
+                                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                                        <button
+                                            onClick={() => openEdit(user)} title="Edit"
+                                            style={{
+                                                border: "none", background: "var(--primary-bg)", color: "var(--primary)",
+                                                padding: 8, borderRadius: 8, cursor: "pointer", display: "flex",
+                                                alignItems: "center", justifyContent: "center", transition: "all .15s",
+                                            }}
+                                        ><Edit2 size={15} /></button>
+                                        <button
+                                            onClick={() => { setSelectedUser(user); setShowDelete(true); }} title="Delete"
+                                            style={{
+                                                border: "none", background: "var(--red-bg)", color: "var(--red)",
+                                                padding: 8, borderRadius: 8, cursor: "pointer", display: "flex",
+                                                alignItems: "center", justifyContent: "center", transition: "all .15s",
+                                            }}
+                                        ><Trash2 size={15} /></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </Card>
@@ -439,6 +458,12 @@ const ManageUsers = () => {
             )}
         </div>
     );
+};
+
+const thStyle = {
+    fontSize: 11, fontWeight: 800, color: "var(--text-muted)",
+    textTransform: "uppercase", letterSpacing: 0.5, padding: "14px 12px",
+    textAlign: "left",
 };
 
 const S = {
