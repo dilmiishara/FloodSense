@@ -3,7 +3,7 @@ import { Card, Btn, Input, Select, FormGroup, globalCSS, TabBar } from "../share
 import { FileText, Download, Clock, HardDrive, Trash2, Search, CheckCircle, Info, ShieldCheck } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
-// ✅ API Services
+// API Services
 import { fetchAreas } from "../api/services/userService";
 import { generateReportAPI, fetchReportArchive, deleteReportAPI } from "../api/services/reportService";
 
@@ -71,9 +71,12 @@ export default function Reports() {
 };
 
   const handleGenerate = async () => {
-    if (!formData.fromDate || !formData.toDate) {
-      toast.warning("Missing Dates", "Please select both a start and end date.");
-      return;
+    // Dates required only for Alert History Report
+    if (formData.reportType !== 'Flood Prediction Analysis') {
+        if (!formData.fromDate || !formData.toDate) {
+            toast.warning("Missing Dates", "Please select both a start and end date.");
+            return;
+        }
     }
     setLoading(true);
     try {
@@ -85,73 +88,80 @@ export default function Reports() {
         to_date: formData.toDate, 
         export_format: format.toUpperCase() 
       });
-      toast.success("Report Generated", "Your report has been created and saved to the archive.");
-      setTab("archive");
-    } catch (err) {
-      console.error(err);
-      toast.error("Generation Failed", "Could not generate the report. Please try again.");
-    } finally { setLoading(false); }
-  };
+
+      // FIX — reload archive before switching tab
+        toast.success("Report Generated", "Your report has been created and saved to the archive.");
+
+        // Refresh archive list so new report appears immediately
+        const archiveRes = await fetchReportArchive();
+        setArchiveReports(archiveRes.data);
+
+        setTab("archive");
+            } catch (err) {
+              console.error(err);
+              toast.error("Generation Failed", "Could not generate the report. Please try again.");
+            } finally { setLoading(false); }
+          };
 
 
-  const handleDownload = (filePath, fileName) => {
-    toast.info("Downloading", `Starting download for: ${fileName}`);
-    const link = document.createElement('a');
-    link.href = `${BASE_URL}/storage/${filePath}`;
-    link.setAttribute('download', fileName);
-    link.setAttribute('target', '_blank');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+      const handleDownload = (filePath, fileName) => {
+        toast.info("Downloading", `Starting download for: ${fileName}`);
+        const link = document.createElement('a');
+        link.href = `${BASE_URL}/storage/${filePath}`;
+        link.setAttribute('download', fileName);
+        link.setAttribute('target', '_blank');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
 
-  const confirmDelete = async () => {
-    try {
-      await deleteReportAPI(selectedReport.id);
-      setArchiveReports(archiveReports.filter(r => r.id !== selectedReport.id));
-      toast.success("Report Deleted", `"${selectedReport.name}" has been removed from the archive.`);
-    } catch (err) {
-      toast.error("Delete Failed", "Could not delete this report. Please try again.");
-    } finally { setIsModalOpen(false); }
-  };
+    const confirmDelete = async () => {
+      try {
+        await deleteReportAPI(selectedReport.id);
+        setArchiveReports(archiveReports.filter(r => r.id !== selectedReport.id));
+        toast.success("Report Deleted", `"${selectedReport.name}" has been removed from the archive.`);
+      } catch (err) {
+        toast.error("Delete Failed", "Could not delete this report. Please try again.");
+      } finally { setIsModalOpen(false); }
+    };
 
-  const filteredReports = archiveReports.filter(r =>
-      r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (r.area?.name || "Global").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    const filteredReports = archiveReports.filter(r =>
+        r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.area?.name || "Global").toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-  return (
-      <>
-        <style>{globalCSS}</style>
-        <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "14px" }}>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+    return (
+        <>
+          <style>{globalCSS}</style>
+          <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "14px" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
 
-            {/* HEADER SECTION */}
-            <div className="fadeUp" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: -0.7, color: "var(--text)" }}>FloodSense Analytics</div>
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>Generate and manage historical flood intelligence</div>
+              {/* HEADER SECTION */}
+              <div className="fadeUp" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: -0.7, color: "var(--text)" }}>FloodSense Analytics</div>
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>Generate and manage historical flood intelligence</div>
+                </div>
               </div>
-            </div>
 
-            {/* TOP STAT CARDS */}
-            <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-              <Card style={statCard("var(--primary)")}>
-  <div>
-    <div style={statLabel}>TOTAL ARCHIVES</div>
-    <div style={{ 
-      ...statVal, 
-      fontSize: loadingInitial ? "16px" : "28px", 
-      color: loadingInitial ? "var(--text-muted)" : "var(--text)",
-      marginTop: loadingInitial ? "12px" : "6px",
-      transition: "all 0.3s ease" 
-    }}>
-      {loadingInitial ? "Loading..." : archiveReports.length}
-    </div>
-  </div>
-  <FileText opacity={0.2} size={32} color="var(--primary)" />
-</Card>
-              <Card style={statCard("var(--green)")}>
+              {/* TOP STAT CARDS */}
+              <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                <Card style={statCard("var(--primary)")}>
+                <div>
+                  <div style={statLabel}>TOTAL ARCHIVES</div>
+                  <div style={{ 
+                    ...statVal, 
+                    fontSize: loadingInitial ? "16px" : "28px", 
+                    color: loadingInitial ? "var(--text-muted)" : "var(--text)",
+                    marginTop: loadingInitial ? "12px" : "6px",
+                    transition: "all 0.3s ease" 
+                  }}>
+                    {loadingInitial ? "Loading..." : archiveReports.length}
+                  </div>
+                </div>
+                <FileText opacity={0.2} size={32} color="var(--primary)" />
+              </Card>
+                <Card style={statCard("var(--green)")}>
                 <div><div style={statLabel}>SERVER STATUS</div><div style={{ ...statVal, color: "var(--green)", fontSize: 18 }}>SYNCED</div></div>
                 <CheckCircle opacity={0.2} color="var(--green)" size={32} />
               </Card>
