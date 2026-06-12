@@ -6,6 +6,7 @@ import {
 
 import { fetchRatnapuraWeather } from "../api/services/weatherService";
 import { useStationData } from "../hooks/useStationData";
+import WaterLevelSliderChart from "../components/prediction/WaterLevelSliderChart";
 
 // ── Interactive SVG station chart with hover tooltip ──────────────────────────
 const StationSVGChart = ({ id, data, max, color, times }) => {
@@ -290,8 +291,7 @@ export default function Prediction() {
         <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
         <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
           <div style={{ display:"flex", margin:"12px 14px 14px" }}>
-            <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:12, overflowY:"auto", maxHeight:"calc(100vh - 110px)", paddingRight:2 }}>
-
+<div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:12, overflowY:"auto", maxHeight:"calc(100vh - 110px)", paddingRight:2, scrollbarWidth:"none" }}>
               {/* ── Page Header ── */}
               <div className="fadeUp" style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
                 <div>
@@ -378,69 +378,15 @@ export default function Prediction() {
                       </div>
                     </div>
 
-                    {/* Water level chart — full width */}
-                    <Card className="fadeUp">
-                      <div style={{ fontSize:14, fontWeight:700, marginBottom:4, color:"var(--text)" }}>Water Level Prediction — Next 6 Hours</div>
-                      <div style={{ fontSize:11, color:"var(--text-muted)", marginBottom:10 }}>Kalu Ganga at Ratnapura-A2 sensor</div>
-                      <svg viewBox="0 0 720 175" style={{ width:"100%", overflow:"visible" }}>
-                        {[20,52,84,116,148].map((y) => (
-                            <line key={y} x1="60" y1={y} x2="700" y2={y} stroke="rgba(128,128,128,0.1)" strokeWidth="1" />
-                        ))}
-                        {["6.0m","5.5m","5.0m","4.5m","4.0m"].map((l, i) => (
-                            <text key={i} x="52" y={24 + i * 32} fontSize="9" fill="var(--text-muted)" textAnchor="end" fontFamily="DM Mono">{l}</text>
-                        ))}
-                        <line x1="60" y1="40" x2="700" y2="40" stroke="var(--red)" strokeWidth="1.5" strokeDasharray="6,4" opacity=".5" />
-                        <text x="702" y="43" fontSize="9" fill="var(--red)" fontWeight="700">5.2m</text>
-                        <path d="M390,100 L460,82 L530,60 L600,36 L670,18 L670,32 L600,52 L530,76 L460,96 L390,112 Z" fill="var(--red)" opacity=".07" />
-                        <polyline points="60,148 130,140 200,132 270,122 340,110 390,100" fill="none" stroke="var(--text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                        <polyline points="390,100 460,82 530,60 600,36 670,18" fill="none" stroke="var(--red)" strokeWidth="2.5" strokeDasharray="8,4" strokeLinecap="round" strokeLinejoin="round" />
-                        <line x1="390" y1="12" x2="390" y2="160" stroke="var(--text-mid)" strokeWidth="1.5" strokeDasharray="4,3" opacity=".4" />
-                        <rect x="368" y="4" width="44" height="14" rx="4" fill="var(--text)" />
-                        <text x="390" y="14" fontSize="8" fill="var(--surface)" textAnchor="middle" fontWeight="700">NOW</text>
-                        {[["60","−3H","var(--text-muted)"],["200","−2H","var(--text-muted)"],["340","−1H","var(--text-muted)"],
-                          ["390","14:32","var(--text)"],["460","+1H","var(--red)"],["530","+2H","var(--red)"],
-                          ["600","+4H","var(--red)"],["670","+6H","var(--red)"]].map(([x,l,c],i) => (
-                            <text key={i} x={x} y="170" fontSize="9" fill={c} textAnchor="middle" fontFamily="DM Mono">{l}</text>
-                        ))}
-                        <circle cx="390" cy="100" r="5" fill="var(--text)" />
-                        {[["460","82"],["530","60"],["600","36"],["670","18"]].map(([x,y],i) => (
-                            <circle key={i} cx={x} cy={y} r="4" fill="var(--red)" />
-                        ))}
-                      </svg>
-                    </Card>
+
+                     {/* Water level chart — full width */}
+                    <WaterLevelSliderChart />
+
+                   
+                
 
                     {/* Live card + Recommended Actions */}
-                    <div className="fadeUp" style={{ display:"flex", gap:12, alignItems:"stretch" }}>
-                      <Card style={{ flex:1, padding:"16px 18px", display:"flex", flexDirection:"column" }}>
-                        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:10 }}>
-                          <div>
-                            <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>Kalu Ganga — Real-time Water Level</div>
-                            <div style={{ fontSize:10, color:"var(--text-muted)", marginTop:2 }}>Sensor A2 · Ratnapura · Updates every 30s</div>
-                          </div>
-                          <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:10, fontWeight:700, color:"var(--green)", background:"var(--green-bg)", padding:"4px 10px", borderRadius:20 }}>
-                            <div className="blink" style={{ width:6, height:6, borderRadius:"50%", background:"var(--green)" }} />
-                            LIVE
-                          </div>
-                        </div>
-                        <canvas id="riverCanvas" style={{ width:"100%", height:80, display:"block" }} />
-                        <div style={{ display:"flex", gap:20, marginTop:10, paddingTop:10, borderTop:"1px solid var(--border)" }}>
-                          {[
-                            ["Current",         "4.82m",     "var(--red)",    "curVal"],
-                            ["Threshold",       "5.20m",     "var(--text-muted)", null],
-                            ["Rise Rate",       "+0.12m/hr", "var(--orange)", null    ],
-                            ["Time to Critical","~2.5 hrs",  "var(--orange)", null    ],
-                            ["Status",          "Rising ▲",  "var(--red)",    null    ],
-                          ].map(([lbl, val, c, id], i) => (
-                              <div key={i} style={{ display:"flex", flexDirection:"column", gap:2 }}>
-                                <span style={{ fontSize:9, fontWeight:600, textTransform:"uppercase", letterSpacing:0.4, color:"var(--text-muted)" }}>{lbl}</span>
-                                <span id={id || undefined} style={{ fontSize:13, fontWeight:800, fontFamily:"DM Mono", color:c }}>{val}</span>
-                              </div>
-                          ))}
-                        </div>
-                      </Card>
-
-                      
-                    </div>
+                    
                   </>
               )}
 
