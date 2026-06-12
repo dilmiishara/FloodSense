@@ -12,20 +12,45 @@ const toHHMM = (ts) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
+// For predicted line — color by risk
+const riskColor = (status) => {
+  const s = (status ?? "").toLowerCase();
+  if (s.includes("major"))  return "#ef4444"; // red
+  if (s.includes("minor"))  return "#f97316"; // orange
+  if (s.includes("alert"))  return "#eab308"; // yellow
+  return "#22c55e";                           // green — normal
+};
+
+// For past line — always blue regardless of status
+const pastColor = () => "#4a9eff";
+
 // ── Chart ─────────────────────────────────────────────────────────────────────
 const Chart = ({ past, current, predictions }) => {
   const svgRef     = useRef(null);
   const tooltipRef = useRef(null);
 
-  const pastPoints = (past ?? []).map((p) => ({
-    label: toHHMM(p.recorded_at), value: p.water_level, type: "past",
+const pastPoints = (past ?? []).map((p) => ({
+    label:  toHHMM(p.recorded_at),
+    value:  p.water_level,
+    type:   "past",
+    status: p.alert_status,
+    color:  pastColor(),
   }));
-  const currentPoint = current
-    ? [{ label: toHHMM(current.recorded_at), value: current.water_level, type: "current" }]
+ const currentPoint = current
+    ? [{
+        label:  toHHMM(current.recorded_at),
+        value:  current.water_level,
+        type:   "current",
+       status: current.alert_status,
+        color:  pastColor(),
+      }]
     : [];
-  const predPoints = (predictions ?? []).map((p) => ({
-    label: toHHMM(p.forcast_time), value: p.predicted_water_level,
-    type: "pred", risk: p.flood_risk_level,
+ const predPoints = (predictions ?? []).map((p) => ({
+    label:  toHHMM(p.forcast_time),
+    value:  p.predicted_water_level,
+    type:   "pred",
+    risk:   p.flood_risk_level,
+    color:  riskColor(p.flood_risk_level),
   }));
 
   const allPoints = [...pastPoints, ...currentPoint, ...predPoints];
@@ -75,8 +100,8 @@ const Chart = ({ past, current, predictions }) => {
     : null;
 
   const predStart  = currentPoint[0] ?? pastPoints[pastPoints.length - 1];
-  const predAllPts = predStart
-    ? [{ ...predStart, x: nowX }, ...predPoints.map((p, i) => ({ ...p, x: txPred(i) }))]
+ const predAllPts = predStart
+    ? [{ ...predStart, x: nowX, color: riskColor(predPoints[0]?.risk) }, ...predPoints.map((p, i) => ({ ...p, x: txPred(i) }))]
     : [];
 
   const predPath = predPoints.length > 0 && predAllPts.length > 1
@@ -198,26 +223,40 @@ const Chart = ({ past, current, predictions }) => {
         {pastFill && <path d={pastFill} fill="url(#gPast)" />}
         {predFill && <path d={predFill} fill="url(#gPred)" />}
 
-        {/* Past line */}
-        {pastPath && (
-          <path d={pastPath} fill="none" stroke="#4a9eff"
-                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        )}
+{/* Past line — segmented by risk color */}
+        {pastAllPts.slice(0, -1).map((p, i) => {
+          const next = pastAllPts[i + 1];
+          const cpx1 = p.x + (next.x - p.x) / 2;
+          const cpx2 = next.x - (next.x - p.x) / 2;
+          return (
+            <path key={"ps" + i}
+              d={`M ${p.x},${ty(p.value)} C ${cpx1},${ty(p.value)} ${cpx2},${ty(next.value)} ${next.x},${ty(next.value)}`}
+              fill="none" stroke={p.color ?? "#22c55e"}
+              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          );
+        })}
 
-        {/* Predicted line */}
-        {predPath && (
-          <path d={predPath} fill="none" stroke="var(--red)"
-                strokeWidth="1.8" strokeDasharray="5,3"
-                strokeLinecap="round" strokeLinejoin="round" />
-        )}
+        {/* Predicted line — segmented by risk color */}
+        {predAllPts.slice(0, -1).map((p, i) => {
+          const next = predAllPts[i + 1];
+          const cpx1 = p.x + (next.x - p.x) / 2;
+          const cpx2 = next.x - (next.x - p.x) / 2;
+          return (
+            <path key={"pr" + i}
+              d={`M ${p.x},${ty(p.value)} C ${cpx1},${ty(p.value)} ${cpx2},${ty(next.value)} ${next.x},${ty(next.value)}`}
+              fill="none" stroke={p.color ?? "#22c55e"}
+              strokeWidth="1.8" strokeDasharray="5,3"
+              strokeLinecap="round" strokeLinejoin="round" />
+          );
+        })}
 
         {/* Current dot */}
         {currentPoint.length > 0 && (
           <>
             <circle cx={nowX} cy={ty(currentPoint[0].value)} r="5"
                     fill="#4a9eff" opacity=".15" />
-            <circle cx={nowX} cy={ty(currentPoint[0].value)} r="3"
-                    fill="#4a9eff" stroke="var(--surface)" strokeWidth="1.2" />
+           <circle cx={nowX} cy={ty(currentPoint[0].value)} r="3"
+                    fill={currentPoint[0].color ?? "#22c55e"} stroke="var(--surface)" strokeWidth="1.2" />
           </>
         )}
 
@@ -271,15 +310,17 @@ const StatsPanel = ({ current, predictions }) => (
 
 // ── Legend ────────────────────────────────────────────────────────────────────
 const Legend = () => (
-  <div style={{ display: "flex", gap: 14, marginBottom: 8 }}>
+  <div style={{ display: "flex", gap: 14, marginBottom: 8, flexWrap: "wrap" }}>
     {[
-      ["#4a9eff",        "Past level", "solid" ],
-      ["var(--red)",     "Predicted",  "dashed"],
-      ["var(--text-mid)","NOW",        "dashed"],
+      ["#4a9eff", "Past level", "solid" ],
+      ["#22c55e", "Normal",     "dashed"],
+      ["#eab308", "Alert",      "dashed"],
+      ["#f97316", "Minor",      "dashed"],
+      ["#ef4444", "Major",      "dashed"],
     ].map(([c, l, s], i) => (
       <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
         <svg width="16" height="6">
-          <line x1="0" y1="3" x2="16" y2="3" stroke={c} strokeWidth="1.8"
+          <line x1="0" y1="3" x2="16" y2="3" stroke={c} strokeWidth="2"
                 strokeDasharray={s === "dashed" ? "3,2" : "0"} />
         </svg>
         <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{l}</span>
