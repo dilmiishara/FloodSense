@@ -291,9 +291,7 @@ export default function Prediction() {
         <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
         <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
           <div style={{ display:"flex", margin:"12px 14px 14px" }}>
-<div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:12, overflowY:"auto", maxHeight:"calc(100vh - 110px)", paddingRight:2, scrollbarWidth:"none" }}>
-              {/* ── Page Header ── */}
-              <div className="fadeUp" style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+<div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", gap:12, overflowY:"scroll", paddingRight:2, scrollbarWidth:"none" }}>              <div className="fadeUp" style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
                 <div>
                   <div style={{ fontSize:20, fontWeight:900, letterSpacing:-0.4, color:"var(--text)" }}>Prediction</div>
                   <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:3 }}>

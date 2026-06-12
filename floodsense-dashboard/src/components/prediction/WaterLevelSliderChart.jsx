@@ -63,7 +63,7 @@ const pastPoints = (past ?? []).map((p) => ({
   );
 
   // ── Dimensions ──────────────────────────────────────────────────────────────
-  const W = 440, H = 120;
+  const W = 440, H = 95;
   const padL = 34, padR = 10, padT = 18, padB = 22;
   const chartW = W - padL - padR;
   const chartH = H - padT - padB;
@@ -359,11 +359,11 @@ export default function WaterLevelSliderChart() {
   const isError   = error[station.id];
 
   return (
-    <div style={{
+<div style={{
       background: "var(--surface)", border: "1px solid var(--border)",
       borderRadius: 14, padding: "14px 16px",
       width: "100%", boxSizing: "border-box",
-    }}>
+    }}>   
 
       {/* ── Title ── */}
       <div style={{ marginBottom: 10 }}>
@@ -419,7 +419,7 @@ export default function WaterLevelSliderChart() {
         </div>
       </div>
 
-      {/* ── Chart + Stats row ── */}
+  {/* ── Chart + Stats row ── */}
       <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
 
         {/* Chart */}
@@ -435,7 +435,7 @@ export default function WaterLevelSliderChart() {
           )}
           {isError && !isLoading && (
             <div style={{
-              height: 120, display: "flex", alignItems: "center",
+              height: 95, display: "flex", alignItems: "center",
               justifyContent: "center", color: "var(--red)", fontSize: 11,
             }}>⚠ {isError}</div>
           )}
