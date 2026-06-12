@@ -386,37 +386,7 @@ export default function Prediction() {
                 
 
                     {/* Live card + Recommended Actions */}
-                    <div className="fadeUp" style={{ display:"flex", gap:12, alignItems:"stretch" }}>
-                      <Card style={{ flex:1, padding:"16px 18px", display:"flex", flexDirection:"column" }}>
-                        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:10 }}>
-                          <div>
-                            <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>Kalu Ganga — Real-time Water Level</div>
-                            <div style={{ fontSize:10, color:"var(--text-muted)", marginTop:2 }}>Sensor A2 · Ratnapura · Updates every 30s</div>
-                          </div>
-                          <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:10, fontWeight:700, color:"var(--green)", background:"var(--green-bg)", padding:"4px 10px", borderRadius:20 }}>
-                            <div className="blink" style={{ width:6, height:6, borderRadius:"50%", background:"var(--green)" }} />
-                            LIVE
-                          </div>
-                        </div>
-                        <canvas id="riverCanvas" style={{ width:"100%", height:80, display:"block" }} />
-                        <div style={{ display:"flex", gap:20, marginTop:10, paddingTop:10, borderTop:"1px solid var(--border)" }}>
-                          {[
-                            ["Current",         "4.82m",     "var(--red)",    "curVal"],
-                            ["Threshold",       "5.20m",     "var(--text-muted)", null],
-                            ["Rise Rate",       "+0.12m/hr", "var(--orange)", null    ],
-                            ["Time to Critical","~2.5 hrs",  "var(--orange)", null    ],
-                            ["Status",          "Rising ▲",  "var(--red)",    null    ],
-                          ].map(([lbl, val, c, id], i) => (
-                              <div key={i} style={{ display:"flex", flexDirection:"column", gap:2 }}>
-                                <span style={{ fontSize:9, fontWeight:600, textTransform:"uppercase", letterSpacing:0.4, color:"var(--text-muted)" }}>{lbl}</span>
-                                <span id={id || undefined} style={{ fontSize:13, fontWeight:800, fontFamily:"DM Mono", color:c }}>{val}</span>
-                              </div>
-                          ))}
-                        </div>
-                      </Card>
-
-                      
-                    </div>
+                    
                   </>
               )}
 
