@@ -5,32 +5,22 @@ import L from "leaflet";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { Card, globalCSS } from "../shared.jsx";
 import { useSettings } from "../context/SettingsContext";
-import { ShieldAlert, AlertTriangle, Thermometer, Droplets, Wind, Waves, X } from "lucide-react"
+import { AlertTriangle, X } from "lucide-react";
 
-import { fetchMasterDashboardData } from "../api/services/alertService";
+import { fetchMasterDashboardData, fetchLatestSensorReading } from "../api/services/alertService";
 import { useStationData } from "../hooks/useStationData";
-import { 
-  SensorNodeIcon, HumidityIcon, TemperatureIcon, RainfallIcon, 
-  UltrasonicIcon, SafeShieldIcon, WarningIcon, 
-  ShelterTypeIcon, EditIcon 
+import {
+  HumidityIcon, TemperatureIcon, RainfallIcon,
+  UltrasonicIcon, WarningIcon,
+  ShelterTypeIcon,
 } from "../shared/icons";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
 let DefaultIcon = L.icon({ iconUrl: markerIcon, shadowUrl: markerShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-
-
-const MOCK_IOT_DEVICE = {
-  deviceId:       "IOT-DEVICE-001",
-  waterLevel:     2.45,
-  rainfall:       18.7,
-  humidity:       85,
-  temperature:    26.3,
-  updatedAt:      "09:42 AM",
-  signalStrength: 94,
-};
-
+// ─── Constants (NO hooks here) ────────────────────────────────────────────────
 const STATION_COORDS = {
   "Rathnapura": [6.6827, 80.3992],
   "Ellagawa":   [6.7583, 80.2014],
@@ -42,6 +32,10 @@ const STATION_THRESHOLDS = {
   "Ellagawa":   10.00,
   "Putupaula":  3.00,
 };
+
+const TOAST_DURATION = 6000;
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const proStyles = `
   @keyframes scan {
     0% { transform: translateY(-100%); opacity: 0; }
@@ -72,8 +66,6 @@ const proStyles = `
     0%   { background-position: -200% 0; }
     100% { background-position:  200% 0; }
   }
-
-  /* ── Toast animations ── */
   @keyframes toastSlideIn {
     0%   { transform: translateX(120%); opacity: 0; }
     100% { transform: translateX(0);    opacity: 1; }
@@ -88,74 +80,38 @@ const proStyles = `
   }
   .toast-enter  { animation: toastSlideIn  0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
   .toast-exit   { animation: toastSlideOut 0.35s ease-in forwards; }
-
-  /* ── Theme-aware toast ── */
-  .alert-toast {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 5px solid var(--red) !important;
-    box-shadow: var(--shadow-md), 0 0 0 1px rgba(225,29,72,.15);
-  }
-  .alert-toast-progress-track {
-    background: var(--border);
-  }
-  .alert-toast-icon {
-    background: var(--red-bg);
-  }
-  .alert-toast-label {
-    color: var(--red);
-  }
-  .alert-toast-title {
-    color: var(--text);
-  }
-  .alert-toast-location {
-    color: var(--text-mid);
-  }
-  .alert-toast-message {
-    color: var(--text-muted);
-  }
-  .alert-toast-pending {
-    background: var(--red-bg);
-    color: var(--red);
-  }
-  .alert-toast-close {
-    background: var(--surface-alt);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-  }
-  .alert-toast-close:hover {
-    background: var(--border);
-  }
-
+  .alert-toast { background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--red) !important; box-shadow: var(--shadow-md), 0 0 0 1px rgba(225,29,72,.15); }
+  .alert-toast-progress-track { background: var(--border); }
+  .alert-toast-icon { background: var(--red-bg); }
+  .alert-toast-label { color: var(--red); }
+  .alert-toast-title { color: var(--text); }
+  .alert-toast-location { color: var(--text-mid); }
+  .alert-toast-message { color: var(--text-muted); }
+  .alert-toast-pending { background: var(--red-bg); color: var(--red); }
+  .alert-toast-close { background: var(--surface-alt); border: 1px solid var(--border); color: var(--text-muted); }
+  .alert-toast-close:hover { background: var(--border); }
   .stat-card { position: relative; overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
   .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(26,82,204,.12) !important; }
   .stat-label  { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1.1px; color:var(--text-muted); margin-bottom:8px; }
   .stat-value  { font-size:40px; font-weight:900; line-height:1; letter-spacing:-1.5px; }
   .stat-footer { font-size:12px; font-weight:700; margin-top:10px; display:flex; align-items:center; gap:6px; }
   .stat-bg-icon { position:absolute; right:-8px; bottom:-8px; font-size:72px; opacity:.05; pointer-events:none; transform:rotate(-15deg); }
-  .row-item {
-    display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:11px;
-    cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .18s ease;
-  }
+  .row-item { display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:11px; cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .18s ease; }
   .row-item:hover { background:var(--surface-alt); border-color:var(--border); transform:translateX(3px); }
   .icon-box { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
-  .map-scanner {
-    position:absolute; top:0; left:0; width:100%; height:50px;
-    background:linear-gradient(to bottom, transparent, rgba(26,82,204,.06), transparent);
-    animation:scan 3s infinite linear; pointer-events:none; z-index:1000;
-  }
+  .map-scanner { position:absolute; top:0; left:0; width:100%; height:50px; background:linear-gradient(to bottom, transparent, rgba(26,82,204,.06), transparent); animation:scan 3s infinite linear; pointer-events:none; z-index:1000; }
   .live-dot { width:8px; height:8px; background:var(--red); border-radius:50%; display:inline-block; margin-right:8px; animation:pulse-ring 2s infinite; }
   .iot-live-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; display:inline-block; animation:iot-tick 2s infinite ease-in-out; }
   .radar-emergency-node { animation: emergency-radar 1s infinite ease-in-out !important; }
 `;
 
+// ─── Custom Hook: Toast Queue ─────────────────────────────────────────────────
 function useToastQueue(duration = 6000) {
-  const [queue,   setQueue]   = useState([]);  // pending alerts
-  const [current, setCurrent] = useState(null); // { alert, id, exiting }
-  const timerRef  = useRef(null);
-  const idRef     = useRef(0);
+  const [queue,   setQueue]   = useState([]);
+  const [current, setCurrent] = useState(null);
+  const timerRef = useRef(null);
+  const idRef    = useRef(0);
 
-  // Add new alerts 
   const enqueue = useCallback((alerts) => {
     setQueue(prev => {
       const existingIds = new Set(prev.map(a => a.alert.id));
@@ -166,112 +122,61 @@ function useToastQueue(duration = 6000) {
     });
   }, []);
 
-  // Dismiss current → trigger exit animation → then advance
   const dismiss = useCallback(() => {
     clearTimeout(timerRef.current);
     setCurrent(prev => prev ? { ...prev, exiting: true } : null);
-    timerRef.current = setTimeout(() => {
-      setCurrent(null);
-    }, 360); 
+    timerRef.current = setTimeout(() => setCurrent(null), 360);
   }, []);
 
-  // When queue changes and nothing is showing, pop next
   useEffect(() => {
     if (current !== null) return;
     if (queue.length === 0) return;
-
     const [next, ...rest] = queue;
     setQueue(rest);
     setCurrent({ ...next, exiting: false });
   }, [queue, current]);
 
-  // Auto-dismiss after duration when a new toast mounts
   useEffect(() => {
     if (!current || current.exiting) return;
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(dismiss, duration);
     return () => clearTimeout(timerRef.current);
-  }, [current?.uid]); 
+  }, [current?.uid]);
 
   return { current, enqueue, dismiss, pending: queue.length };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TOAST COMPONENT — single notification card
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Toast Component ──────────────────────────────────────────────────────────
 function AlertToast({ item, onDismiss, pending, duration }) {
   const { alert: a } = item;
   return (
     <div
       className={`alert-toast ${item.exiting ? "toast-exit" : "toast-enter"}`}
-      style={{
-        position: "fixed", top: 24, right: 24, width: 380, zIndex: 9999,
-        borderRadius: 14,
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        overflow: "hidden",
-      }}
+      style={{ position: "fixed", top: 24, right: 24, width: 380, zIndex: 9999, borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", overflow: "hidden" }}
     >
-      {/* Progress bar */}
       <div className="alert-toast-progress-track" style={{ height: 3 }}>
-        <div
-          style={{
-            height: "100%",
-            background: "var(--red)",
-            animation: item.exiting ? "none" : `toastProgress ${duration}ms linear forwards`,
-          }}
-        />
+        <div style={{ height: "100%", background: "var(--red)", animation: item.exiting ? "none" : `toastProgress ${duration}ms linear forwards` }} />
       </div>
-
       <div style={{ padding: "14px 16px" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          {/* Icon */}
-          <div
-            className="alert-toast-icon"
-            style={{
-              width: 36, height: 36, borderRadius: 10,
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            }}
-          >
+          <div className="alert-toast-icon" style={{ width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <WarningIcon size={18} color="var(--red)" />
           </div>
-
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Header row */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span className="alert-toast-label" style={{ fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".8px" }}>
-                Critical Alert
-              </span>
+              <span className="alert-toast-label" style={{ fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".8px" }}>Critical Alert</span>
               {pending > 0 && (
-                <span className="alert-toast-pending" style={{ fontSize: 9, fontWeight: 800, padding: "1px 7px", borderRadius: 6 }}>
-                  +{pending} more
-                </span>
+                <span className="alert-toast-pending" style={{ fontSize: 9, fontWeight: 800, padding: "1px 7px", borderRadius: 6 }}>+{pending} more</span>
               )}
             </div>
-
-            {/* Alert type */}
             <div className="alert-toast-title" style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: "-.2px", marginBottom: 4 }}>
               {a.type || "CRITICAL FLOOD ALERT"}
             </div>
-
-            {/* Message */}
             <div className="alert-toast-message" style={{ fontSize: 11.5, fontWeight: 500, lineHeight: 1.45 }}>
-              <strong className="alert-toast-location">
-                [{a.area?.name || a.location || "Sector"}]
-              </strong>{" "}
-              {a.message}
+              <strong className="alert-toast-location">[{a.area?.name || a.location || "Sector"}]</strong>{" "}{a.message}
             </div>
           </div>
-
-          {/* Close */}
-          <button
-            onClick={onDismiss}
-            className="alert-toast-close"
-            style={{
-              width: 26, height: 26, borderRadius: 8, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0, transition: "background .15s",
-            }}
-          >
+          <button onClick={onDismiss} className="alert-toast-close" style={{ width: 26, height: 26, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background .15s" }}>
             <X size={13} />
           </button>
         </div>
@@ -280,50 +185,59 @@ function AlertToast({ item, onDismiss, pending, duration }) {
   );
 }
 
-// ── Sidebar: Sensor Nodes + IoT Device ───────────────────────────────────────
+// ─── Left Sidebar ─────────────────────────────────────────────────────────────
 function LeftSidebar({ sensors, iotDevice }) {
- const iotMetrics = [
-  { 
-    label: "Water Level", 
-    value: iotDevice.waterLevel.toFixed(2), 
-    unit: "m", 
-    icon: <UltrasonicIcon size={13} color="#1a52cc" />, 
-    iconBg: "rgba(26,82,204,.10)",  
-    color: "#1a52cc", 
-    bar: Math.min(100, (iotDevice.waterLevel / 10) * 100),    
-    barColor: iotDevice.waterLevel > 7 ? "#ef4444" : iotDevice.waterLevel > 4 ? "#f97316" : "#1a52cc" 
-  },
-  { 
-    label: "Rainfall",    
-    value: iotDevice.rainfall,             
-    unit: "mm/h", 
-    icon: <RainfallIcon size={13} color="#3b82f6" />, 
-    iconBg: "rgba(59,130,246,.10)",  
-    color: "#3b82f6", 
-    bar: Math.min(100, (iotDevice.rainfall / 50) * 100),       
-    barColor: "#3b82f6" 
-  },
-  { 
-    label: "Humidity",    
-    value: iotDevice.humidity,             
-    unit: "%",    
-    icon: <HumidityIcon size={13} color="#6366f1" />, 
-    iconBg: "rgba(99,102,241,.10)",  
-    color: "#6366f1", 
-    bar: iotDevice.humidity,                                
-    barColor: iotDevice.humidity > 90 ? "#ef4444" : "#6366f1" 
-  },
-  { 
-    label: "Temp",        
-    value: iotDevice.temperature,          
-    unit: "°C",   
-    icon: <TemperatureIcon size={13} color="#f59e0b" />, 
-    iconBg: "rgba(245,158,11,.10)", 
-    color: "#f59e0b", 
-    bar: Math.min(100, ((iotDevice.temperature - 15) / 25) * 100),  
-    barColor: iotDevice.temperature > 35 ? "#ef4444" : "#f59e0b" 
-  },
-];
+  // Guard: iotDevice null නම් shimmer දෙන්නම්
+  if (!iotDevice) {
+    return (
+      <div style={{ width: 360, flexShrink: 0 }}>
+        <div className="shimmer-block" style={{ height: 420, borderRadius: 16 }} />
+      </div>
+    );
+  }
+
+  const iotMetrics = [
+    {
+      label: "Water Level",
+      value: Number(iotDevice.waterLevel).toFixed(2),
+      unit: "m",
+      icon: <UltrasonicIcon size={13} color="#1a52cc" />,
+      iconBg: "rgba(26,82,204,.10)",
+      color: "#1a52cc",
+      bar: Math.min(100, (iotDevice.waterLevel / 10) * 100),
+      barColor: iotDevice.waterLevel > 7 ? "#ef4444" : iotDevice.waterLevel > 4 ? "#f97316" : "#1a52cc",
+    },
+    {
+      label: "Rainfall",
+      value: iotDevice.rainfall,
+      unit: "mm/h",
+      icon: <RainfallIcon size={13} color="#3b82f6" />,
+      iconBg: "rgba(59,130,246,.10)",
+      color: "#3b82f6",
+      bar: Math.min(100, (iotDevice.rainfall / 50) * 100),
+      barColor: "#3b82f6",
+    },
+    {
+      label: "Humidity",
+      value: iotDevice.humidity,
+      unit: "%",
+      icon: <HumidityIcon size={13} color="#6366f1" />,
+      iconBg: "rgba(99,102,241,.10)",
+      color: "#6366f1",
+      bar: iotDevice.humidity,
+      barColor: iotDevice.humidity > 90 ? "#ef4444" : "#6366f1",
+    },
+    {
+      label: "Temp",
+      value: iotDevice.temperature,
+      unit: "°C",
+      icon: <TemperatureIcon size={13} color="#f59e0b" />,
+      iconBg: "rgba(245,158,11,.10)",
+      color: "#f59e0b",
+      bar: Math.min(100, ((iotDevice.temperature - 15) / 25) * 100),
+      barColor: iotDevice.temperature > 35 ? "#ef4444" : "#f59e0b",
+    },
+  ];
 
   return (
     <Card style={{ width: 360, flexShrink: 0, padding: "18px 16px", display: "flex", flexDirection: "column", gap: 0 }}>
@@ -333,11 +247,7 @@ function LeftSidebar({ sensors, iotDevice }) {
       </div>
 
       {sensors.map((s, i) => (
-        <div key={i} style={{
-          background: s.status === "critical" ? "var(--red-bg)" : "var(--surface-alt)",
-          borderRadius: 11, padding: "11px 13px", marginBottom: 7,
-          border: `1px solid ${s.status === "critical" ? "var(--red)" : "var(--border)"}`,
-        }}>
+        <div key={i} style={{ background: s.status === "critical" ? "var(--red-bg)" : "var(--surface-alt)", borderRadius: 11, padding: "11px 13px", marginBottom: 7, border: `1px solid ${s.status === "critical" ? "var(--red)" : "var(--border)"}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, display: "flex", justifyContent: "space-between", color: "var(--text)" }}>
             <span>
               <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: s.color, marginRight: 7, verticalAlign: "middle" }} />
@@ -398,23 +308,21 @@ function LeftSidebar({ sensors, iotDevice }) {
   );
 }
 
-
-const TOAST_DURATION = 6000;
-
+// ─── Dashboard (main export) ──────────────────────────────────────────────────
 export default function Dashboard() {
-  const [isLoaded, setIsLoaded]           = useState(false);
-  const { systemSettings }                = useSettings();
-  const isEmergency                       = systemSettings.emergency_mode;
-  const isMaintenance                     = systemSettings.maintenance_mode;
+  // ✅ ALL hooks inside Dashboard function body — correct
+  const [isLoaded,      setIsLoaded]      = useState(false);
+  const [criticalCount, setCriticalCount] = useState(0);
+  const [liveAlerts,    setLiveAlerts]    = useState([]);
+  const [totalShelters, setTotalShelters] = useState(0);
+  const [activeShelters,setActiveShelters]= useState(0);
+  const [liveShelters,  setLiveShelters]  = useState([]);
+  const [iotDevice,     setIotDevice]     = useState(null); // ✅ starts null, filled by API
 
-  const [criticalCount,  setCriticalCount]  = useState(0);
-  const [liveAlerts,     setLiveAlerts]     = useState([]);
-  const [totalShelters,  setTotalShelters]  = useState(0);
-  const [activeShelters, setActiveShelters] = useState(0);
-  const [liveShelters,   setLiveShelters]   = useState([]);
-  const [iotDevice,      setIotDevice]      = useState(MOCK_IOT_DEVICE);
+  const { systemSettings } = useSettings();
+  const isEmergency    = systemSettings.emergency_mode;
+  const isMaintenance  = systemSettings.maintenance_mode;
 
-  // ── Toast queue (replaces old activeToast + currentToastIdx) ──────────────
   const { current: toastItem, enqueue: enqueueToast, dismiss: dismissToast, pending: pendingToasts } = useToastQueue(TOAST_DURATION);
 
   const processedAlertIds = useRef(new Set());
@@ -425,28 +333,43 @@ export default function Dashboard() {
       try {
         const res  = await fetchMasterDashboardData();
         const data = res.data;
-        setCriticalCount(  data.critical_count   || 0);
-        setLiveAlerts(     data.recent_alerts    || []);
-        setTotalShelters(  data.total_shelters   || 0);
-        setActiveShelters( data.active_shelters  || 0);
-        setLiveShelters(   data.recent_shelters  || []);
+        setCriticalCount(  data.critical_count  || 0);
+        setLiveAlerts(     data.recent_alerts   || []);
+        setTotalShelters(  data.total_shelters  || 0);
+        setActiveShelters( data.active_shelters || 0);
+        setLiveShelters(   data.recent_shelters || []);
 
-        // Queue any NEW critical alerts
+        // ── IoT real data fetch ──────────────────────────────────────────────
+        try {
+          const iotRes = await fetchLatestSensorReading();
+          if (iotRes.data?.data) setIotDevice(iotRes.data.data);
+        } catch (e) {
+          console.warn("IoT sensor fetch failed:", e);
+        }
+
+        // ── Queue new critical alerts ────────────────────────────────────────
         const criticals = (data.recent_alerts || []).filter(a => a.severity?.toLowerCase() === "critical");
         const newAlerts = criticals.filter(a => !processedAlertIds.current.has(a.id));
         if (newAlerts.length > 0) {
           newAlerts.forEach(a => processedAlertIds.current.add(a.id));
           enqueueToast(newAlerts);
-          try { new Audio("/alert.mp3").play(); } catch(e) {}
+          try { 
+  const audio = new Audio("/alert.mp3");
+  audio.play().catch(() => {}); 
+} catch(e) {}
         }
-      } catch(err) { console.error(err); } finally { setIsLoaded(true); }
+      } catch(err) {
+        console.error(err);
+      } finally {
+        setIsLoaded(true);
+      }
     };
+
     loadData();
     const iv = setInterval(loadData, 30000);
     return () => clearInterval(iv);
   }, [enqueueToast]);
 
-  // Session-storage dedup on first load
   useEffect(() => {
     if (!isLoaded || liveAlerts.length === 0) return;
     const criticals = liveAlerts.filter(a => a.severity?.toLowerCase() === "critical");
@@ -463,23 +386,23 @@ export default function Dashboard() {
     const threshold   = STATION_THRESHOLDS[s.name] || 5.00;
     const computedPct = Math.min(100, Math.round((s.level / threshold) * 100));
     let uiColor = "var(--green)";
-    if (s.status === "critical") uiColor = "var(--red)";
+    if (s.status === "critical")     uiColor = "var(--red)";
     else if (s.status === "warning") uiColor = "var(--orange)";
-    return { name: s.name, pct: computedPct, actualLevel: s.level, color: uiColor, coords: STATION_COORDS[s.name] || [6.55,80.60], status: s.status, time: s.time };
+    return { name: s.name, pct: computedPct, actualLevel: s.level, color: uiColor, coords: STATION_COORDS[s.name] || [6.55, 80.60], status: s.status, time: s.time };
   });
 
   const stats = [
-    { label: "Active Sensors",  value: sensors.length < 10 ? `0${sensors.length}` : sensors.length, sub: "Kalu Ganga Basin Live",             subColor: "var(--green)",   icon: "📡" },
-    { label: "Critical Alerts", value: criticalCount < 10  ? `0${criticalCount}`  : criticalCount,  sub: "High Risk Priority",                subColor: "var(--red)",     valColor: "var(--red)",     icon: "🚨" },
-    { label: "Affected Areas",  value: "06",                                                          sub: "Trend Increasing",                 subColor: "var(--orange)",  valColor: "var(--orange)",  icon: "🗺️" },
-    { label: "Safe Locations",  value: totalShelters < 10  ? `0${totalShelters}`  : totalShelters,  sub: `${activeShelters}/${totalShelters} Operational`, subColor: "var(--primary)", valColor: "var(--primary)", icon: "🛡️" },
+    { label: "Active Sensors",  value: sensors.length < 10 ? `0${sensors.length}` : sensors.length,  sub: "Kalu Ganga Basin Live",             subColor: "var(--green)",   icon: "📡" },
+    { label: "Critical Alerts", value: criticalCount < 10  ? `0${criticalCount}`  : criticalCount,   sub: "High Risk Priority",                subColor: "var(--red)",     valColor: "var(--red)",     icon: "🚨" },
+    { label: "Affected Areas",  value: "06",                                                           sub: "Trend Increasing",                 subColor: "var(--orange)",  valColor: "var(--orange)",  icon: "🗺️" },
+    { label: "Safe Locations",  value: totalShelters < 10  ? `0${totalShelters}`  : totalShelters,   sub: `${activeShelters}/${totalShelters} Operational`, subColor: "var(--primary)", valColor: "var(--primary)", icon: "🛡️" },
   ];
 
   const chartData = [
     { time: "-6h", rainfall: 45 }, { time: "-5h", rainfall: 52 },
     { time: "-4h", rainfall: 48 }, { time: "-3h", rainfall: 85 },
-    { time: "-2h", rainfall: 118},{ time: "-1h", rainfall: 130},
-    { time: "NOW", rainfall: 142},
+    { time: "-2h", rainfall: 118 },{ time: "-1h", rainfall: 130 },
+    { time: "NOW", rainfall: 142 },
   ];
 
   const getSeverityHelper = sev => {
@@ -497,6 +420,7 @@ export default function Dashboard() {
     </div>
   );
 
+  // ── Loading / shimmer ────────────────────────────────────────────────────────
   if (!isLoaded || rawStationData[0]?.loading) {
     return (
       <>
@@ -507,7 +431,7 @@ export default function Dashboard() {
             {[1,2,3,4].map(i => <div key={i} className="shimmer-block" style={{ height: 110, borderRadius: 16 }} />)}
           </div>
           <div style={{ display: "flex", gap: 16 }}>
-            <div className="shimmer-block" style={{ width: 260, height: 420, flexShrink: 0, borderRadius: 16 }} />
+            <div className="shimmer-block" style={{ width: 360, height: 420, flexShrink: 0, borderRadius: 16 }} />
             <div className="shimmer-block" style={{ flex: 1, height: 420, borderRadius: 16 }} />
           </div>
           <div style={{ display: "flex", gap: 16 }}>
@@ -527,19 +451,13 @@ export default function Dashboard() {
       <style>{globalCSS}</style>
       <style>{proStyles}</style>
 
-      {/* ── TOAST — one at a time, queued ── */}
       {toastItem && (
-        <AlertToast
-          item={toastItem}
-          onDismiss={dismissToast}
-          pending={pendingToasts}
-          duration={TOAST_DURATION}
-        />
+        <AlertToast item={toastItem} onDismiss={dismissToast} pending={pendingToasts} duration={TOAST_DURATION} />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-        {/* ── EMERGENCY BAR ── */}
+        {/* Emergency bar */}
         {hasActiveCriticalAlerts && (
           <div className="fadeUp" style={{ background: "rgba(225,29,72,.06)", border: "1px solid rgba(225,29,72,.2)", borderRadius: 12, padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -552,11 +470,10 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── MODE BANNERS ── */}
         {isEmergency   && <BannerBase gradient="linear-gradient(90deg,#b91c1c,#7f1d1d)" glowColor="rgba(185,28,28,.20)" label="⚠ Emergency Mode Active"    message="All thresholds overridden. Broadcasting to all channels. Immediate action required." badge="EMERGENCY" />}
         {isMaintenance && <BannerBase gradient="linear-gradient(90deg,var(--orange),#92400e)" glowColor="rgba(224,120,0,.15)" label="⚠ Maintenance Mode Active" message="All alerts suppressed during scheduled maintenance." badge="MAINTENANCE" />}
 
-        {/* ── STAT CARDS ── */}
+        {/* Stat Cards */}
         <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
           {stats.map((s, i) => (
             <Card key={i} className="stat-card" style={{ padding: "22px 22px 18px" }}>
@@ -571,8 +488,9 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ── MAP ROW ── */}
+        {/* Map Row */}
         <div className="fadeUp" style={{ display: "flex", gap: 16 }}>
+          {/* ✅ iotDevice null නම් LeftSidebar ඇතුලේ shimmer show වෙනවා */}
           <LeftSidebar sensors={sensors} iotDevice={iotDevice} />
           <Card style={{ flex: 1, padding: 0, overflow: "hidden", position: "relative", borderRadius: 16 }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)" }}>
@@ -600,7 +518,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* ── FOOTER ROW ── */}
+        {/* Footer Row */}
         <div className="fadeUp" style={{ display: "flex", gap: 16 }}>
 
           {/* Live Alerts */}
@@ -640,7 +558,7 @@ export default function Dashboard() {
               <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: ".6px" }}>Precipitation Trend</div>
               <div style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", background: "var(--green-bg)", padding: "4px 10px", borderRadius: 8 }}>+12% vs last 6h</div>
             </div>
-            <div style={{ width: "100%", height: 135, fontSize: 10, fontWeight: 600 }}>
+            <div style={{ width: "100%", height: 135, fontSize: 10, fontWeight: 600, minWidth: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 0 }}>
                   <defs>
@@ -651,7 +569,7 @@ export default function Dashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="time" stroke="#94a3b8" tickLine={false} axisLine={false} dy={8} style={{ fontWeight: 700 }} />
-                  <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} domain={[0,160]} tickFormatter={v => `${v}mm`} />
+                  <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} domain={[0, 160]} tickFormatter={v => `${v}mm`} />
                   <Tooltip contentStyle={{ background: "#0f172a", borderRadius: 10, color: "#fff", border: "none", fontSize: 11, fontWeight: 700 }} />
                   <Area type="monotone" dataKey="rainfall" stroke="#1a52cc" strokeWidth={3} fillOpacity={1} fill="url(#premiumRainGrad)" dot={{ stroke: "#1a52cc", strokeWidth: 2, fill: "#fff", r: 3 }} activeDot={{ r: 5, strokeWidth: 0, fill: "#ff4d4d" }} />
                 </AreaChart>
