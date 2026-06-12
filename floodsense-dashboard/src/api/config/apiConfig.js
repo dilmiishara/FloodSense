@@ -13,6 +13,7 @@ export const THRESHOLDS_API = `${API_BASE_URL}/alert-thresholds`;
 
 // ─── PREDICTION ENDPOINTS ────────────────────────────────────────────────────
 export const PREDICTIONS_ALERTS_API = `${API_BASE_URL}/predictions/alerts`;
+export const PREDICTIONS_LATEST_API = `${API_BASE_URL}/predictions/latest`;
 
 // ─── DASHBOARD ───────────────────────────────────────────────────────────────
 export const DASHBOARD_MASTER_API = `${API_BASE_URL}/dashboard/master-telemetry`;
@@ -20,20 +21,12 @@ export const DASHBOARD_MASTER_API = `${API_BASE_URL}/dashboard/master-telemetry`
 // ─── SAFE LOCATIONS ──────────────────────────────────────────────────────────
 export const SAFE_LOCATIONS_API = `${API_BASE_URL}/safelocations`;
 
-// ── External station data ────────────────────────────────────────────────────
+// ─── EXTERNAL STATION DATA ───────────────────────────────────────────────────
 export const STATIONS_LATEST_API = "https://www.srilankafloodmonitor.site/api/levels/latest";
 
+// ─── WEATHER API ─────────────────────────────────────────────────────────────
 export const WEATHER_API = {
   KEY: "a201c7373afb43ff960185608250512",
   BASE_URL: "https://api.weatherapi.com/v1",
   RATNAPURA_COORDS: "6.6828,80.3992",
 };
-};
-
-// SafeLocations endpoint
-export const SAFE_LOCATIONS_API = "/safelocations";
-
-export const DASHBOARD_MASTER_API = "/dashboard/master-telemetry";
-
-// Predictions endpoint
-export const PREDICTIONS_LATEST_API = `${API_BASE_URL}/predictions/latest`;

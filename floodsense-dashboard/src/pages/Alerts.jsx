@@ -11,6 +11,21 @@ import { useToast } from "../context/ToastContext";
 import NotificationRecipients from "../components/NotificationRecipients";
 import PredictionTable from "../components/PredictionTable";
 
+// Only these risk levels count as an actual "predicted risk".
+// "Normal" forecasts are excluded — they're not a risk.
+const RELEVANT_RISK_LEVELS = ["major", "minor", "alert"];
+
+// Local-date (not UTC) helper — keeps this in sync with PredictionTable's
+// "Today" filter, so the stat card and the table default view always match.
+const toLocalDateStr = (dateInput) => {
+    const d = new Date(dateInput);
+    const offsetMs = d.getTimezoneOffset() * 60000;
+    const local = new Date(d.getTime() - offsetMs);
+    return local.toISOString().slice(0, 10);
+};
+
+const todayStr = () => toLocalDateStr(new Date());
+
 export default function Alerts() {
     const toast = useToast();
     const [tab, setTab] = useState("active");
@@ -154,6 +169,22 @@ export default function Alerts() {
         return matchesSearch && matchesSeverity && matchesDivision;
     });
 
+    // ── Predicted risks count ──────────────────────────────────────────────────
+    // Matches the Predictive Alerts table's DEFAULT view (Today, All Stations,
+    // All Levels, Major/Minor/Alert only) — so the stat card and the table
+    // always agree with each other.
+    const predictedRiskCount = (predictedAlerts || []).filter(p => {
+        const level = (p.flood_risk_level || "").toLowerCase();
+        if (!RELEVANT_RISK_LEVELS.includes(level)) return false;
+
+        if (p.forecast_time) {
+            const rowDate = toLocalDateStr(p.forecast_time);
+            if (rowDate !== todayStr()) return false;
+        }
+
+        return true;
+    }).length;
+
     // ── Shared loading spinner row ────────────────────────────────────────────
     const LoadingView = ({ colSpan }) => (
         <tr>
@@ -236,8 +267,8 @@ export default function Alerts() {
                                 },
                                 {
                                     label: "Predicted Risks",
-                                    val:   predictedAlerts.length,
-                                    sub:   "AI-forecasted events",
+                                    val:   predictedRiskCount,
+                                    sub:   "AI-forecasted events (today)",
                                     color: "var(--purple)",
                                     icon:  <Brain />,
                                 },
