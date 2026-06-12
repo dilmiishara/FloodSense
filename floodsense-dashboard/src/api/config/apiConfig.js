@@ -28,12 +28,6 @@ export const WEATHER_API = {
   BASE_URL: "https://api.weatherapi.com/v1",
   RATNAPURA_COORDS: "6.6828,80.3992",
 };
-};
-
-// SafeLocations endpoint
-export const SAFE_LOCATIONS_API = "/safelocations";
-
-export const DASHBOARD_MASTER_API = "/dashboard/master-telemetry";
 
 // Predictions endpoint
 export const PREDICTIONS_LATEST_API = `${API_BASE_URL}/predictions/latest`;
