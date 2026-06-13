@@ -3,21 +3,22 @@ import { X, AlertTriangle, ShieldAlert, Activity, Calendar, MapPin, Filter } fro
 import { Select } from '../shared.jsx';
 
 // ── Risk config (Normal records are excluded from this table) ─────────────────
+// ✅ FIX — add "Major Flood" and "Minor Flood" keys
 const RISK_CONFIG = {
-    Major: {
+    'Major Flood': {
         color: '#dc2626',
         badge: '#fee2e2',
         textColor: '#dc2626',
         icon: <ShieldAlert size={13} />,
-        label: 'MAJOR',
+        label: 'MAJOR FLOOD',
         dotColor: '#dc2626',
     },
-    Minor: {
+    'Minor Flood': {
         color: '#ea580c',
         badge: '#fff7ed',
         textColor: '#ea580c',
         icon: <AlertTriangle size={13} />,
-        label: 'MINOR',
+        label: 'MINOR FLOOD',
         dotColor: '#ea580c',
     },
     Alert: {
@@ -30,7 +31,8 @@ const RISK_CONFIG = {
     },
 };
 
-const RELEVANT_LEVELS = ['major', 'minor', 'alert'];
+const RELEVANT_LEVELS = ['major flood', 'minor flood', 'alert'];
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Use LOCAL date (not UTC) so "Today" / "Last 7d" / "This Month" match the
@@ -156,10 +158,10 @@ export default function PredictionTable({ data, loading }) {
 
     // Counts per risk (from filtered data)
     const counts = useMemo(() => ({
-        Major: filtered.filter(r => r.flood_risk_level?.toLowerCase() === 'major').length,
-        Minor: filtered.filter(r => r.flood_risk_level?.toLowerCase() === 'minor').length,
-        Alert: filtered.filter(r => r.flood_risk_level?.toLowerCase() === 'alert').length,
-    }), [filtered]);
+    'Major Flood': filtered.filter(r => r.flood_risk_level?.toLowerCase() === 'major flood').length,
+    'Minor Flood': filtered.filter(r => r.flood_risk_level?.toLowerCase() === 'minor flood').length,
+    Alert:         filtered.filter(r => r.flood_risk_level?.toLowerCase() === 'alert').length,
+}), [filtered]);
 
     return (
         <div style={{ position: 'relative' }}>
@@ -174,9 +176,9 @@ export default function PredictionTable({ data, loading }) {
                 {/* Summary chips */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                     {[
-                        { key: 'Major', color: '#dc2626', bg: '#fee2e2', icon: <ShieldAlert size={11} /> },
-                        { key: 'Minor', color: '#ea580c', bg: '#fff7ed', icon: <AlertTriangle size={11} /> },
-                        { key: 'Alert', color: '#ca8a04', bg: '#fefce8', icon: <Activity size={11} /> },
+                         { key: 'Major Flood', color: '#dc2626', bg: '#fee2e2', icon: <ShieldAlert size={11} /> },
+    { key: 'Minor Flood', color: '#ea580c', bg: '#fff7ed', icon: <AlertTriangle size={11} /> },
+    { key: 'Alert',       color: '#ca8a04', bg: '#fefce8', icon: <Activity size={11} /> },
                     ].map(({ key, color, bg, icon }) => (
                         <button
                             key={key}
@@ -249,8 +251,8 @@ export default function PredictionTable({ data, loading }) {
                         >
                             <option value="All Levels">All Levels</option>
                             <option value="Alert">Alert</option>
-                            <option value="Minor">Minor</option>
-                            <option value="Major">Major</option>
+<option value="Minor Flood">Minor Flood</option>
+<option value="Major Flood">Major Flood</option>
                         </Select>
                     </div>
 

@@ -7,6 +7,8 @@ import {
 import { fetchRatnapuraWeather } from "../api/services/weatherService";
 import { useStationData } from "../hooks/useStationData";
 import WaterLevelSliderChart from "../components/prediction/WaterLevelSliderChart";
+import FloodPredictionTab from "../components/prediction/FloodPredictionTab";
+
 
 // ── Lazy-load AffectedMap (same as MapView) ───────────────────────────────────
 const AffectedMap = lazy(() => import("../components/map/AffectedMap.jsx"));
@@ -266,7 +268,7 @@ export default function Prediction() {
 
   const tabs = [
     { id: "waterlevel", label: " Water Level Forecast" },
-    { id: "rainfall",   label: " Rainfall Prediction"  },
+    { id: "rainfall",   label: " Weather Forecast"  },
     { id: "floodpred",  label: " Flood Prediction"     },
     { id: "floodzone",  label: " Flood Zone Map"       },
   ];
@@ -309,7 +311,7 @@ export default function Prediction() {
                   </div>
                 </div>
                 <div style={{ display:"flex", gap:6 }}>
-                  {["Next 6H","24H","48H","7 Days"].map((t) => (
+                  {["Next 12H"].map((t) => (
                       <button key={t} onClick={() => setTime(t)} style={{
                         padding:"7px 14px", borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer",
                         border:"1.5px solid var(--border)",
@@ -403,7 +405,7 @@ export default function Prediction() {
                   <>
                     <div className="fadeUp" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }} />
 
-                    <Card className="fadeUp">
+                    {/* <Card className="fadeUp">
                       <div style={{ fontSize:14, fontWeight:700, marginBottom:4, color:"var(--text)" }}>Hourly Rainfall Forecast — Next 12 Hours</div>
                       <div style={{ fontSize:11, color:"var(--text-muted)", marginBottom:12 }}>mm/hr · South-West Region · Light blue = predicted</div>
                       <div style={{ display:"flex", gap:5, alignItems:"flex-end", height:80 }}>
@@ -423,7 +425,7 @@ export default function Prediction() {
                             <div key={i} style={{ flex:1, fontSize:8, color: i >= 6 ? "var(--primary)" : "var(--text-muted)", textAlign:"center", fontFamily:"DM Mono", fontWeight: i === 7 ? "700" : "400" }}>{l}</div>
                         ))}
                       </div>
-                    </Card>
+                    </Card> */}
 
                     <div className="fadeUp" style={{ display:"flex", gap:12, alignItems:"stretch" }}>
                       <Card style={{ flex:1 }}>
@@ -474,112 +476,45 @@ export default function Prediction() {
                   </>
               )}
 
-              {/* ══ FLOOD ZONE MAP ══ */}
-              {tab === "floodzone" && (
-                  <div className="fadeUp" style={{
-                      background: "var(--surface)",
-                      borderRadius: 16,
-                      border: "1px solid var(--border)",
-                      boxShadow: "var(--shadow)",
-                      overflow: "hidden",
-                  }}>
-                      {/* Section header */}
-                      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Predicted Flood Zone Map</div>
-                              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>River corridor inundation based on latest ML predictions · auto-refresh 5 min</div>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--green-bg)", border: "1px solid var(--green)", borderRadius: 20, padding: "3px 10px" }}>
-                              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }} className="pulse" />
-                              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)" }}>LIVE</span>
-                          </div>
+              {/* ══ RISK HEATMAP ══ */}
+              {tab === "heatmap" && (
+                  <div className="fadeUp" style={{ display:"flex", gap:12 }}>
+                    <Card style={{ flex:1, padding:0, overflow:"hidden" }}>
+                      <div style={{ padding:"12px 16px", borderBottom:"1px solid var(--border)" }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>District Risk Heatmap</div>
+                        <div style={{ fontSize:11, color:"var(--text-muted)", marginTop:2 }}>Flood probability — Next 6 Hours</div>
                       </div>
-                      {/* Map */}
-                      <Suspense fallback={<MapLoading />}>
-                          <AffectedMap layer="Map" />
-                      </Suspense>
+                      <SriLankaMap mode="heatmap" />
+                    </Card>
+                    {/* <Card style={{ width:280, display:"flex", flexDirection:"column" }}>
+                      <div style={{ fontSize:14, fontWeight:700, marginBottom:4, color:"var(--text)" }}>District Risk Rankings</div>
+                      <div style={{ fontSize:11, color:"var(--text-muted)", marginBottom:10 }}>Ratnapura District · All DSD areas</div>
+                      <div style={{ overflowY:"auto", flex:1, maxHeight:280, paddingRight:2 }}>
+                        <table style={{ width:"100%" }}>
+                          <thead style={{ position:"sticky", top:0, background:"var(--surface)", zIndex:1 }}>
+                          <tr><th>#</th><th>District</th><th>Probability</th><th>Risk</th></tr>
+                          </thead>
+                          <tbody>
+                          {riskRankings.map(([name, pct, c, badge], i) => (
+                              <tr key={i}>
+                                <td style={{ fontWeight:900, color:c, fontSize:13 }}>{i + 1}</td>
+                                <td style={{ fontWeight:700, fontSize:13 }}>{name}</td>
+                                <td><ProbBar pct={pct} color={c} /></td>
+                                <td><Badge type={badge}>{badge.toUpperCase()}</Badge></td>
+                              </tr>
+                          ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style={{ fontSize:9, color:"var(--text-muted)", textAlign:"center", marginTop:8, letterSpacing:0.3 }}>↕ scroll to see all districts</div>
+                    </Card> */}
                   </div>
               )}
 
               {/* ══ FLOOD PREDICTION ══ */}
-              {tab === "floodpred" && (
-                  <>
-                    <div className="fadeUp" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
-                      <StatCard label="Flood Probability (6H)" value="78%" valColor="var(--red)" sub="▲ High risk — rising fast" subColor="var(--red)"
-                                extra={<div style={{ marginTop:8 }}>
-                                  <div style={{ background:"var(--border)", height:7, borderRadius:4, overflow:"hidden" }}>
-                                    <div style={{ width:"78%", background:"linear-gradient(90deg, var(--orange), var(--red))", height:"100%", borderRadius:4 }} />
-                                  </div>
-                                </div>} />
-                      <StatCard label="Predicted Peak Level" value="5.6m" valColor="var(--red)" sub="▲ Exceeds 5.2m threshold" subColor="var(--red)"
-                                extra={<div style={{ marginTop:8, display:"flex", alignItems:"center", gap:6 }}>
-                                  <div style={{ flex:1, background:"var(--border)", height:7, borderRadius:4, overflow:"hidden" }}>
-                                    <div style={{ width:"92%", background:"var(--red)", height:"100%", borderRadius:4 }} />
-                                  </div>
-                                  <span style={{ fontSize:10, color:"var(--red)", fontWeight:700 }}>92%</span>
-                                </div>} />
-                      <StatCard label="Expected Flood Onset" value="~3 hrs"  valColor="var(--orange)" sub="17:00–17:30 LKT window" />
-                      <StatCard label="Affected Population"  value="12,400" valColor="var(--text)"   sub="Ratnapura + Kalutara zones" />
-                    </div>
-
-                    <div className="fadeUp" style={{ display:"flex", gap:12, alignItems:"stretch" }}>
-                      <Card style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:14, fontWeight:700, marginBottom:4, color:"var(--text)" }}>Water Level &amp; Flood Probability — Next 24 Hours</div>
-                        <div style={{ fontSize:11, color:"var(--text-muted)", marginBottom:8 }}>Kalu Ganga basin · FloodSense ML v2.1 · Hover for details</div>
-                        <div style={{ display:"flex", gap:16, marginBottom:12 }}>
-                          {[["var(--text)","Actual Level","solid"],["var(--red)","Predicted Level","dashed"],["var(--orange)","Flood Probability","dashed"]].map(([c,l,s],i) => (
-                              <div key={i} style={{ display:"flex", alignItems:"center", gap:5 }}>
-                                <svg width="20" height="8">
-                                  <line x1="0" y1="4" x2="20" y2="4" stroke={c} strokeWidth="2" strokeDasharray={s === "dashed" ? "4,3" : "0"} />
-                                </svg>
-                                <span style={{ fontSize:10, color:"var(--text-muted)" }}>{l}</span>
-                              </div>
-                          ))}
-                        </div>
-                        <WaterLevelChart />
-                      </Card>
-
-                      <Card style={{ width:280, display:"flex", flexDirection:"column" }}>
-                        <div style={{ fontSize:14, fontWeight:700, marginBottom:4, color:"var(--text)" }}>District Flood Risk</div>
-                        <div style={{ fontSize:11, color:"var(--text-muted)", marginBottom:10 }}>Ratnapura District · All DSD areas</div>
-                        <div style={{ overflowY:"auto", flex:1, maxHeight:280, paddingRight:2 }}>
-                          <table style={{ width:"100%" }}>
-                            <thead style={{ position:"sticky", top:0, background:"var(--surface)", zIndex:1 }}>
-                            <tr><th>Division</th><th>Probability</th><th>Risk</th></tr>
-                            </thead>
-                            <tbody>
-                            {[
-                              ["Ratnapura",    92, "var(--red)",    "critical"],
-                              ["Eheliyagoda",  90, "var(--red)",    "critical"],
-                              ["Kuruvita",     78, "#cc4400",       "critical"],
-                              ["Kiriella",     65, "var(--orange)", "high"    ],
-                              ["Imbulpe",      60, "var(--orange)", "high"    ],
-                              ["Balangoda",    48, "var(--yellow)", "medium"  ],
-                              ["Opanayake",    40, "var(--yellow)", "medium"  ],
-                              ["Pelmadulla",   22, "var(--yellow)", "medium"  ],
-                              ["Elapatha",     15, "var(--green)",  "safe"    ],
-                              ["Ayagama",      12, "var(--green)",  "safe"    ],
-                              ["Kalawana",     10, "var(--green)",  "safe"    ],
-                              ["Nivithigala",  10, "var(--green)",  "safe"    ],
-                              ["Kahawatta",     8, "var(--green)",  "safe"    ],
-                              ["Weligepola",    8, "var(--green)",  "safe"    ],
-                              ["Embilipitiya",  6, "var(--green)",  "safe"    ],
-                              ["Kolonna",       5, "var(--green)",  "safe"    ],
-                            ].map(([name, pct, c, badge], i) => (
-                                <tr key={i}>
-                                  <td style={{ fontWeight:700, fontSize:11, whiteSpace:"nowrap" }}>{name}</td>
-                                  <td><ProbBar pct={pct} color={c} /></td>
-                                  <td><Badge type={badge}>{badge.toUpperCase()}</Badge></td>
-                                </tr>
-                            ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div style={{ fontSize:9, color:"var(--text-muted)", textAlign:"center", marginTop:8, letterSpacing:0.3 }}>↕ scroll to see all divisions</div>
-                      </Card>
-                    </div>
-                  </>
-              )}
+           {tab === "floodpred" && (
+  <FloodPredictionTab />
+)}
 
             </div>
           </div>
