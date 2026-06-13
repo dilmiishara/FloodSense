@@ -1,7 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { Card, globalCSS } from "../shared.jsx";
 import { useSettings } from "../context/SettingsContext";
@@ -12,13 +9,11 @@ import { useStationData } from "../hooks/useStationData";
 import {
   HumidityIcon, TemperatureIcon, RainfallIcon,
   UltrasonicIcon, WarningIcon,
-  ShelterTypeIcon,
+  ShelterTypeIcon, SafeShieldIcon,
 } from "../shared/icons";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-let DefaultIcon = L.icon({ iconUrl: markerIcon, shadowUrl: markerShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
-L.Marker.prototype.options.icon = DefaultIcon;
+// ─── Lazy load the Predicted Flood Area map (same component used in MapView) ─
+const AffectedMap = lazy(() => import("../components/map/AffectedMap.jsx"));
 
 // ─── Constants (NO hooks here) ────────────────────────────────────────────────
 const STATION_COORDS = {
@@ -34,6 +29,14 @@ const STATION_THRESHOLDS = {
 };
 
 const TOAST_DURATION = 6000;
+
+// ─── Loading spinner for the predicted-area map ───────────────────────────────
+const MapLoading = () => (
+  <div style={{ height: "100%", minHeight: 380, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+    <div style={{ width: 32, height: 32, border: "3px solid var(--border)", borderTop: "3px solid var(--primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+    <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Loading predicted flood map...</span>
+  </div>
+);
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const proStyles = `
@@ -95,7 +98,7 @@ const proStyles = `
   .stat-label  { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1.1px; color:var(--text-muted); margin-bottom:8px; }
   .stat-value  { font-size:40px; font-weight:900; line-height:1; letter-spacing:-1.5px; }
   .stat-footer { font-size:12px; font-weight:700; margin-top:10px; display:flex; align-items:center; gap:6px; }
-  .stat-bg-icon { position:absolute; right:-8px; bottom:-8px; font-size:72px; opacity:.05; pointer-events:none; transform:rotate(-15deg); }
+  .stat-bg-icon { position:absolute; right:-8px; bottom:-8px; font-size:72px; opacity:.05; pointer-events:none; transform:rotate(-15deg); display:flex; align-items:center; justify-content:center; }
   .row-item { display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:11px; cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .18s ease; }
   .row-item:hover { background:var(--surface-alt); border-color:var(--border); transform:translateX(3px); }
   .icon-box { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
@@ -391,11 +394,19 @@ export default function Dashboard() {
     return { name: s.name, pct: computedPct, actualLevel: s.level, color: uiColor, coords: STATION_COORDS[s.name] || [6.55, 80.60], status: s.status, time: s.time };
   });
 
+  // ── Stat cards — "Affected Areas" removed; "Safe Locations" now shows just
+  //    the total shelter count with a green shield icon ──────────────────────
   const stats = [
-    { label: "Active Sensors",  value: sensors.length < 10 ? `0${sensors.length}` : sensors.length,  sub: "Kalu Ganga Basin Live",             subColor: "var(--green)",   icon: "📡" },
-    { label: "Critical Alerts", value: criticalCount < 10  ? `0${criticalCount}`  : criticalCount,   sub: "High Risk Priority",                subColor: "var(--red)",     valColor: "var(--red)",     icon: "🚨" },
-    { label: "Affected Areas",  value: "06",                                                           sub: "Trend Increasing",                 subColor: "var(--orange)",  valColor: "var(--orange)",  icon: "🗺️" },
-    { label: "Safe Locations",  value: totalShelters < 10  ? `0${totalShelters}`  : totalShelters,   sub: `${activeShelters}/${totalShelters} Operational`, subColor: "var(--primary)", valColor: "var(--primary)", icon: "🛡️" },
+    { label: "Active Sensors",  value: sensors.length < 10 ? `0${sensors.length}` : sensors.length,  sub: "Kalu Ganga Basin Live", subColor: "var(--green)", icon: "📡" },
+    { label: "Critical Alerts", value: criticalCount < 10  ? `0${criticalCount}`  : criticalCount,   sub: "High Risk Priority",    subColor: "var(--red)",   valColor: "var(--red)", icon: "🚨" },
+    {
+      label: "Safe Locations",
+      value: totalShelters < 10 ? `0${totalShelters}` : totalShelters,
+      sub: "Registered Shelters",
+      subColor: "var(--green)",
+      valColor: "var(--green)",
+      icon: <SafeShieldIcon size={64} color="var(--green)" />,
+    },
   ];
 
   const chartData = [
@@ -427,8 +438,8 @@ export default function Dashboard() {
         <style>{proStyles}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "4px 0" }}>
           <div className="shimmer-block" style={{ height: 60, width: "100%", borderRadius: 13 }} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-            {[1,2,3,4].map(i => <div key={i} className="shimmer-block" style={{ height: 110, borderRadius: 16 }} />)}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+            {[1,2,3].map(i => <div key={i} className="shimmer-block" style={{ height: 110, borderRadius: 16 }} />)}
           </div>
           <div style={{ display: "flex", gap: 16 }}>
             <div className="shimmer-block" style={{ width: 360, height: 420, flexShrink: 0, borderRadius: 16 }} />
@@ -473,8 +484,8 @@ export default function Dashboard() {
         {isEmergency   && <BannerBase gradient="linear-gradient(90deg,#b91c1c,#7f1d1d)" glowColor="rgba(185,28,28,.20)" label="⚠ Emergency Mode Active"    message="All thresholds overridden. Broadcasting to all channels. Immediate action required." badge="EMERGENCY" />}
         {isMaintenance && <BannerBase gradient="linear-gradient(90deg,var(--orange),#92400e)" glowColor="rgba(224,120,0,.15)" label="⚠ Maintenance Mode Active" message="All alerts suppressed during scheduled maintenance." badge="MAINTENANCE" />}
 
-        {/* Stat Cards */}
-        <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+        {/* Stat Cards — now 3 cards (Affected Areas removed) */}
+        <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
           {stats.map((s, i) => (
             <Card key={i} className="stat-card" style={{ padding: "22px 22px 18px" }}>
               <div className="stat-bg-icon">{s.icon}</div>
@@ -488,32 +499,24 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Map Row */}
+        {/* Map Row — shows the AI Predicted Flood Area map */}
         <div className="fadeUp" style={{ display: "flex", gap: 16 }}>
           {/* ✅ iotDevice null නම් LeftSidebar ඇතුලේ shimmer show වෙනවා */}
           <LeftSidebar sensors={sensors} iotDevice={iotDevice} />
           <Card style={{ flex: 1, padding: 0, overflow: "hidden", position: "relative", borderRadius: 16 }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)" }}>
-              <div style={{ fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", color: "var(--text)", letterSpacing: ".5px" }}>
-                <span className="live-dot" /> LIVE GEO-OPERATIONS DATA WINDOW
+              <div style={{ fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", gap: 8, color: "var(--text)", letterSpacing: ".5px" }}>
+                <WarningIcon size={14} color="var(--orange)" />
+                <span>AI PREDICTED FLOOD RISK AREAS</span>
               </div>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: "3px 10px", borderRadius: 8, background: "var(--primary-bg)", color: "var(--primary)" }}>
+                FORECAST OVERLAY
+              </span>
             </div>
             <div style={{ height: "calc(100% - 49px)", minHeight: 380, position: "relative" }}>
-              <div className="map-scanner" />
-              <MapContainer center={[6.65, 80.25]} zoom={10} style={{ height: "100%", width: "100%" }} zoomControl={false}>
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-                {sensors.map((s, i) => (
-                  <Marker key={i} position={s.coords}>
-                    <Popup>
-                      <div style={{ padding: 4, fontSize: 12, fontFamily: "Inter, sans-serif" }}>
-                        <strong style={{ color: "#0f172a" }}>{s.name} Telemetry Station</strong><br />
-                        <span style={{ color: s.color, fontWeight: 700 }}>Live Water Level: {s.actualLevel.toFixed(2)}m</span><br />
-                        <span style={{ fontSize: 10, color: "#64748b" }}>Status: {s.status.toUpperCase()}</span>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              <Suspense fallback={<MapLoading />}>
+                <AffectedMap layer="Map" />
+              </Suspense>
             </div>
           </Card>
         </div>
