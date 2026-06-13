@@ -13,7 +13,7 @@ import PredictionTable from "../components/PredictionTable";
 
 // Only these risk levels count as an actual "predicted risk".
 // "Normal" forecasts are excluded — they're not a risk.
-const RELEVANT_RISK_LEVELS = ["major", "minor", "alert"];
+const RELEVANT_RISK_LEVELS = ["major flood", "minor flood", "alert"];
 
 // Local-date (not UTC) helper — keeps this in sync with PredictionTable's
 // "Today" filter, so the stat card and the table default view always match.
