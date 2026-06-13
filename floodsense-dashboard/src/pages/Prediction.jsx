@@ -1,5 +1,5 @@
 // ─── Prediction.jsx ───────────────────────────────────────────────────────────
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   Card, Badge, Btn, globalCSS, TabBar, ProbBar, SriLankaMap,
 } from "../shared.jsx";
@@ -7,6 +7,16 @@ import {
 import { fetchRatnapuraWeather } from "../api/services/weatherService";
 import { useStationData } from "../hooks/useStationData";
 import WaterLevelSliderChart from "../components/prediction/WaterLevelSliderChart";
+
+// ── Lazy-load AffectedMap (same as MapView) ───────────────────────────────────
+const AffectedMap = lazy(() => import("../components/map/AffectedMap.jsx"));
+
+const MapLoading = () => (
+    <div style={{ height: "62vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+        <div style={{ width: 32, height: 32, border: "3px solid var(--border)", borderTop: "3px solid var(--primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Loading map…</span>
+    </div>
+);
 
 // ── Interactive SVG station chart with hover tooltip ──────────────────────────
 const StationSVGChart = ({ id, data, max, color, times }) => {
@@ -258,7 +268,7 @@ export default function Prediction() {
     { id: "waterlevel", label: " Water Level Forecast" },
     { id: "rainfall",   label: " Rainfall Prediction"  },
     { id: "floodpred",  label: " Flood Prediction"     },
-    { id: "heatmap",    label: " Risk Heatmap"         },
+    { id: "floodzone",  label: " Flood Zone Map"       },
   ];
 
   const districtForecasts = [
@@ -464,38 +474,30 @@ export default function Prediction() {
                   </>
               )}
 
-              {/* ══ RISK HEATMAP ══ */}
-              {tab === "heatmap" && (
-                  <div className="fadeUp" style={{ display:"flex", gap:12 }}>
-                    <Card style={{ flex:1, padding:0, overflow:"hidden" }}>
-                      <div style={{ padding:"12px 16px", borderBottom:"1px solid var(--border)" }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>District Risk Heatmap</div>
-                        <div style={{ fontSize:11, color:"var(--text-muted)", marginTop:2 }}>Flood probability — Next 6 Hours</div>
+              {/* ══ FLOOD ZONE MAP ══ */}
+              {tab === "floodzone" && (
+                  <div className="fadeUp" style={{
+                      background: "var(--surface)",
+                      borderRadius: 16,
+                      border: "1px solid var(--border)",
+                      boxShadow: "var(--shadow)",
+                      overflow: "hidden",
+                  }}>
+                      {/* Section header */}
+                      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Predicted Flood Zone Map</div>
+                              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>River corridor inundation based on latest ML predictions · auto-refresh 5 min</div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--green-bg)", border: "1px solid var(--green)", borderRadius: 20, padding: "3px 10px" }}>
+                              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }} className="pulse" />
+                              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)" }}>LIVE</span>
+                          </div>
                       </div>
-                      <SriLankaMap mode="heatmap" />
-                    </Card>
-                    <Card style={{ width:280, display:"flex", flexDirection:"column" }}>
-                      <div style={{ fontSize:14, fontWeight:700, marginBottom:4, color:"var(--text)" }}>District Risk Rankings</div>
-                      <div style={{ fontSize:11, color:"var(--text-muted)", marginBottom:10 }}>Ratnapura District · All DSD areas</div>
-                      <div style={{ overflowY:"auto", flex:1, maxHeight:280, paddingRight:2 }}>
-                        <table style={{ width:"100%" }}>
-                          <thead style={{ position:"sticky", top:0, background:"var(--surface)", zIndex:1 }}>
-                          <tr><th>#</th><th>District</th><th>Probability</th><th>Risk</th></tr>
-                          </thead>
-                          <tbody>
-                          {riskRankings.map(([name, pct, c, badge], i) => (
-                              <tr key={i}>
-                                <td style={{ fontWeight:900, color:c, fontSize:13 }}>{i + 1}</td>
-                                <td style={{ fontWeight:700, fontSize:13 }}>{name}</td>
-                                <td><ProbBar pct={pct} color={c} /></td>
-                                <td><Badge type={badge}>{badge.toUpperCase()}</Badge></td>
-                              </tr>
-                          ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style={{ fontSize:9, color:"var(--text-muted)", textAlign:"center", marginTop:8, letterSpacing:0.3 }}>↕ scroll to see all districts</div>
-                    </Card>
+                      {/* Map */}
+                      <Suspense fallback={<MapLoading />}>
+                          <AffectedMap layer="Map" />
+                      </Suspense>
                   </div>
               )}
 
