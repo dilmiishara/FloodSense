@@ -8,7 +8,19 @@ import { fetchRatnapuraWeather } from "../api/services/weatherService";
 import { useStationData } from "../hooks/useStationData";
 import WaterLevelSliderChart from "../components/prediction/WaterLevelSliderChart";
 import FloodPredictionTab from "../components/prediction/FloodPredictionTab";
+import {SafeShieldIcon} from "../shared/icons.jsx";
 
+
+// ─── Layer toggle ─────────────────────────────────────────────────────────────
+const LayerToggle = ({ layer, setLayer }) => (
+    <div style={{ display: "flex", gap: 4, background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
+      {["Map", "Satellite"].map(l => (
+          <button key={l} onClick={() => setLayer(l)} style={{ padding: "5px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "all .15s", background: layer === l ? "var(--primary)" : "transparent", color: layer === l ? "#fff" : "var(--text-muted)" }}>
+            {l}
+          </button>
+      ))}
+    </div>
+);
 
 // ── Lazy-load AffectedMap (same as MapView) ───────────────────────────────────
 const AffectedMap = lazy(() => import("../components/map/AffectedMap.jsx"));
@@ -253,6 +265,7 @@ const StatCard = ({ label, value, valColor, sub, subColor, extra }) => (
 export default function Prediction() {
   const [tab, setTab]        = useState("waterlevel");
   const [timeRange, setTime] = useState("Next 6H");
+  const [layer, setLayer]    = useState("Map");
 
   const [weather, setWeather]               = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
@@ -478,33 +491,40 @@ export default function Prediction() {
 
               {/* ══ FLOOD ZONE MAP ══ */}
               {tab === "floodzone" && (
-                  <div className="fadeUp" style={{
-                    background: "var(--surface)",
-                    borderRadius: 16,
-                    border: "1px solid var(--border)",
-                    boxShadow: "var(--shadow)",
-                    overflow: "hidden",
-                  }}>
-                    {/* Section header */}
-                    <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Predicted Flood Zone Map</div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>River corridor inundation based on latest ML predictions · auto-refresh 5 min</div>
+                  <>
+                    {/* ── Map header bar — dynamically controlled ─────────── */}
+                    <div className="fadeUp" style={{ background: "var(--surface)", borderRadius: "16px 16px 0 0", border: "1px solid var(--border)", borderBottom: "none", boxShadow: "var(--shadow)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Sri Lanka Real-Time Map</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--green-bg)", border: "1px solid var(--green)", borderRadius: 20, padding: "3px 10px" }}>
+                          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }} className="pulse" />
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)" }}>LIVE</span>
+                        </div>
+                        {tab === "safe" && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 20, padding: "3px 10px", color: "#16a34a" }}>
+                              <SafeShieldIcon size={11} color="#16a34a" />
+                              {"Loading…"}
+                            </div>
+                        )}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, background: "var(--green-bg)", border: "1px solid var(--green)", borderRadius: 20, padding: "3px 10px" }}>
-                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }} className="pulse" />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)" }}>LIVE</span>
-                      </div>
+                      <LayerToggle layer={layer} setLayer={setLayer} />
                     </div>
-                    {/* Map */}
-                    <Suspense fallback={<MapLoading />}>
-                      <AffectedMap layer="Map" />
-                    </Suspense>
 
-                  </div>
-
-
-)}
+                    {/* ── Map Canvas Wrapper ───────────────────────────────── */}
+                    <div className="fadeUp" style={{
+                      background: "var(--surface)",
+                      borderRadius: "0 0 16px 16px",
+                      border: "1px solid var(--border)",
+                      borderTop: "none",
+                      boxShadow: "var(--shadow)",
+                      overflow: "hidden"
+                    }}>
+                      <Suspense fallback={<MapLoading />}>
+                        <AffectedMap layer={layer} />
+                      </Suspense>
+                    </div>
+                  </>
+              )}
 
               {/* ══ FLOOD PREDICTION ══ */}
               {tab === "floodpred" && (
