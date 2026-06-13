@@ -74,7 +74,7 @@ export default function MapView() {
 
     const tabs = [
         { id: "sensor",   label: "Sensor Locations" },
-        { id: "affected", label: "Affected Areas"   },
+        { id: "affected", label: "Predicted Flood Area"   },
         { id: "safe",     label: "Safe Locations"   },
     ];
 
