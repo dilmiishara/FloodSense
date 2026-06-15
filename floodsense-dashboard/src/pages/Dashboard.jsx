@@ -1,26 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { Card, globalCSS } from "../shared.jsx";
 import { useSettings } from "../context/SettingsContext";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X, ChevronDown, ChevronUp } from "lucide-react";
 
 import { fetchMasterDashboardData, fetchLatestSensorReading } from "../api/services/alertService";
 import { useStationData } from "../hooks/useStationData";
 import {
   HumidityIcon, TemperatureIcon, RainfallIcon,
   UltrasonicIcon, WarningIcon,
-  ShelterTypeIcon,
+  ShelterTypeIcon, SafeShieldIcon,
 } from "../shared/icons";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-let DefaultIcon = L.icon({ iconUrl: markerIcon, shadowUrl: markerShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
-L.Marker.prototype.options.icon = DefaultIcon;
+// ─── Lazy load the Predicted Flood Area map ───────────────────────────────────
+const AffectedMap = lazy(() => import("../components/map/AffectedMap.jsx"));
 
-// ─── Constants (NO hooks here) ────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 const STATION_COORDS = {
   "Rathnapura": [6.6827, 80.3992],
   "Ellagawa":   [6.7583, 80.2014],
@@ -34,6 +28,15 @@ const STATION_THRESHOLDS = {
 };
 
 const TOAST_DURATION = 6000;
+const SHELTER_PREVIEW = 3; // default visible shelter count
+
+// ─── Map loading spinner ──────────────────────────────────────────────────────
+const MapLoading = () => (
+  <div style={{ height: "100%", minHeight: 380, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+    <div style={{ width: 32, height: 32, border: "3px solid var(--border)", borderTop: "3px solid var(--primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+    <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Loading predicted flood map...</span>
+  </div>
+);
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const proStyles = `
@@ -56,6 +59,10 @@ const proStyles = `
     0%  { opacity: 1; }
     50% { opacity: 0.35; }
     100%{ opacity: 1; }
+  }
+  @keyframes shelterExpand {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   .shimmer-block {
     background: linear-gradient(90deg, var(--surface) 25%, var(--surface-alt) 50%, var(--surface) 75%);
@@ -95,17 +102,19 @@ const proStyles = `
   .stat-label  { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1.1px; color:var(--text-muted); margin-bottom:8px; }
   .stat-value  { font-size:40px; font-weight:900; line-height:1; letter-spacing:-1.5px; }
   .stat-footer { font-size:12px; font-weight:700; margin-top:10px; display:flex; align-items:center; gap:6px; }
-  .stat-bg-icon { position:absolute; right:-8px; bottom:-8px; font-size:72px; opacity:.05; pointer-events:none; transform:rotate(-15deg); }
+  .stat-bg-icon { position:absolute; right:-8px; bottom:-8px; opacity:.05; pointer-events:none; display:flex; align-items:center; justify-content:center; }
   .row-item { display:flex; align-items:center; gap:14px; padding:10px 12px; border-radius:11px; cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .18s ease; }
   .row-item:hover { background:var(--surface-alt); border-color:var(--border); transform:translateX(3px); }
   .icon-box { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
-  .map-scanner { position:absolute; top:0; left:0; width:100%; height:50px; background:linear-gradient(to bottom, transparent, rgba(26,82,204,.06), transparent); animation:scan 3s infinite linear; pointer-events:none; z-index:1000; }
-  .live-dot { width:8px; height:8px; background:var(--red); border-radius:50%; display:inline-block; margin-right:8px; animation:pulse-ring 2s infinite; }
   .iot-live-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; display:inline-block; animation:iot-tick 2s infinite ease-in-out; }
   .radar-emergency-node { animation: emergency-radar 1s infinite ease-in-out !important; }
+  .live-dot { width:8px; height:8px; background:var(--red); border-radius:50%; display:inline-block; margin-right:8px; animation:pulse-ring 2s infinite; }
+  .shelter-extra { animation: shelterExpand 0.22s ease forwards; }
+  .show-more-btn { width:100%; margin-top:8px; padding:8px 0; border-radius:10px; border:1.5px dashed var(--border); background:transparent; color:var(--text-muted); font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all .15s; }
+  .show-more-btn:hover { background:var(--surface-alt); border-color:var(--primary); color:var(--primary); }
 `;
 
-// ─── Custom Hook: Toast Queue ─────────────────────────────────────────────────
+// ─── Toast Queue Hook ─────────────────────────────────────────────────────────
 function useToastQueue(duration = 6000) {
   const [queue,   setQueue]   = useState([]);
   const [current, setCurrent] = useState(null);
@@ -152,7 +161,7 @@ function AlertToast({ item, onDismiss, pending, duration }) {
   return (
     <div
       className={`alert-toast ${item.exiting ? "toast-exit" : "toast-enter"}`}
-      style={{ position: "fixed", top: 24, right: 24, width: 380, zIndex: 9999, borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", overflow: "hidden" }}
+      style={{ position: "fixed", top: 24, right: 24, width: 380, zIndex: 9999, borderRadius: 14, overflow: "hidden" }}
     >
       <div className="alert-toast-progress-track" style={{ height: 3 }}>
         <div style={{ height: "100%", background: "var(--red)", animation: item.exiting ? "none" : `toastProgress ${duration}ms linear forwards` }} />
@@ -165,9 +174,7 @@ function AlertToast({ item, onDismiss, pending, duration }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <span className="alert-toast-label" style={{ fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".8px" }}>Critical Alert</span>
-              {pending > 0 && (
-                <span className="alert-toast-pending" style={{ fontSize: 9, fontWeight: 800, padding: "1px 7px", borderRadius: 6 }}>+{pending} more</span>
-              )}
+              {pending > 0 && <span className="alert-toast-pending" style={{ fontSize: 9, fontWeight: 800, padding: "1px 7px", borderRadius: 6 }}>+{pending} more</span>}
             </div>
             <div className="alert-toast-title" style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: "-.2px", marginBottom: 4 }}>
               {a.type || "CRITICAL FLOOD ALERT"}
@@ -176,7 +183,7 @@ function AlertToast({ item, onDismiss, pending, duration }) {
               <strong className="alert-toast-location">[{a.area?.name || a.location || "Sector"}]</strong>{" "}{a.message}
             </div>
           </div>
-          <button onClick={onDismiss} className="alert-toast-close" style={{ width: 26, height: 26, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background .15s" }}>
+          <button onClick={onDismiss} className="alert-toast-close" style={{ width: 26, height: 26, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <X size={13} />
           </button>
         </div>
@@ -187,7 +194,6 @@ function AlertToast({ item, onDismiss, pending, duration }) {
 
 // ─── Left Sidebar ─────────────────────────────────────────────────────────────
 function LeftSidebar({ sensors, iotDevice }) {
-  // Guard: iotDevice null නම් shimmer දෙන්නම්
   if (!iotDevice) {
     return (
       <div style={{ width: 360, flexShrink: 0 }}>
@@ -197,46 +203,10 @@ function LeftSidebar({ sensors, iotDevice }) {
   }
 
   const iotMetrics = [
-    {
-      label: "Water Level",
-      value: Number(iotDevice.waterLevel).toFixed(2),
-      unit: "m",
-      icon: <UltrasonicIcon size={13} color="#1a52cc" />,
-      iconBg: "rgba(26,82,204,.10)",
-      color: "#1a52cc",
-      bar: Math.min(100, (iotDevice.waterLevel / 10) * 100),
-      barColor: iotDevice.waterLevel > 7 ? "#ef4444" : iotDevice.waterLevel > 4 ? "#f97316" : "#1a52cc",
-    },
-    {
-      label: "Rainfall",
-      value: iotDevice.rainfall,
-      unit: "mm/h",
-      icon: <RainfallIcon size={13} color="#3b82f6" />,
-      iconBg: "rgba(59,130,246,.10)",
-      color: "#3b82f6",
-      bar: Math.min(100, (iotDevice.rainfall / 50) * 100),
-      barColor: "#3b82f6",
-    },
-    {
-      label: "Humidity",
-      value: iotDevice.humidity,
-      unit: "%",
-      icon: <HumidityIcon size={13} color="#6366f1" />,
-      iconBg: "rgba(99,102,241,.10)",
-      color: "#6366f1",
-      bar: iotDevice.humidity,
-      barColor: iotDevice.humidity > 90 ? "#ef4444" : "#6366f1",
-    },
-    {
-      label: "Temp",
-      value: iotDevice.temperature,
-      unit: "°C",
-      icon: <TemperatureIcon size={13} color="#f59e0b" />,
-      iconBg: "rgba(245,158,11,.10)",
-      color: "#f59e0b",
-      bar: Math.min(100, ((iotDevice.temperature - 15) / 25) * 100),
-      barColor: iotDevice.temperature > 35 ? "#ef4444" : "#f59e0b",
-    },
+    { label: "Water Level", value: Number(iotDevice.waterLevel).toFixed(2), unit: "m",    icon: <UltrasonicIcon size={13} color="#1a52cc" />, iconBg: "rgba(26,82,204,.10)",  color: "#1a52cc", bar: Math.min(100, (iotDevice.waterLevel / 10) * 100), barColor: iotDevice.waterLevel > 7 ? "#ef4444" : iotDevice.waterLevel > 4 ? "#f97316" : "#1a52cc" },
+    { label: "Rainfall",    value: iotDevice.rainfall,                       unit: "mm/h", icon: <RainfallIcon size={13} color="#3b82f6" />,    iconBg: "rgba(59,130,246,.10)",  color: "#3b82f6", bar: Math.min(100, (iotDevice.rainfall / 50) * 100),    barColor: "#3b82f6" },
+    { label: "Humidity",    value: iotDevice.humidity,                       unit: "%",    icon: <HumidityIcon size={13} color="#6366f1" />,    iconBg: "rgba(99,102,241,.10)",  color: "#6366f1", bar: iotDevice.humidity,                                  barColor: iotDevice.humidity > 90 ? "#ef4444" : "#6366f1" },
+    { label: "Temp",        value: iotDevice.temperature,                    unit: "°C",   icon: <TemperatureIcon size={13} color="#f59e0b" />, iconBg: "rgba(245,158,11,.10)",  color: "#f59e0b", bar: Math.min(100, ((iotDevice.temperature - 15) / 25) * 100), barColor: iotDevice.temperature > 35 ? "#ef4444" : "#f59e0b" },
   ];
 
   return (
@@ -258,9 +228,7 @@ function LeftSidebar({ sensors, iotDevice }) {
           <div style={{ height: 4, background: "var(--border)", borderRadius: 3, marginTop: 9, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${s.pct}%`, background: s.color, transition: "width 1.5s ease" }} />
           </div>
-          <div style={{ fontSize: 8, color: "var(--text-muted)", marginTop: 4, textAlign: "right", fontWeight: 700, fontFamily: "monospace" }}>
-            TS: {s.time}
-          </div>
+          <div style={{ fontSize: 8, color: "var(--text-muted)", marginTop: 4, textAlign: "right", fontWeight: 700, fontFamily: "monospace" }}>TS: {s.time}</div>
         </div>
       ))}
 
@@ -286,9 +254,7 @@ function LeftSidebar({ sensors, iotDevice }) {
         {iotMetrics.map((m, i) => (
           <div key={i} style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 11px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 7 }}>
-              <div style={{ width: 22, height: 22, borderRadius: 6, background: m.iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {m.icon}
-              </div>
+              <div style={{ width: 22, height: 22, borderRadius: 6, background: m.iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{m.icon}</div>
               <span style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".4px" }}>{m.label}</span>
             </div>
             <div style={{ fontSize: 19, fontWeight: 900, color: m.color, letterSpacing: "-.8px", lineHeight: 1 }}>
@@ -308,23 +274,82 @@ function LeftSidebar({ sensors, iotDevice }) {
   );
 }
 
-// ─── Dashboard (main export) ──────────────────────────────────────────────────
+// ─── Shelter Readiness Card ───────────────────────────────────────────────────
+function ShelterReadiness({ liveShelters }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? liveShelters : liveShelters.slice(0, SHELTER_PREVIEW);
+  const hasMore = liveShelters.length > SHELTER_PREVIEW;
+
+  return (
+    <Card style={{ flex: 1, padding: "20px 22px", borderRadius: 16 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: ".5px" }}>
+          Shelter Readiness
+        </div>
+        {liveShelters.length > 0 && (
+          <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 6, background: "var(--green-bg)", color: "var(--green)" }}>
+            {liveShelters.length} ACTIVE
+          </span>
+        )}
+      </div>
+
+      {/* List */}
+      {liveShelters.length === 0 ? (
+        <div style={{ padding: "30px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
+          No evacuation shelters registered in system.
+        </div>
+      ) : (
+        <>
+          {visible.map((z, i) => (
+            <div
+              key={z.id || i}
+              className={`row-item ${i >= SHELTER_PREVIEW ? "shelter-extra" : ""}`}
+            >
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: "#f0fdf4", border: "1.5px solid #86efac", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <ShelterTypeIcon type={z.location_type} size={16} color="#16a34a" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 12.5, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{z.location_name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                  {z.max_capacity && <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600 }}>{z.max_capacity} Max Cap</span>}
+                  {z.max_capacity && <span style={{ color: "var(--border-mid)" }}>•</span>}
+                  <span style={{ color: "var(--green)", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".4px" }}>{z.location_type}</span>
+                </div>
+              </div>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 7px var(--green)", flexShrink: 0 }} />
+            </div>
+          ))}
+
+          {/* Show more / less toggle */}
+          {hasMore && (
+            <button className="show-more-btn" onClick={() => setExpanded(e => !e)}>
+              {expanded
+                ? <><ChevronUp size={13} /> Show less</>
+                : <><ChevronDown size={13} /> Show {liveShelters.length - SHELTER_PREVIEW} more shelters</>
+              }
+            </button>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  // ✅ ALL hooks inside Dashboard function body — correct
-  const [isLoaded,      setIsLoaded]      = useState(false);
-  const [criticalCount, setCriticalCount] = useState(0);
-  const [liveAlerts,    setLiveAlerts]    = useState([]);
-  const [totalShelters, setTotalShelters] = useState(0);
-  const [activeShelters,setActiveShelters]= useState(0);
-  const [liveShelters,  setLiveShelters]  = useState([]);
-  const [iotDevice,     setIotDevice]     = useState(null); // ✅ starts null, filled by API
+  const [isLoaded,       setIsLoaded]       = useState(false);
+  const [criticalCount,  setCriticalCount]  = useState(0);
+  const [liveAlerts,     setLiveAlerts]     = useState([]);
+  const [totalShelters,  setTotalShelters]  = useState(0);
+  const [liveShelters,   setLiveShelters]   = useState([]);
+  const [iotDevice,      setIotDevice]      = useState(null);
 
   const { systemSettings } = useSettings();
-  const isEmergency    = systemSettings.emergency_mode;
-  const isMaintenance  = systemSettings.maintenance_mode;
+  const isEmergency   = systemSettings.emergency_mode;
+  const isMaintenance = systemSettings.maintenance_mode;
 
   const { current: toastItem, enqueue: enqueueToast, dismiss: dismissToast, pending: pendingToasts } = useToastQueue(TOAST_DURATION);
-
   const processedAlertIds = useRef(new Set());
   const rawStationData    = useStationData();
 
@@ -336,27 +361,19 @@ export default function Dashboard() {
         setCriticalCount(  data.critical_count  || 0);
         setLiveAlerts(     data.recent_alerts   || []);
         setTotalShelters(  data.total_shelters  || 0);
-        setActiveShelters( data.active_shelters || 0);
         setLiveShelters(   data.recent_shelters || []);
 
-        // ── IoT real data fetch ──────────────────────────────────────────────
         try {
           const iotRes = await fetchLatestSensorReading();
           if (iotRes.data?.data) setIotDevice(iotRes.data.data);
-        } catch (e) {
-          console.warn("IoT sensor fetch failed:", e);
-        }
+        } catch (e) { console.warn("IoT sensor fetch failed:", e); }
 
-        // ── Queue new critical alerts ────────────────────────────────────────
         const criticals = (data.recent_alerts || []).filter(a => a.severity?.toLowerCase() === "critical");
         const newAlerts = criticals.filter(a => !processedAlertIds.current.has(a.id));
         if (newAlerts.length > 0) {
           newAlerts.forEach(a => processedAlertIds.current.add(a.id));
           enqueueToast(newAlerts);
-          try { 
-  const audio = new Audio("/alert.mp3");
-  audio.play().catch(() => {}); 
-} catch(e) {}
+          try { new Audio("/alert.mp3").play().catch(() => {}); } catch(e) {}
         }
       } catch(err) {
         console.error(err);
@@ -364,7 +381,6 @@ export default function Dashboard() {
         setIsLoaded(true);
       }
     };
-
     loadData();
     const iv = setInterval(loadData, 30000);
     return () => clearInterval(iv);
@@ -392,17 +408,15 @@ export default function Dashboard() {
   });
 
   const stats = [
-    { label: "Active Sensors",  value: sensors.length < 10 ? `0${sensors.length}` : sensors.length,  sub: "Kalu Ganga Basin Live",             subColor: "var(--green)",   icon: "📡" },
-    { label: "Critical Alerts", value: criticalCount < 10  ? `0${criticalCount}`  : criticalCount,   sub: "High Risk Priority",                subColor: "var(--red)",     valColor: "var(--red)",     icon: "🚨" },
-    { label: "Affected Areas",  value: "06",                                                           sub: "Trend Increasing",                 subColor: "var(--orange)",  valColor: "var(--orange)",  icon: "🗺️" },
-    { label: "Safe Locations",  value: totalShelters < 10  ? `0${totalShelters}`  : totalShelters,   sub: `${activeShelters}/${totalShelters} Operational`, subColor: "var(--primary)", valColor: "var(--primary)", icon: "🛡️" },
-  ];
-
-  const chartData = [
-    { time: "-6h", rainfall: 45 }, { time: "-5h", rainfall: 52 },
-    { time: "-4h", rainfall: 48 }, { time: "-3h", rainfall: 85 },
-    { time: "-2h", rainfall: 118 },{ time: "-1h", rainfall: 130 },
-    { time: "NOW", rainfall: 142 },
+    { label: "Active Sensors",  value: sensors.length < 10 ? `0${sensors.length}` : sensors.length, sub: "Kalu Ganga Basin Live", subColor: "var(--green)", icon: "📡" },
+    { label: "Critical Alerts", value: criticalCount  < 10 ? `0${criticalCount}`  : criticalCount,  sub: "High Risk Priority",    subColor: "var(--red)",   valColor: "var(--red)", icon: "🚨" },
+    {
+      label: "Safe Locations",
+      value: totalShelters < 10 ? `0${totalShelters}` : totalShelters,
+      sub: "Registered Shelters",
+      subColor: "var(--green)", valColor: "var(--green)",
+      icon: <SafeShieldIcon size={64} color="var(--green)" />,
+    },
   ];
 
   const getSeverityHelper = sev => {
@@ -420,23 +434,22 @@ export default function Dashboard() {
     </div>
   );
 
-  // ── Loading / shimmer ────────────────────────────────────────────────────────
+  // ── Shimmer ──────────────────────────────────────────────────────────────────
   if (!isLoaded || rawStationData[0]?.loading) {
     return (
       <>
         <style>{proStyles}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "4px 0" }}>
           <div className="shimmer-block" style={{ height: 60, width: "100%", borderRadius: 13 }} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-            {[1,2,3,4].map(i => <div key={i} className="shimmer-block" style={{ height: 110, borderRadius: 16 }} />)}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+            {[1,2,3].map(i => <div key={i} className="shimmer-block" style={{ height: 110, borderRadius: 16 }} />)}
           </div>
           <div style={{ display: "flex", gap: 16 }}>
             <div className="shimmer-block" style={{ width: 360, height: 420, flexShrink: 0, borderRadius: 16 }} />
             <div className="shimmer-block" style={{ flex: 1, height: 420, borderRadius: 16 }} />
           </div>
           <div style={{ display: "flex", gap: 16 }}>
-            <div className="shimmer-block" style={{ flex: 1.4, height: 230, borderRadius: 16 }} />
-            <div className="shimmer-block" style={{ flex: 1,   height: 230, borderRadius: 16 }} />
+            <div className="shimmer-block" style={{ flex: 1.5, height: 230, borderRadius: 16 }} />
             <div className="shimmer-block" style={{ flex: 1,   height: 230, borderRadius: 16 }} />
           </div>
         </div>
@@ -474,7 +487,7 @@ export default function Dashboard() {
         {isMaintenance && <BannerBase gradient="linear-gradient(90deg,var(--orange),#92400e)" glowColor="rgba(224,120,0,.15)" label="⚠ Maintenance Mode Active" message="All alerts suppressed during scheduled maintenance." badge="MAINTENANCE" />}
 
         {/* Stat Cards */}
-        <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+        <div className="fadeUp" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
           {stats.map((s, i) => (
             <Card key={i} className="stat-card" style={{ padding: "22px 22px 18px" }}>
               <div className="stat-bg-icon">{s.icon}</div>
@@ -490,41 +503,34 @@ export default function Dashboard() {
 
         {/* Map Row */}
         <div className="fadeUp" style={{ display: "flex", gap: 16 }}>
-          {/* ✅ iotDevice null නම් LeftSidebar ඇතුලේ shimmer show වෙනවා */}
           <LeftSidebar sensors={sensors} iotDevice={iotDevice} />
           <Card style={{ flex: 1, padding: 0, overflow: "hidden", position: "relative", borderRadius: 16 }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)" }}>
-              <div style={{ fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", color: "var(--text)", letterSpacing: ".5px" }}>
-                <span className="live-dot" /> LIVE GEO-OPERATIONS DATA WINDOW
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)" }}>
+              <div style={{ fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", gap: 8, color: "var(--text)", letterSpacing: ".5px" }}>
+                <WarningIcon size={14} color="var(--orange)" />
+                <span>AI PREDICTED FLOOD RISK AREAS</span>
               </div>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: "3px 10px", borderRadius: 8, background: "var(--primary-bg)", color: "var(--primary)" }}>
+                FORECAST OVERLAY
+              </span>
             </div>
             <div style={{ height: "calc(100% - 49px)", minHeight: 380, position: "relative" }}>
-              <div className="map-scanner" />
-              <MapContainer center={[6.65, 80.25]} zoom={10} style={{ height: "100%", width: "100%" }} zoomControl={false}>
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
-                {sensors.map((s, i) => (
-                  <Marker key={i} position={s.coords}>
-                    <Popup>
-                      <div style={{ padding: 4, fontSize: 12, fontFamily: "Inter, sans-serif" }}>
-                        <strong style={{ color: "#0f172a" }}>{s.name} Telemetry Station</strong><br />
-                        <span style={{ color: s.color, fontWeight: 700 }}>Live Water Level: {s.actualLevel.toFixed(2)}m</span><br />
-                        <span style={{ fontSize: 10, color: "#64748b" }}>Status: {s.status.toUpperCase()}</span>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              <Suspense fallback={<MapLoading />}>
+                <AffectedMap layer="Map" />
+              </Suspense>
             </div>
           </Card>
         </div>
 
-        {/* Footer Row */}
+        {/* Footer Row — Live Alerts + Shelter Readiness (graph removed) */}
         <div className="fadeUp" style={{ display: "flex", gap: 16 }}>
 
           {/* Live Alerts */}
-          <Card style={{ flex: 1.4, padding: "20px 22px", borderRadius: 16 }}>
+          <Card style={{ flex: 1.5, padding: "20px 22px", borderRadius: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: ".6px" }}>Live Operational Alerts Stream</div>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: ".6px" }}>
+                Live Operational Alerts Stream
+              </div>
               <span style={{ fontSize: 9, fontWeight: 800, padding: "3px 10px", borderRadius: 8, background: "var(--green-bg)", color: "var(--green)" }}>LIVE FEED</span>
             </div>
             {liveAlerts.length === 0
@@ -552,54 +558,8 @@ export default function Dashboard() {
             }
           </Card>
 
-          {/* Precipitation Chart */}
-          <Card style={{ flex: 1, padding: "22px 24px", borderRadius: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: ".6px" }}>Precipitation Trend</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", background: "var(--green-bg)", padding: "4px 10px", borderRadius: 8 }}>+12% vs last 6h</div>
-            </div>
-            <div style={{ width: "100%", height: 135, fontSize: 10, fontWeight: 600, minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 5, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="premiumRainGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#1a52cc" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#1a52cc" stopOpacity={0.01} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="time" stroke="#94a3b8" tickLine={false} axisLine={false} dy={8} style={{ fontWeight: 700 }} />
-                  <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} domain={[0, 160]} tickFormatter={v => `${v}mm`} />
-                  <Tooltip contentStyle={{ background: "#0f172a", borderRadius: 10, color: "#fff", border: "none", fontSize: 11, fontWeight: 700 }} />
-                  <Area type="monotone" dataKey="rainfall" stroke="#1a52cc" strokeWidth={3} fillOpacity={1} fill="url(#premiumRainGrad)" dot={{ stroke: "#1a52cc", strokeWidth: 2, fill: "#fff", r: 3 }} activeDot={{ r: 5, strokeWidth: 0, fill: "#ff4d4d" }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          {/* Shelter Readiness */}
-          <Card style={{ flex: 1, padding: "20px 22px", borderRadius: 16 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text)", marginBottom: 16, textTransform: "uppercase", letterSpacing: ".5px" }}>Shelter Readiness</div>
-            {liveShelters.length === 0
-              ? <div style={{ padding: 30, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>No evacuation shelters registered in system.</div>
-              : liveShelters.map((z, i) => (
-                  <div key={i} className="row-item">
-                    <div style={{ fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--primary-bg)", color: "var(--primary)", width: 32, height: 32, borderRadius: 8, fontWeight: 700 }}>
-                      <ShelterTypeIcon type={z.location_type} size={16} color="var(--primary)" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 12.5, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{z.location_name}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
-                        <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600 }}>{z.max_capacity} Max Cap</span>
-                        <span style={{ color: "var(--border-mid)" }}>•</span>
-                        <span style={{ color: "var(--green)", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".4px" }}>{z.location_type}</span>
-                      </div>
-                    </div>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 7px var(--green)", flexShrink: 0 }} />
-                  </div>
-                ))
-            }
-          </Card>
+          {/* Shelter Readiness — top 3 default, expand on click */}
+          <ShelterReadiness liveShelters={liveShelters} />
 
         </div>
       </div>
