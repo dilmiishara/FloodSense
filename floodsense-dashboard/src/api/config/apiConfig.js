@@ -30,3 +30,6 @@ export const WEATHER_API = {
   BASE_URL: "https://api.weatherapi.com/v1",
   RATNAPURA_COORDS: "6.6828,80.3992",
 };
+
+// ─── EMERGENCY MODE ───────────────────────────────────────────────────────────
+export const EMERGENCY_TOGGLE_API = `${API_BASE_URL}/emergency/toggle`;
