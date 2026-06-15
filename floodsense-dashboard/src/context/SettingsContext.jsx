@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { fetchSettings, saveSettings } from "../api/settings";
+import { toggleEmergency } from "../api/services/emergencyService.js";
 
 // 1. Create the context
 const SettingsContext = createContext();
@@ -45,16 +46,38 @@ useEffect(() => {
   // Toggle emergency mode from Header OR Settings page
 
 
-  const toggleEmergencyMode = async () => {
-  // Force current value to real boolean first, then flip
-  const current = systemSettings.emergency_mode === true || 
-                  systemSettings.emergency_mode === "true" || 
-                  systemSettings.emergency_mode === "1" || 
-                  systemSettings.emergency_mode === 1;
-  const newVal = !current;
-  setSystemSettings((prev) => ({ ...prev, emergency_mode: newVal }));
-  await saveSettings("system", { emergency_mode: newVal });
-};
+    const toggleEmergencyMode = async () => {
+
+        console.log('🚨 toggleEmergencyMode called!'); // ← Add this
+        console.log('toggleEmergency function:', typeof toggleEmergency);
+
+
+        const current = systemSettings.emergency_mode === true ||
+            systemSettings.emergency_mode === "true" ||
+            systemSettings.emergency_mode === "1" ||
+            systemSettings.emergency_mode === 1;
+        const newVal = !current;
+
+        // Update local state immediately
+        setSystemSettings((prev) => ({ ...prev, emergency_mode: newVal }));
+
+        // Save to database
+        await saveSettings("system", { emergency_mode: newVal });
+
+        // ✅ Send FCM notifications via Laravel
+        try {
+            const response = await toggleEmergency(newVal);
+
+            if (response.data.success) {
+                console.log('Emergency notifications sent:', response.data.message);
+                console.log(`Sent: ${response.data.sent}, Failed: ${response.data.failed}`);
+            } else {
+                console.error('Emergency notification failed:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Emergency toggle error:', error);
+        }
+    };
 
 const toggleMaintenanceMode = async () => {
   const current = systemSettings.maintenance_mode === true || 
