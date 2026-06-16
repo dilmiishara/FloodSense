@@ -23,6 +23,16 @@ const toHHMM = (ts) => {
   return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
 };
 
+const toDateHHMM = (ts) => {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  return d.toLocaleString("en-GB", {
+    day: "2-digit", month: "short",
+    hour: "2-digit", minute: "2-digit",
+    hour12: false,
+  });
+};
+
 // ── 12H Risk Timeline bar ─────────────────────────────────────────────────────
 const RiskTimeline = ({ rows }) => {
   const [hovered, setHovered] = useState(null);
@@ -142,8 +152,7 @@ const StationCard = ({ station, rows }) => {
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{station.label}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-              {station.river} · {rows.length} hourly forecasts
-            </div>
+{station.river} · {toDateHHMM(rows[0]?.forecast_time)} → {toDateHHMM(rows[rows.length - 1]?.forecast_time)}            </div>
           </div>
           <Badge type={worstRisk.badge}>{worstRisk.short}</Badge>
         </div>
