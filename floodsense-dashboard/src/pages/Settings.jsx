@@ -81,8 +81,8 @@ export default function Settings() {
 
   // ── Tabs (horizontal, like other pages) ───────────────────────────
   const tabs = [
-    { id: "system", label: "System Settings" },
-    { id: "sensor", label: "Sensor Config"   },
+    // { id: "system", label: "System Settings" },
+    // { id: "sensor", label: "Sensor Config"   },
   ];
 
   // ── Shared sub-components ─────────────────────────────────────────
@@ -129,10 +129,10 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* ── Horizontal Tab Bar (matches all other pages) ── */}
+              {/* ── Horizontal Tab Bar (matches all other pages) ──
               <div className="fadeUp">
                 <TabBar tabs={tabs} active={section} onChange={setSection} />
-              </div>
+              </div> */}
 
               {/* ── Content ── */}
               <div className="fadeUp">
