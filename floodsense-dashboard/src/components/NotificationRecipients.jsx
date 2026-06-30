@@ -4,6 +4,7 @@ import { Card } from "../shared.jsx";
 import {
     UserCheck, MessageSquare,
     Phone, X, MapPin, Mail, Search,
+    ShieldCheck, Building2,
 } from "lucide-react";
 
 export default function NotificationRecipients() {
@@ -211,137 +212,184 @@ export default function NotificationRecipients() {
                 </table>
             </Card>
 
-            {/* ── Side Drawer ── */}
+            {/* ── Officer Detail Modal ── */}
             {selected && (
-                <>
-                    {/* Backdrop */}
+                <div
+                    onClick={() => setSelected(null)}
+                    style={{
+                        position: "fixed", inset: 0,
+                        background: "rgba(15,27,61,0.45)",
+                        backdropFilter: "blur(6px)",
+                        zIndex: 2000,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        padding: 20,
+                        animation: "fadeInOverlay 0.2s ease",
+                    }}
+                >
                     <div
-                        onClick={() => setSelected(null)}
+                        onClick={e => e.stopPropagation()}
                         style={{
-                            position: "fixed",
-                            top: 72, left: 0, right: 0, bottom: 0,
-                            background: "rgba(15,27,61,0.35)",
-                            backdropFilter: "blur(5px)",
-                            zIndex: 999,
+                            width: "100%", maxWidth: 440,
+                            background: "var(--surface)",
+                            borderRadius: 22,
+                            boxShadow: "0 24px 70px rgba(15,27,61,0.28)",
+                            overflow: "hidden",
+                            animation: "popInModal 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
                         }}
-                    />
-
-                    {/* Drawer */}
-                    <div style={{
-                        position: "fixed",
-                        top: 72, right: 0,
-                        width: 380,
-                        height: "calc(100% - 72px)",
-                        background: "var(--surface)",
-                        zIndex: 1000,
-                        boxShadow: "-8px 0 40px rgba(0,0,0,0.12)",
-                        display: "flex", flexDirection: "column",
-                        overflow: "hidden",
-                        borderLeft: "1px solid var(--border)",
-                    }}>
-
-                        {/* ── Drawer Header ── */}
+                    >
+                        {/* ── Modal Header (banner) ── */}
                         <div style={{
-                            padding: "20px 24px",
-                            borderBottom: "1px solid var(--border)",
-                            display: "flex", justifyContent: "space-between",
-                            alignItems: "center",
-                            background: "var(--surface-alt)",
+                            position: "relative",
+                            padding: "30px 28px 24px",
+                            background: `linear-gradient(135deg, ${getRoleColor(selected.role)} 0%, ${getRoleColor(selected.role)}cc 100%)`,
                         }}>
-                            <div>
-                                <div style={{ fontSize: 15, fontWeight: 900, color: "var(--text)", letterSpacing: -0.3 }}>
-                                    Officer Detail
-                                </div>
-                                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
-                                    {selected.first_name} {selected.last_name}
-                                </div>
-                            </div>
                             <button
                                 onClick={() => setSelected(null)}
                                 style={{
-                                    border: "none", background: "var(--border)",
+                                    position: "absolute", top: 18, right: 18,
+                                    border: "none", background: "rgba(255,255,255,0.18)",
                                     borderRadius: "50%", width: 30, height: 30,
                                     display: "flex", alignItems: "center",
                                     justifyContent: "center", cursor: "pointer",
-                                    color: "var(--text-muted)",
+                                    color: "#fff", transition: "background .15s",
                                 }}
+                                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
+                                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.18)"}
                             >
                                 <X size={15} />
                             </button>
-                        </div>
 
-                        {/* ── Drawer Body ── */}
-                        <div style={{
-                            padding: 24, display: "flex",
-                            flexDirection: "column", gap: 14,
-                            overflowY: "auto", flex: 1,
-                        }}>
-
-                            {/* Profile Card */}
                             <div style={{
-                                padding: "18px 20px", borderRadius: 14,
-                                background: getRoleBadgeBg(selected.role),
-                                borderLeft: `5px solid ${getRoleColor(selected.role)}`,
-                                display: "flex", alignItems: "center", gap: 16,
-                                marginBottom: 4,
+                                fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.85)",
+                                textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 16,
                             }}>
+                                Officer Profile
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                                 <div style={{
-                                    width: 52, height: 52, borderRadius: 14,
-                                    background: getRoleColor(selected.role),
+                                    width: 64, height: 64, borderRadius: 16,
+                                    background: "rgba(255,255,255,0.16)",
+                                    border: "2px solid rgba(255,255,255,0.35)",
                                     display: "flex", alignItems: "center",
                                     justifyContent: "center", flexShrink: 0,
-                                    fontSize: 18, fontWeight: 900, color: "#fff",
+                                    fontSize: 22, fontWeight: 950, color: "#fff",
+                                    letterSpacing: -0.5,
                                 }}>
                                     {getInitials(selected.first_name, selected.last_name)}
                                 </div>
-                                <div>
+                                <div style={{ minWidth: 0 }}>
                                     <div style={{
-                                        fontSize: 11, fontWeight: 800,
-                                        color: getRoleColor(selected.role),
-                                        textTransform: "uppercase", letterSpacing: 0.8,
-                                    }}>
-                                        {getRoleLabel(selected.role)}
-                                    </div>
-                                    <div style={{
-                                        fontSize: 18, fontWeight: 950,
-                                        color: "var(--text)", marginTop: 4, letterSpacing: -0.4,
+                                        fontSize: 19, fontWeight: 950, color: "#fff",
+                                        letterSpacing: -0.4, lineHeight: 1.2,
+                                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                                     }}>
                                         {selected.first_name} {selected.last_name}
                                     </div>
+                                    <div style={{
+                                        display: "inline-flex", alignItems: "center", gap: 5,
+                                        marginTop: 8, padding: "4px 10px", borderRadius: 7,
+                                        background: "rgba(255,255,255,0.2)",
+                                    }}>
+                                        <ShieldCheck size={12} color="#fff" />
+                                        <span style={{ fontSize: 11, fontWeight: 800, color: "#fff" }}>
+                                            {getRoleLabel(selected.role)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* Detail Rows */}
-                            {[
-                                { label: "Phone",         value: selected.telephone || "Not Available" },
-                                { label: "Email",         value: selected.email },
-                                { label: "Area",          value: selected.area?.name || "All Areas" },
-                                { label: "Role",          value: getRoleLabel(selected.role) },
-                                { label: "Alert Channel", value: "SMS Active" },
-                            ].map((item, i) => (
-                                <div key={i} style={{
-                                    display: "flex", justifyContent: "space-between",
-                                    alignItems: "center", padding: "12px 0",
-                                    borderBottom: "1px solid var(--border)",
-                                }}>
-                                    <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 700 }}>
-                                        {item.label}
-                                    </span>
-                                    <span style={{
-                                        fontSize: 13, color: "var(--text)", fontWeight: 800,
-                                        maxWidth: 200, textAlign: "right", wordBreak: "break-all",
-                                    }}>
-                                        {item.value}
-                                    </span>
-                                </div>
-                            ))}
                         </div>
 
-                        {/* ── Drawer Footer ── */}
+                        {/* ── Modal Body ── */}
                         <div style={{
-                            padding: "16px 24px",
-                            borderTop: "1px solid var(--border)",
-                            background: "var(--surface-alt)",
+                            padding: "22px 28px", display: "flex",
+                            flexDirection: "column", gap: 4,
+                            maxHeight: "50vh", overflowY: "auto",
+                        }}>
+                            <div style={{
+                                fontSize: 11, fontWeight: 800, color: "var(--text-muted)",
+                                textTransform: "uppercase", letterSpacing: 0.8,
+                                marginBottom: 10,
+                            }}>
+                                Contact Information
+                            </div>
+
+                            {[
+                                { label: "Phone",  value: selected.telephone || "Not Available", icon: <Phone size={14} /> },
+                                { label: "Email",  value: selected.email || "Not Available",      icon: <Mail size={14} /> },
+                                { label: "Area",   value: selected.area?.name || "All Areas",     icon: <Building2 size={14} /> },
+                            ].map((item, i) => (
+                                <div key={i} style={{
+                                    display: "flex", alignItems: "center", gap: 12,
+                                    padding: "13px 14px", borderRadius: 12,
+                                    background: "var(--surface-alt)",
+                                    border: "1px solid var(--border)",
+                                    marginBottom: 8,
+                                }}>
+                                    <div style={{
+                                        width: 32, height: 32, borderRadius: 9,
+                                        background: getRoleBadgeBg(selected.role),
+                                        color: getRoleColor(selected.role),
+                                        display: "flex", alignItems: "center",
+                                        justifyContent: "center", flexShrink: 0,
+                                    }}>
+                                        {item.icon}
+                                    </div>
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                                            {item.label}
+                                        </div>
+                                        <div style={{
+                                            fontSize: 13, color: "var(--text)", fontWeight: 800,
+                                            marginTop: 2, overflow: "hidden",
+                                            textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                        }}>
+                                            {item.value}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <div style={{
+                                fontSize: 11, fontWeight: 800, color: "var(--text-muted)",
+                                textTransform: "uppercase", letterSpacing: 0.8,
+                                margin: "14px 0 10px",
+                            }}>
+                                Alert Settings
+                            </div>
+
+                            <div style={{
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                padding: "13px 14px", borderRadius: 12,
+                                background: "#e8f5e9", border: "1px solid #c8e6c9",
+                            }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <div style={{
+                                        width: 32, height: 32, borderRadius: 9,
+                                        background: "#c8e6c9", color: "#2e7d32",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                    }}>
+                                        <MessageSquare size={14} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: 13, fontWeight: 800, color: "#2e7d32" }}>
+                                            SMS Notifications
+                                        </div>
+                                        <div style={{ fontSize: 10, color: "#4caf6b", marginTop: 1 }}>
+                                            Receiving real-time alerts
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{
+                                    width: 8, height: 8, borderRadius: "50%",
+                                    background: "#2e7d32",
+                                }} className="pulse" />
+                            </div>
+                        </div>
+
+                        {/* ── Modal Footer ── */}
+                        <div style={{
+                            padding: "16px 28px 26px",
                             display: "flex", gap: 10,
                         }}>
                             <button
@@ -352,6 +400,7 @@ export default function NotificationRecipients() {
                                     background: "var(--surface)",
                                     color: "var(--text-mid)",
                                     fontSize: 13, fontWeight: 800, cursor: "pointer",
+                                    transition: "background .15s",
                                 }}
                             >
                                 Close
@@ -361,19 +410,35 @@ export default function NotificationRecipients() {
                                     const clean = (selected.telephone || "").replace(/\s/g, "");
                                     window.location.href = `tel:${clean}`;
                                 }}
+                                disabled={!selected.telephone}
                                 style={{
                                     flex: 2, padding: "12px", borderRadius: 12,
-                                    border: "none", background: "var(--green)", color: "#fff",
-                                    fontSize: 13, fontWeight: 800, cursor: "pointer",
+                                    border: "none",
+                                    background: selected.telephone ? "var(--green)" : "var(--border)",
+                                    color: "#fff",
+                                    fontSize: 13, fontWeight: 800,
+                                    cursor: selected.telephone ? "pointer" : "not-allowed",
                                     display: "flex", alignItems: "center",
                                     justifyContent: "center", gap: 8,
+                                    boxShadow: selected.telephone ? "0 4px 14px rgba(46,125,50,0.25)" : "none",
                                 }}
                             >
                                 <Phone size={15} /> Call Officer
                             </button>
                         </div>
                     </div>
-                </>
+
+                    <style>{`
+                        @keyframes fadeInOverlay {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes popInModal {
+                            from { transform: scale(0.94) translateY(10px); opacity: 0; }
+                            to { transform: scale(1) translateY(0); opacity: 1; }
+                        }
+                    `}</style>
+                </div>
             )}
         </div>
     );

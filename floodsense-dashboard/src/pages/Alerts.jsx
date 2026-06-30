@@ -28,7 +28,7 @@ const todayStr = () => toLocalDateStr(new Date());
 
 export default function Alerts() {
     const toast = useToast();
-    const [tab, setTab] = useState("active");
+    const [tab, setTab] = useState("predictions");
     const [activeAlerts, setActiveAlerts] = useState([]);
     const [historyAlerts, setHistoryAlerts] = useState([]);
     const [areas, setAreas] = useState([]);
@@ -52,9 +52,9 @@ export default function Alerts() {
     const [predictions, setPredictions] = useState([]);
 
     const tabs = [
+        { id: "predictions", label: "Predictive Alerts"       },
         { id: "active",      label: "Active Alerts"          },
         { id: "history",     label: "Alert History"           },
-        { id: "predictions", label: "Predictive Alerts"       },
         { id: "thresholds",  label: "Alert Thresholds"        },
         { id: "recipients",  label: "Notification Recipients" },
     ];
@@ -307,6 +307,9 @@ export default function Alerts() {
                         </div>
 
                         <TabBar tabs={tabs} active={tab} onChange={setTab} />
+
+
+                        
 
                         {/* ══ ACTIVE ALERTS TAB ══ */}
                         {tab === "active" && (

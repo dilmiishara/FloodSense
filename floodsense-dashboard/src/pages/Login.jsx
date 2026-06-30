@@ -197,8 +197,8 @@ function Login() {
             {/* Sensor status pills */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
-                { label: "Colombo Network", dot: "#4d82f0" },
-                { label: "Southern Sensors", dot: "#3dc47a" },
+                { label: "Sabaragamuwa Network", dot: "#4d82f0" },
+                { label: "Ratnapura District", dot: "#3dc47a" },
                 { label: "Central Hub", dot: "#3dc47a" },
               ].map(({ label, dot }) => (
                 <div key={label} style={{
