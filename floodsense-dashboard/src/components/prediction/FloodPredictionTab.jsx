@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, Badge } from "../../shared.jsx";
 
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+const BASE = import.meta.env.VITE_API_URL ?? "https://floodsense-api-389447895642.asia-southeast1.run.app0/api";
 
 const STATIONS = [
   { id: "ellagawa",   label: "Ellagawa",   river: "Kalu Ganga", thresholds: { alert: 10.00, minor: 10.70, major: 12.20 } },

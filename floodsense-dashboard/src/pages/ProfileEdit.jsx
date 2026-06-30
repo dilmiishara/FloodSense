@@ -39,7 +39,7 @@ export default function ProfileEdit() {
   const handleUpdate = async () => {
     setLoading(true);
     try {
-      const response = await axios.put("http://127.0.0.1:8000/api/user/profile", formData, {
+      const response = await axios.put("https://floodsense-api-389447895642.asia-southeast1.run.app0/api/user/profile", formData, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       localStorage.setItem("user", JSON.stringify(response.data.user));
