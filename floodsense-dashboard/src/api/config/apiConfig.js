@@ -1,4 +1,4 @@
-export const API_BASE_URL = "ev";
+export const API_BASE_URL = "https://floodsense-api-389447895642.asia-southeast1.run.app/api";
 export const POSTS_API = `${API_BASE_URL}/posts`;
 
 // ─── USER MANAGEMENT ENDPOINTS ──────────────────────────────────────────────

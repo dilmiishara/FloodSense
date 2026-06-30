@@ -323,7 +323,7 @@ export default function Prediction() {
                     AI-powered flood risk forecasting · FloodSense ML v2.1 · Last updated: 21 Mar 2026, 14:32 LKT
                   </div>
                 </div>
-                <div style={{ display:"flex", gap:6 }}>
+                {/* <div style={{ display:"flex", gap:6 }}>
                   {["Next 12H"].map((t) => (
                       <button key={t} onClick={() => setTime(t)} style={{
                         padding:"7px 14px", borderRadius:20, fontSize:12, fontWeight:700, cursor:"pointer",
@@ -332,7 +332,7 @@ export default function Prediction() {
                         color:      timeRange === t ? "#fff"               : "var(--text-mid)",
                       }}>{t}</button>
                   ))}
-                </div>
+                </div> */}
               </div>
 
               <TabBar tabs={tabs} active={tab} onChange={setTab} />
@@ -347,7 +347,7 @@ export default function Prediction() {
                           <div style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>Kalu Ganga - Real-time Station Water Levels</div>
                           <div style={{ fontSize:11, color:"var(--text-muted)", marginTop:2 }}>Live sensor readings · Kalu Ganga basin · Auto-refresh 30s</div>
                         </div>
-                        <div style={{ display:"flex", gap:6 }}>
+                        {/* <div style={{ display:"flex", gap:6 }}>
                           {["24H","48H","7D"].map((r) => (
                               <button key={r} style={{
                                 padding:"5px 14px", borderRadius:20, fontSize:11, fontWeight:700, cursor:"pointer",
@@ -356,7 +356,7 @@ export default function Prediction() {
                                 color:      r === "48H" ? "#fff"               : "var(--text-mid)",
                               }}>{r}</button>
                           ))}
-                        </div>
+                        </div> */}
                       </div>
 
                       {/* Live station cards */}

@@ -43,7 +43,7 @@ export default function Reports() {
     reportType: "Alert History Report", areaId: "", fromDate: "", toDate: "",
   });
 
-  const BASE_URL = "https://floodsense-api-389447895642.asia-southeast1.run.app0";
+  const BASE_URL = "https://floodsense-api-389447895642.asia-southeast1.run.app";
   const tabs = [
     { id: "generate", label: "Generate Report" },
     { id: "archive",  label: "Report Archive"  },

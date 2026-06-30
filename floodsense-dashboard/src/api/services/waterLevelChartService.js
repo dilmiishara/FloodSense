@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL ?? 'https://floodsense-api-389447895642.asia-southeast1.run.app0/api';
+const BASE = import.meta.env.VITE_API_URL ?? 'https://floodsense-api-389447895642.asia-southeast1.run.app/api';
 
 export async function fetchStationHistory(stationName) {
   const res = await fetch(`${BASE}/water-level-history/${encodeURIComponent(stationName)}`);
